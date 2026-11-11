@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Offers Page Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+/* Layout: a preview tool. Left: spacing controls. Right: a stage that shows a mock of
+   tickets.vibecity.art's Offers view at a chosen device width (scaled to fit), with the
+   Sponsor Drops block inserted under the offers panel. Site measurements were read from the
+   live page: 3.5vw page gutter (16px on phones), panel padding 36px / 3.2vw (22px / 12px on phones). */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: #050505; color: var(--fg); font: 400 14px/1.4 var(--font-body);
+  -webkit-font-smoothing: antialiased; display: flex; flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+a { color: inherit; }
+
+/* ---------- Tool chrome ---------- */
+.pv-bar {
+  flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--night); border-bottom: 1px solid var(--line);
+}
+.pv-title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.pv-title strong { font: 900 24px/1 var(--font-display); text-transform: uppercase; }
+.pv-title strong em { font-style: normal; color: var(--ember); }
+.pv-title span { font: 700 11px/1.25 var(--font-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  appearance: none; cursor: pointer; height: 32px; padding: 0 12px; border-radius: 2px;
+  font: 800 11px/1 var(--font-body); letter-spacing: .06em; text-transform: uppercase;
+  background: transparent; color: var(--fg); border: 1px solid var(--line-strong);
+}
+.chip:hover { border-color: var(--fg); }
+.chip[aria-pressed="true"] { background: var(--ember); border-color: var(--ember); color: var(--on-brand); }
+.links { display: flex; gap: 8px; }
+.pill {
+  display: inline-flex; align-items: center; height: 32px; padding: 0 16px; border-radius: 100px; text-decoration: none;
+  font: 700 11px/1 var(--font-body); letter-spacing: .08em; text-transform: uppercase;
+  border: 1px solid color-mix(in srgb, var(--fg) 48%, transparent);
+}
+.pill:hover { border-color: var(--fg); }
+
+.pv-main { flex: 1; min-height: 0; display: grid; grid-template-columns: 330px minmax(0, 1fr); }
+.controls {
+  min-height: 0; overflow: auto; overscroll-behavior: contain; background: var(--raised); border-right: 1px solid var(--line-strong);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.sec { padding: 18px 20px; display: grid; gap: 10px; }
+.sec + .sec { border-top: 1px solid var(--line); }
+.sec h2 { margin: 0; font: 800 18px/1 var(--font-display); text-transform: uppercase; }
+.row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.lbl { font: 700 11px/1.25 var(--font-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.val { font: 900 20px/1 var(--font-display); color: var(--fg); font-variant-numeric: tabular-nums; }
+.val small { font: 700 11px/1 var(--font-body); color: var(--muted); margin-left: 2px; }
+input[type=range] { width: 100%; accent-color: var(--ember); }
+.seg { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.seg .chip { padding: 0; }
+.check { display: flex; align-items: center; gap: 10px; font: 600 13px/1.3 var(--font-body); cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--ember); }
+.note { margin: 0; font-size: 12px; line-height: 1.45; color: var(--muted); }
+.readout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.readout div { background: var(--warm); border: 1px solid var(--line-strong); padding: 10px 12px; min-width: 0; }
+.readout dt { font: 700 10px/1.25 var(--font-body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.readout dd { margin: 4px 0 0; font: 900 22px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.readout dd.hot { color: var(--ember); }
+.formula { font: 12px/1.5 ui-monospace, Menlo, monospace; color: var(--fg-soft); background: var(--night); border: 1px solid var(--line-strong); padding: 10px 12px; overflow-x: auto; white-space: pre; }
+.sbtn {
+  appearance: none; cursor: pointer; border-radius: 2px; padding: 11px 12px; font: 800 12px/1 var(--font-body); letter-spacing: .045em; text-transform: uppercase;
+  background: transparent; color: var(--fg); border: 1px solid var(--fg); justify-self: start;
+}
+.sbtn:hover { background: rgba(245, 242, 233, .08); }
+
+.stage { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 20px; background:
+  repeating-linear-gradient(45deg, rgba(255,255,255,.025) 0 10px, transparent 10px 20px), #070707; }
+.stage-info { display: flex; justify-content: center; gap: 12px; margin-bottom: 12px; font: 700 11px/1.25 var(--font-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.scaler { position: relative; margin: 0 auto; }
+.device {
+  position: absolute; top: 0; left: 0; transform-origin: top left;
+  container-type: inline-size; overflow: hidden; box-shadow: 0 0 0 1px var(--line-strong), var(--shadow-modal);
+}
+
+/* ---------- Mock of the tickets.vibecity.art Offers view (inside .device) ---------- */
+.site {
+  --gutter: max(16px, 3.5cqi);
+  --pad-x: 3.2cqi; --pad-top: 36px;
+  position: relative; background: #000; color: #f5f2e9; font: 400 15px/1.52 "DM Sans", Arial, sans-serif;
+  padding: 0 var(--gutter);
+}
+.site::before { /* the site's dimmed event photo behind the Offers view, stood in by a warm gradient */
+  content: ""; position: absolute; inset: 0 0 auto; height: 1000px; pointer-events: none;
+  background: radial-gradient(ellipse at 85% 10%, rgba(255,73,55,.16), transparent 50%),
+              linear-gradient(180deg, #2a2620 0%, #17140f 45%, #000 100%);
+  opacity: .9;
+}
+.site > * { position: relative; }
+.s-top {
+  display: flex; align-items: center; justify-content: space-between; height: 68px;
+  margin: 0 calc(-1 * var(--gutter)); padding: 0 max(16px, 3cqi);
+  background: rgba(10,10,9,.9); border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.s-top img { height: 44px; width: auto; display: block; }
+.s-nav { display: flex; gap: 6px; }
+.s-nav span { padding: 8px 12.8px; font: 600 14px/1.3 "DM Sans", Arial, sans-serif; text-transform: uppercase; }
+.s-nav .on { color: #ff4937; }
+.s-burger { width: 44px; height: 44px; border: 1px solid rgba(255,255,255,.6); display: grid; place-items: center; font-size: 20px; }
+.panel { margin-top: 20px; background: rgba(20,19,19,.5); border: 1px solid rgba(255,255,255,.125); padding: var(--pad-top) var(--pad-x) 10px; }
+.p-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+.p-head h3 { margin: 0; font: 900 38.4px/1 "Barlow Condensed", Impact, sans-serif; text-transform: uppercase; }
+.p-head p { margin: 0; font-size: 14px; color: #e4dcd6; }
+.tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,.18); }
+.tab { border: 1px solid rgba(255,255,255,.18); background: rgba(20,19,19,.6); padding: 14px 16px; min-width: 0; }
+.tab.on { background: #e8e0d4; color: #0b0b0b; box-shadow: inset 0 -3px 0 #ff4937; }
+.tab b { display: block; font: 900 22px/1 "Barlow Condensed", Impact, sans-serif; }
+.tab span { display: block; font-size: 13px; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tab i { display: block; font: 700 12px/1.5 "DM Sans", Arial, sans-serif; letter-spacing: .08em; font-style: normal; opacity: .6; }
+.feature { display: grid; grid-template-columns: 1.15fr 1fr; margin-top: 12px; min-height: 380px; }
+.photo { background: linear-gradient(160deg, #3a2a1c, #1a120c 60%, #0d0a08); position: relative; display: flex; align-items: flex-end; padding: 24px; }
+.photo strong { font: 900 44px/1 "Barlow Condensed", Impact, sans-serif; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
+.photo em { position: absolute; top: 22px; left: 22px; background: #f5f2e9; color: #0b0b0b; padding: 8px 12px; font: 700 13px/1 "DM Sans", Arial, sans-serif; letter-spacing: .08em; font-style: normal; }
+.details { background: rgba(20,19,19,.75); border-left: 1px solid rgba(255,255,255,.12); padding: 28px 36px; display: grid; gap: 12px; align-content: start; }
+.details b { color: #ff4937; font: 600 14px/1.3 "DM Sans", Arial, sans-serif; letter-spacing: .1em; }
+.details p { margin: 0; font-size: 14px; color: #e4dcd6; }
+.details .cta { margin-top: 10px; background: #e3463a; color: #0b0b0b; text-align: center; padding: 14px; font: 700 14px/1 "DM Sans", Arial, sans-serif; letter-spacing: .12em; }
+.dest { display: flex; justify-content: center; gap: 12px; margin-top: 16px; padding-bottom: 6px; }
+.dest span { border: 1px solid rgba(194,169,146,.46); padding: 11px 20px; font: 700 14px/1 "DM Sans", Arial, sans-serif; letter-spacing: .12em; }
+
+/* The new block */
+.drops { position: relative; }
+.drops.mark { outline: 2px dashed #ff4937; outline-offset: 6px; }
+.drops .tag {
+  position: absolute; top: -13px; left: 16px; background: #ff4937; color: #0b0b0b; padding: 5px 9px;
+  font: 800 10px/1 "DM Sans", Arial, sans-serif; letter-spacing: .1em; text-transform: uppercase;
+}
+.drops:not(.mark) .tag { display: none; }
+.drops-frame { display: block; width: 100%; border: 0; height: 480px; margin: 0 auto; background: transparent; transition: height .35s cubic-bezier(.23,1,.32,1); }
+.guide { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,73,55,.55); pointer-events: none; }
+.guides:not(.on) { display: none; }
+
+.partners { padding: 90px 0 70px; text-align: center; }
+.partners .eyebrow { color: #ff4937; font: 600 14px/1.3 "DM Sans", Arial, sans-serif; letter-spacing: .14em; }
+.partners h3 { margin: 12px 0 8px; font: 900 40px/1 "Barlow Condensed", Impact, sans-serif; }
+.partners p { margin: 0; font-size: 14px; color: #c9c5be; }
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin: 40px 3cqi 0; }
+.tiles div { height: 150px; border: 1px solid rgba(255,255,255,.12); background: repeating-linear-gradient(120deg, #141414 0 14px, #171717 14px 28px); display: grid; place-items: end center; padding-bottom: 28px; font-size: 15px; letter-spacing: .08em; color: #c9c5be; }
+
+@container (max-width: 699px) {
+  .site { --pad-x: 12px; --pad-top: 22px; }
+  .s-top { height: auto; flex-wrap: wrap; padding: 10px 16px 0; }
+  .s-nav { order: 3; width: 100%; justify-content: space-between; padding: 8px 0 10px; }
+  .s-nav span { padding: 8px 2px; font-size: 15px; }
+  .p-head { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .p-head h3 { font-size: 30px; }
+  .tab { padding: 10px; }
+  .tab b { font-size: 15px; }
+  .feature { grid-template-columns: 1fr; }
+  .photo { min-height: 260px; }
+  .details { border-left: 0; padding: 20px 16px; }
+  .tiles { grid-template-columns: 1fr; margin: 30px 0 0; }
+  .partners h3 { font-size: 34px; }
+}
+
+@media (max-width: 860px) {
+  .pv-main { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .controls { max-height: 42vh; border-right: 0; border-bottom: 1px solid var(--line-strong); }
+  .stage { padding: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .drops-frame { transition: none; } }
+</style>
+</head>
+<body>
+<header class="pv-bar">
+  <div class="pv-title"><strong>Offers page <em>preview</em></strong><span>tickets.vibecity.art · Sponsor Drops block</span></div>
+  <div class="presets" id="presets" role="group" aria-label="Device width presets"></div>
+  <div class="links"><a class="pill" href="index.html">Deck ↗</a><a class="pill" href="editor.html">Editor ↗</a></div>
+</header>
+
+<div class="pv-main">
+  <aside class="controls" aria-label="Spacing controls">
+    <section class="sec">
+      <h2>Device</h2>
+      <div class="row"><label class="lbl" for="devW">Device width</label><span class="val" id="devWOut">1280<small>px</small></span></div>
+      <input type="range" id="devW" min="320" max="1600" step="1" value="1280">
+      <div class="row"><label class="lbl" for="maxW">Max content width</label><span class="val" id="maxWOut">1600<small>px</small></span></div>
+      <input type="range" id="maxW" min="480" max="1600" step="10" value="1600">
+      <p class="note">Caps how wide the deck can spread on large screens. At 1600 there is no cap.</p>
+    </section>
+
+    <section class="sec">
+      <h2>Padding</h2>
+      <label class="check"><input type="checkbox" id="autoPad" checked>Match the site (3.5vw gutter, 3.2vw panel padding; 16px and 12px on phones)</label>
+      <div class="row"><label class="lbl" for="gutter">Page gutter</label><span class="val" id="gutterOut">45<small>px</small></span></div>
+      <input type="range" id="gutter" min="0" max="120" step="1" value="45" disabled>
+      <div class="row"><label class="lbl" for="pad">Block padding</label><span class="val" id="padOut">41<small>px</small></span></div>
+      <input type="range" id="pad" min="0" max="120" step="1" value="41" disabled>
+    </section>
+
+    <section class="sec">
+      <h2>Cards</h2>
+      <div class="row"><span class="lbl" id="colsLbl">Columns</span><span class="val" id="colsOut">5</span></div>
+      <div class="seg" id="cols" role="group" aria-labelledby="colsLbl"></div>
+      <div class="row"><label class="lbl" for="card">Card width</label><span class="val" id="cardOut">150<small>px</small></span></div>
+      <input type="range" id="card" min="70" max="300" step="1" value="150">
+    </section>
+
+    <section class="sec">
+      <h2>Spacing</h2>
+      <label class="check"><input type="checkbox" id="maximize" checked>Maximize the gap to fill the content width</label>
+      <div class="row"><label class="lbl" for="gapCap">Largest gap allowed</label><span class="val" id="gapCapOut">160<small>px</small></span></div>
+      <input type="range" id="gapCap" min="8" max="400" step="1" value="160">
+      <div class="row"><label class="lbl" for="gap">Gap</label><span class="val" id="gapOut">24<small>px</small></span></div>
+      <input type="range" id="gap" min="0" max="400" step="1" value="24" disabled>
+      <dl class="readout" id="readout"></dl>
+      <div class="formula" id="formula" aria-label="How the gap is worked out"></div>
+      <label class="check"><input type="checkbox" id="showGuides" checked>Show content edges</label>
+      <label class="check"><input type="checkbox" id="markBlock" checked>Outline the new block</label>
+      <button type="button" class="sbtn" id="copyCfg">Copy spacing settings</button>
+    </section>
+  </aside>
+
+  <main class="stage" id="stage">
+    <div class="stage-info"><span id="scaleInfo">100%</span><span id="countInfo"></span></div>
+    <div class="scaler" id="scaler">
+      <div class="device" id="device">
+        <div class="site">
+          <div class="s-top">
+            <img src="shared/vibe-city-logo.png" alt="Vibe City">
+            <div class="s-nav"><span>Tickets</span><span>Events</span><span class="on">Offers</span></div>
+            <div class="s-burger" aria-hidden="true">☰</div>
+          </div>
+
+          <section class="panel" aria-label="Existing offers section (mock)">
+            <div class="p-head"><h3>Your partner offers</h3><p>Explore published partner benefits.</p></div>
+            <div class="tabs">
+              <div class="tab on"><b>OFFER 01</b><i>DISCOUNT</i><span>Casa Verde</span></div>
+              <div class="tab"><b>OFFER 02</b><i>DISCOUNT</i><span>Dawata Wellness</span></div>
+              <div class="tab"><b>OFFER 03</b><i>DISCOUNT</i><span>Fictional partner concept</span></div>
+            </div>
+            <div class="feature">
+              <div class="photo"><em>COMING SOON</em><strong>Coming soon</strong></div>
+              <div class="details"><b>Casa Verde</b><p>69 Lim Tian Teng St., Cebu City</p><p>Coming soon. A bite before the music or a meal to share with friends.</p><div class="cta">COMING SOON</div></div>
+            </div>
+            <div class="dest"><span>EVENT</span><span>PARTNERS</span></div>
+          </section>
+
+          <section class="panel drops mark" id="dropsBlock" aria-label="New Sponsor Drops block">
+            <span class="tag">New block · Sponsor Drops</span>
+            <div class="p-head"><h3>Sponsor drops</h3><p>Limited coupons from our sponsors. Tap one to claim.</p></div>
+            <div class="guides on" id="guides"><span class="guide" id="gL"></span><span class="guide" id="gR"></span></div>
+            <iframe class="drops-frame" id="frame" src="index.html#embed" title="Sponsor Drops coupon deck"></iframe>
+          </section>
+
+          <section class="partners" aria-label="Next section (mock)">
+            <div class="eyebrow">THE PEOPLE BEHIND THE NIGHT</div>
+            <h3>IN GOOD COMPANY.</h3>
+            <p>Partners, artists &amp; sponsors</p>
+            <div class="tiles"><div>Partner</div><div>Sponsor</div><div>Sponsor</div></div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="shared/deck-core.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const PRESETS = [['Phone', 375], ['Phone L', 430], ['Tablet', 768], ['Laptop', 1280], ['Desktop', 1440]];
+const COLS = ['Auto', 1, 2, 3, 4, 5];
+const st = { devW: 1280, maxW: 1600, autoPad: true, gutter: 45, pad: 41, cols: 'Auto', card: 150, maximize: true, gapCap: 160, gap: 24 };
+let deckCount = DeckCore.load().count;
+let frameH = 480;
+let calc = null;
+
+/* ---------- The spacing model ----------
+   content = min(device − 2·gutter − 2·padding − 2·border, max content width)
+   gap(max) = (content − cols·card) ÷ (cols − 1), capped at "largest gap allowed"
+   If the cards don't fit at their width, they shrink so the row fits with an 8px gap. */
+function compute() {
+  const phone = st.devW < 700;
+  const gutter = st.autoPad ? (phone ? 16 : Math.max(16, st.devW * 0.035)) : st.gutter;
+  const pad = st.autoPad ? (phone ? 12 : st.devW * 0.032) : st.pad;
+  const avail = st.devW - 2 * gutter - 2 * pad - 2;
+  const content = Math.max(120, Math.min(avail, st.maxW));
+  const colsWanted = st.cols === 'Auto' ? (st.devW < 640 ? 3 : 5) : st.cols;
+  const cols = Math.max(1, Math.min(colsWanted, deckCount));
+  let card = st.card, minGap = cols > 1 ? 8 : 0;
+  if (cols * card + (cols - 1) * minGap > content) card = (content - (cols - 1) * minGap) / cols;
+  const gapMax = cols > 1 ? (content - cols * card) / (cols - 1) : 0;
+  const gap = cols > 1 ? (st.maximize ? Math.min(gapMax, st.gapCap) : Math.min(st.gap, gapMax)) : 0;
+  const rowsN = Math.ceil(deckCount / cols), base = Math.floor(deckCount / rowsN), extra = deckCount % rowsN;
+  const rows = Array.from({ length: rowsN }, (_, r) => base + (r < extra ? 1 : 0));
+  const used = cols * card + (cols - 1) * gap;
+  return { phone, gutter, pad, avail, content, cols, card, gap, gapMax, rows, used };
+}
+
+function post() {
+  const f = $('frame');
+  try { f.contentWindow.postMessage({ type: 'deck-config', cols: calc.cols, cardPx: calc.card, gapPx: calc.gap }, location.origin); } catch (e) { /* frame not ready */ }
+}
+
+function render() {
+  calc = compute();
+  const c = calc, r = Math.round;
+  // site padding into the mock
+  const site = document.querySelector('.site');
+  if (st.autoPad) { site.style.removeProperty('--gutter'); site.style.removeProperty('--pad-x'); }
+  else { site.style.setProperty('--gutter', st.gutter + 'px'); site.style.setProperty('--pad-x', st.pad + 'px'); }
+  $('frame').style.maxWidth = c.content + 'px';
+  // content-edge guides
+  const block = $('dropsBlock'), bw = block.clientWidth;
+  const left = (bw - c.content) / 2;
+  $('gL').style.left = left + 'px'; $('gR').style.left = (left + c.content) + 'px';
+  // readouts
+  $('devWOut').innerHTML = `${st.devW}<small>px</small>`;
+  $('maxWOut').innerHTML = st.maxW >= 1600 ? 'No cap' : `${st.maxW}<small>px</small>`;
+  $('gutterOut').innerHTML = `${r(c.gutter)}<small>px</small>`; $('padOut').innerHTML = `${r(c.pad)}<small>px</small>`;
+  if (st.autoPad) { $('gutter').value = r(c.gutter); $('pad').value = r(c.pad); }
+  $('colsOut').textContent = st.cols === 'Auto' ? `Auto · ${c.cols}` : c.cols;
+  $('cardOut').innerHTML = `${r(c.card)}<small>px</small>` + (c.card < st.card ? ' <small>(shrunk to fit)</small>' : '');
+  $('gapCapOut').innerHTML = `${st.gapCap}<small>px</small>`;
+  $('gap').max = Math.max(0, Math.floor(c.gapMax));
+  if (st.maximize) $('gap').value = r(c.gap);
+  $('gapOut').innerHTML = `${r(c.gap)}<small>px</small>`;
+  $('readout').innerHTML = '';
+  [['Content width', r(c.content) + 'px'], ['Grid width', r(c.used) + 'px'], ['Gap now', r(c.gap) + 'px', true], ['Max possible gap', r(c.gapMax) + 'px'],
+   ['Rows', c.rows.join(' – ')], ['Columns', c.cols]].forEach(([k, v, hot]) => {
+    const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt').textContent = k;
+    const dd = d.querySelector('dd'); dd.textContent = v; if (hot) dd.className = 'hot'; $('readout').appendChild(d);
+  });
+  $('formula').textContent =
+`content = min(${st.devW} − 2×${r(c.gutter)} − 2×${r(c.pad)} − 2, ${st.maxW >= 1600 ? '∞' : st.maxW}) = ${r(c.content)}
+max gap = (${r(c.content)} − ${c.cols}×${r(c.card)}) ÷ ${Math.max(1, c.cols - 1)} = ${r(c.gapMax)}
+gap     = ${st.maximize ? `min(${r(c.gapMax)}, cap ${st.gapCap})` : `manual ${st.gap}`} = ${r(c.gap)}`;
+  $('countInfo').textContent = `${deckCount} coupon${deckCount === 1 ? '' : 's'} in the deck`;
+  document.querySelectorAll('#presets .chip').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.w === st.devW)));
+  document.querySelectorAll('#cols .chip').forEach(b => b.setAttribute('aria-pressed', String(String(b.dataset.c) === String(st.cols))));
+  fit();
+  post();
+}
+
+/* ---------- Scale the device to the stage ---------- */
+function fit() {
+  const dev = $('device'), stage = $('stage');
+  dev.style.width = st.devW + 'px';
+  const availW = stage.clientWidth - 24;
+  const s = Math.min(1, availW / st.devW);
+  dev.style.transform = `scale(${s})`;
+  $('scaler').style.width = (st.devW * s) + 'px';
+  $('scaler').style.height = (dev.scrollHeight * s) + 'px';
+  $('scaleInfo').textContent = `${st.devW}px wide · shown at ${Math.round(s * 100)}%`;
+  // guides depend on the laid-out block width
+  const c = calc, block = $('dropsBlock'), bw = block.clientWidth, left = (bw - c.content) / 2;
+  $('gL').style.left = left + 'px'; $('gR').style.left = (left + c.content) + 'px';
+}
+
+/* ---------- Controls ---------- */
+PRESETS.forEach(([name, w]) => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.w = w; b.textContent = `${name} ${w}`;
+  b.addEventListener('click', () => { st.devW = w; $('devW').value = w; render(); });
+  $('presets').appendChild(b);
+});
+COLS.forEach(v => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.c = v; b.textContent = v;
+  b.addEventListener('click', () => { st.cols = v; render(); });
+  $('cols').appendChild(b);
+});
+const bindRange = (id, key) => $(id).addEventListener('input', e => { st[key] = +e.target.value; render(); });
+bindRange('devW', 'devW'); bindRange('maxW', 'maxW'); bindRange('gutter', 'gutter'); bindRange('pad', 'pad');
+bindRange('card', 'card'); bindRange('gapCap', 'gapCap'); bindRange('gap', 'gap');
+$('autoPad').addEventListener('change', e => { st.autoPad = e.target.checked; $('gutter').disabled = $('pad').disabled = st.autoPad; if (!st.autoPad) { st.gutter = +$('gutter').value; st.pad = +$('pad').value; } render(); });
+$('maximize').addEventListener('change', e => { st.maximize = e.target.checked; $('gap').disabled = st.maximize; $('gapCap').disabled = !st.maximize; if (!st.maximize) st.gap = +$('gap').value; render(); });
+$('showGuides').addEventListener('change', e => $('guides').classList.toggle('on', e.target.checked));
+$('markBlock').addEventListener('change', e => $('dropsBlock').classList.toggle('mark', e.target.checked));
+$('copyCfg').addEventListener('click', () => {
+  const c = calc, json = JSON.stringify({ deviceWidth: st.devW, maxContentWidth: st.maxW >= 1600 ? null : st.maxW, gutter: Math.round(c.gutter), blockPadding: Math.round(c.pad),
+    contentWidth: Math.round(c.content), columns: c.cols, cardWidth: Math.round(c.card), gap: Math.round(c.gap), maximize: st.maximize, gapCap: st.gapCap, rows: c.rows }, null, 2);
+  try { navigator.clipboard.writeText(json).then(() => flash('Copied'), () => flash('Copy blocked')); } catch (e) { flash('Copy blocked'); }
+});
+function flash(t) { const b = $('copyCfg'), o = b.textContent; b.textContent = t; setTimeout(() => { b.textContent = o; }, 1400); }
+
+/* ---------- Talk to the embedded deck ---------- */
+addEventListener('message', e => {
+  if (e.origin !== location.origin || e.source !== $('frame').contentWindow || !e.data) return;
+  if (e.data.type === 'deck-height') {
+    frameH = Math.max(360, Math.min(2400, Math.round(e.data.height)));
+    $('frame').style.height = frameH + 'px';
+    setTimeout(fit, 380);
+  }
+});
+$('frame').addEventListener('load', () => { post(); setTimeout(post, 400); });
+DeckCore.subscribe(d => { deckCount = d.count; render(); });
+addEventListener('resize', fit);
+if ('ResizeObserver' in window) new ResizeObserver(() => fit()).observe($('stage'));
+
+// start on a phone when the tool itself is opened on a phone
+if (innerWidth < 700) { st.devW = 390; $('devW').value = 390; }
+render();
+})();
+</script>
+</body>
+</html>

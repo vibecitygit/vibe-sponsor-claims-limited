@@ -16,6 +16,10 @@ body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
+/* Embed mode (index.html#embed): the deck as a block inside another page — no header, hint or
+   wallet, transparent ground; the host page sets spacing and receives the height it needs. */
+html.embed body { background: transparent; }
+html.embed .topbar, html.embed .hint, html.embed .wallet-panel { display: none !important; }
 #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 #scene.pointer { cursor: pointer; }
 
@@ -315,6 +319,10 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const EMBED = location.hash === '#embed';
+if (EMBED) document.documentElement.classList.add('embed');
+/* Spacing the host page sends: columns (0 = auto: 3 narrow, 5 wide), card width and gap in CSS px. */
+const embedCfg = { cols: 0, cardPx: 150, gapPx: 24 };
 const PULSE_AMP = reduced ? 0 : 0.012;
 function mix(hexA, hexB, t) { const a = new THREE.Color(hexA), b = new THREE.Color(hexB); return a.lerp(b, t); }
 
@@ -338,7 +346,8 @@ function shadowTex() {
 
 /* ================= Three.js scene ================= */
 const canvas = $('scene');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: EMBED, powerPreference: 'high-performance' });
+if (EMBED) renderer.setClearColor(0x000000, 0);
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
 const scene = new THREE.Scene();
 const SKY_MID = new THREE.Color('#24211f'), SKY_GLOW = new THREE.Color('#ff4937');
@@ -356,6 +365,7 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(300, 32, 16), new THREE.Shad
       c += glow * exp(-abs(y) * 26.0) * 0.12; gl_FragColor = vec4(c, 1.0); }`
 }));
 sky.renderOrder = -1; scene.add(sky);
+if (EMBED) sky.visible = false;
 
 scene.add(new THREE.HemisphereLight(0xb9b2f0, 0x2a2040, 0.42));
 
@@ -440,7 +450,21 @@ function syncCards(s) {
 const camRig = { target: new THREE.Vector3(), dir: new THREE.Vector3(), dist: 12, par: new THREE.Vector2(), parT: new THREE.Vector2() };
 let portrait = false;
 /* Fanned grid: one row up to 5, two rows above that, each row on an arc around a shared pivot in front of the deck. */
+function embedCols(n) { return Math.max(1, Math.min(n, embedCfg.cols || (innerWidth < 640 ? 3 : 5))); }
+/* Balanced rows for a grid of at most `cols` columns: fewest rows, cards spread evenly, fuller rows first. */
+function balancedGrid(n, cols, sx, sz) {
+  const rowsN = Math.ceil(n / cols), base = Math.floor(n / rowsN), extra = n % rowsN, out = [];
+  for (let r = 0; r < rowsN; r++) {
+    const inRow = base + (r < extra ? 1 : 0);
+    for (let col = 0; col < inRow; col++) out.push({ x: (col - (inRow - 1) / 2) * sx, z: (r - (rowsN - 1) / 2) * sz, rot: 0 });
+  }
+  return out;
+}
 function arrangement(n) {
+  if (EMBED) { // world card width is 1, so the gap in card widths sets the spacing
+    const g = embedCfg.gapPx / embedCfg.cardPx;
+    return balancedGrid(n, embedCols(n), 1 + g, CH + g + 0.45);
+  }
   // phones: a straight grid of at most 3 columns. Use as few rows as 3 columns allow, then spread
   // the cards evenly across them, fuller rows first: 4 → 2-2, 5 → 3-2, 7 → 3-2-2, 10 → 3-3-2-2.
   if (portrait) {
@@ -464,13 +488,14 @@ function arrangement(n) {
 function layout(animate) {
   const w = innerWidth, h = innerHeight;
   renderer.setSize(w, h, false); camera.aspect = w / h; camera.clearViewOffset();
-  portrait = w / h < 0.85;
+  portrait = EMBED ? w < 640 : w / h < 0.85;
   const act = stacks.filter(s => s.active), slots = arrangement(act.length);
   act.forEach((s, k) => {
     const p = slots[k];
     if (animate && !s.enter) gsap.to(s, { x: p.x, z: p.z, rot: p.rot, duration: 0.9, ease: 'power3.inOut' });
     else { gsap.killTweensOf(s, 'x,z,rot'); s.x = p.x; s.z = p.z; s.rot = p.rot; }
   });
+  if (EMBED) { layoutEmbed(slots, animate); return; }
   camera.fov = portrait ? 30 : 26;
   const elev = THREE.MathUtils.degToRad(portrait ? 60 : 52);
   camRig.dir.set(0, Math.sin(elev), Math.cos(elev));
@@ -487,6 +512,47 @@ function layout(animate) {
   if (animate) gsap.to(camRig, { dist: d, duration: 0.9, ease: 'power3.inOut' }); else camRig.dist = d;
   sizeCardDOM();
 }
+
+/* Embed: a fixed horizontal field of view, with the camera distance chosen so one world unit
+   (a card's width) spans embedCfg.cardPx on screen. Width alone sets the scale, so the block's
+   height can follow its content: the needed height is measured and sent to the host page. */
+const EMBED_ELEV = 56;
+let lastPostedH = 0;
+function layoutEmbed(slots, animate) {
+  const w = innerWidth;
+  // a narrow field of view keeps perspective gentle, so near and far rows stay close in size (narrower still on phones, where the grid runs deeper)
+  const hfov = w < 640 ? 8 : 14;
+  const t = Math.tan(THREE.MathUtils.degToRad(hfov) / 2);
+  const h = innerHeight;
+  camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(t / camera.aspect));
+  const elev = THREE.MathUtils.degToRad(EMBED_ELEV);
+  camRig.dir.set(0, Math.sin(elev), Math.cos(elev));
+  camRig.target.set(0, 0.3, 0);
+  let d = w / (2 * embedCfg.cardPx * t);
+  const place = () => { camera.position.copy(camRig.target).addScaledVector(camRig.dir, d); camera.lookAt(camRig.target); camera.updateProjectionMatrix(); camera.updateMatrixWorld(); };
+  place();
+  // perspective makes the front row project wider than the set card size: pull back until every card fits
+  let xMax = 0;
+  slots.forEach(p => { for (const dx of [-0.5, 0.5]) for (const dz of [-0.8, 0.8]) xMax = Math.max(xMax, Math.abs(new THREE.Vector3(p.x + dx, 0, p.z + dz).project(camera).x)); });
+  if (xMax > 0.995) { d *= xMax / 0.995; place(); }
+  let yMin = Infinity, yMax = -Infinity;
+  slots.forEach(p => { for (const dz of [-0.85, 0.85]) for (const y of [0, 1.15]) { const v = new THREE.Vector3(p.x, y, p.z + dz).project(camera); yMin = Math.min(yMin, v.y); yMax = Math.max(yMax, v.y); } });
+  // shift the view so the content's vertical centre sits mid-block
+  const mid = (yMin + yMax) / 2;
+  state.shiftX = 0; state.shiftY = -mid * h / 2;
+  if (animate) gsap.to(camRig, { dist: d, duration: 0.9, ease: 'power3.inOut' }); else camRig.dist = d;
+  const needed = Math.ceil((yMax - yMin) / 2 * h + 56);
+  if (Math.abs(needed - lastPostedH) > 2 && parent !== window) { lastPostedH = needed; parent.postMessage({ type: 'deck-height', height: needed }, location.origin); }
+  sizeCardDOM();
+}
+if (EMBED) addEventListener('message', e => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== 'deck-config') return;
+  const c = e.data;
+  embedCfg.cols = clamp(Math.round(+c.cols || 0), 0, 5);
+  embedCfg.cardPx = clamp(+c.cardPx || 150, 40, 600);
+  embedCfg.gapPx = clamp(+c.gapPx || 0, 0, 2000);
+  if (stacks.length) layout(state.dealt);
+});
 
 /* ---------- Deck size: deal stacks in from the horizon, or send them back ---------- */
 /* Each card starts below and in front of its spot (off the bottom of the screen) and glides up
@@ -983,15 +1049,15 @@ const labelPos = new THREE.Vector3();
 function frame() {
   const t = clock.getElapsedTime();
   // parallax (frozen while a coupon is up so the hand-off lines up)
-  const live = state.view === 'deck' && !state.busy && !reduced;
+  const live = state.view === 'deck' && !state.busy && !reduced && !EMBED;
   camRig.par.lerp(live ? camRig.parT : new THREE.Vector2(), live ? 0.04 : 0.12);
   const camDist = camRig.dist * state.zoom;
   camera.position.copy(camRig.target).addScaledVector(camRig.dir, camDist);
-  scene.fog.near = camDist + 4; scene.fog.far = camDist + 40;
+  if (EMBED) { scene.fog.near = 900; scene.fog.far = 1000; } else { scene.fog.near = camDist + 4; scene.fog.far = camDist + 40; }
   camRight.set(1, 0, 0);
   camera.position.addScaledVector(camRight, camRig.par.x * 0.8).addScaledVector(camUp, -camRig.par.y * 0.4);
   camera.lookAt(camRig.target); camera.updateMatrixWorld();
-  if (state.shiftX > 0.5 || state.shiftY > 0.5) camera.setViewOffset(innerWidth, innerHeight, state.shiftX, state.shiftY, innerWidth, innerHeight);
+  if (Math.abs(state.shiftX) > 0.5 || Math.abs(state.shiftY) > 0.5) camera.setViewOffset(innerWidth, innerHeight, state.shiftX, state.shiftY, innerWidth, innerHeight);
   else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   sky.position.copy(camera.position);
 
