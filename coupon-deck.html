@@ -350,6 +350,10 @@ if (EMBED) document.documentElement.classList.add('embed');
 /* Spacing the host page sends: columns (0 = auto: 3 narrow, 5 wide), card width and gap in CSS px. */
 const embedCfg = { cols: 0, cardPx: 150, gapPx: 50, fill: 1, theme: null };
 const PULSE_AMP = reduced ? 0 : 0.012;
+// every GSAP animation (slide-in, flight, reveal, flip, claim, wallet) runs at half its authored duration
+const SPEED = 2;
+gsap.globalTimeline.timeScale(SPEED);
+const HOVER_LIFT = 0.42, HOVER_TILT = 0.22; // hovered stack: top card rises toward the viewer and tips its face up
 function mix(hexA, hexB, t) { const a = new THREE.Color(hexA), b = new THREE.Color(hexB); return a.lerp(b, t); }
 
 function radialTex(inner = 'rgba(255,255,255,1)') {
@@ -399,7 +403,7 @@ const CW = 1, CH = 1.6, T = 0.03, STEP = 0.056; // at most 6 layers a stack, so 
 const cardGeo = new THREE.BoxGeometry(CW, T, CH);
 const ripTex = ringTex(), shTex = shadowTex();
 const QX90 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2);
-const AX_Y = new THREE.Vector3(0, 1, 0);
+const AX_Y = new THREE.Vector3(0, 1, 0), AX_X = new THREE.Vector3(1, 0, 0);
 
 const stacks = [];
 const hitMat = new THREE.MeshBasicMaterial({ visible: false });
@@ -628,7 +632,7 @@ function updateSubline() { const n = state.count; $('subline').textContent = `${
 /* ================= State ================= */
 const state = { dealt: false, ready: false, busy: false, sel: null, view: 'deck', linked: false, wallet: [], removeOnClose: false, hovered: null, W: 320, H: 512,
   count: COUPONS.length, shiftX: 0, shiftY: 0, zoom: 1 };
-const fly = { card: null, s: null, layer: 0, p: 0, mat: null };
+const fly = { card: null, s: null, layer: 0, p: 0, mat: null, lift: 0 };
 
 /* ---------- Intro: deal from the horizon, riffle into stacks ---------- */
 function intro() {
@@ -756,7 +760,7 @@ function select(s) {
   stage.classList.add('open'); // laid out (invisible) so the 3D card can match its rect
 
   const card = s.cards[s.cards.length - 1];
-  fly.card = card; fly.s = s; fly.layer = s.cards.length - 1; fly.p = 0;
+  fly.card = card; fly.s = s; fly.layer = s.cards.length - 1; fly.p = 0; fly.lift = s.hoverV; // take off from the hover pose
   fly.mat = card.material; const m = card.material.slice(); m[2] = s.faceMat.clone();
   // the lifted card swaps to the plain stock so it hands off cleanly to the open coupon, whose text animates in
   if (!s.c.plainTex) { s.c.plainTex = new THREE.CanvasTexture(s.c.faceCanvas); s.c.plainTex.anisotropy = renderer.capabilities.getMaxAnisotropy(); }
@@ -782,6 +786,7 @@ function updateFly() {
   if (!fly.card) return;
   const s = fly.s, e = fly.p;
   const a = layerPose(s, fly.layer, fly.card), b = presentPose();
+  if (fly.lift > 0.001) { a.pos.y += fly.lift * HOVER_LIFT; a.pos.z += fly.lift * HOVER_LIFT * 0.35; a.quat.multiply(new THREE.Quaternion().setFromAxisAngle(AX_X, -HOVER_TILT * fly.lift)); }
   const c1 = a.pos.clone().add(new THREE.Vector3(0, 2.6, 0.4));
   const u = 1 - e;
   fly.card.position.set(0, 0, 0).addScaledVector(a.pos, u * u).addScaledVector(c1, 2 * u * e).addScaledVector(b.pos, e * e);
@@ -1010,7 +1015,7 @@ let toastTl;
 function toast(msg) {
   const t = $('toast'); t.textContent = msg;
   if (toastTl) toastTl.kill();
-  toastTl = gsap.timeline().fromTo(t, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3 }).to(t, { opacity: 0, duration: 0.4, delay: 1.8 });
+  toastTl = gsap.timeline().timeScale(1 / SPEED).fromTo(t, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3 }).to(t, { opacity: 0, duration: 0.4, delay: 1.8 });
 }
 
 /* ---------- Wire up controls ---------- */
@@ -1098,9 +1103,18 @@ function frame() {
     if (s.c.dub) pulse += 0.5 * Math.exp(-(((beat - 0.24) + 1) % 1) * 9);
     const rip = (t * bps * 0.25 + s.phase) % 1;
     const lit = state.hovered === s;
-    s.hoverV = lerp(s.hoverV, lit ? 1 : 0, 0.15);
+    s.hoverV = lerp(s.hoverV, lit ? 1 : 0, 0.28);
     // settled cards follow their stack (lets the fan re-flow smoothly)
-    for (let l = 0; l < s.cards.length; l++) { const card = s.cards[l]; if (card.userData.free || card === fly.card) continue; const p = layerPose(s, l, card); card.position.copy(p.pos); card.quaternion.copy(p.quat); }
+    const topI = s.cards.length - 1, lift = s.hoverV * HOVER_LIFT;
+    for (let l = 0; l < s.cards.length; l++) {
+      const card = s.cards[l]; if (card.userData.free || card === fly.card) continue;
+      const p = layerPose(s, l, card);
+      if (l === topI && lift > 0.001) { // rise in z-space: up off the stack, toward the camera, face tipped to the viewer
+        p.pos.y += lift; p.pos.z += lift * 0.35;
+        p.quat.multiply(_q.setFromAxisAngle(AX_X, -HOVER_TILT * s.hoverV));
+      }
+      card.position.copy(p.pos); card.quaternion.copy(p.quat);
+    }
     s.hit.position.set(s.x, 0.8, s.z); s.hit.rotation.y = s.rot;
     s.shadow.position.set(s.x + 0.07, 0.001, s.z + 0.12); s.shadow.rotation.set(-Math.PI / 2, s.rot, 0);
     s.topY = lerp(s.topY, s.base + s.cards.length * STEP, 0.08);
@@ -1109,7 +1123,7 @@ function frame() {
     const sc = 0.5 * s.appear * (1 + PULSE_AMP * pulse + 0.18 * s.hoverV);
     const asp = s.c.logoCanvas.width / s.c.logoCanvas.height;
     if (asp >= 1) { const w = sc * Math.min(asp, 1.7); s.logo.scale.set(w, w / asp, 1); } else s.logo.scale.set(sc * asp, sc, 1);
-    s.logo.position.set(s.x, s.topY + 0.62 + bob + s.hop + 0.12 * s.hoverV, s.z);
+    s.logo.position.set(s.x, s.topY + 0.62 + bob + s.hop + (HOVER_LIFT + 0.08) * s.hoverV, s.z + HOVER_LIFT * 0.35 * s.hoverV);
     const vis = clamp(s.logoFade * s.dim * sold, 0, 1);
     s.logo.material.opacity = vis;
     s.logo.material.rotation = Math.sin(t * 0.6 + s.phase * 5) * 0.025;
@@ -1135,7 +1149,7 @@ function frame() {
   }
 
   if (state.hovered) {
-    labelPos.copy(state.hovered.logo.position); labelPos.y += state.hovered.logo.scale.y * 0.62 + 0.5; // clear of the counter labelPos.project(camera);
+    labelPos.copy(state.hovered.logo.position); labelPos.y += state.hovered.logo.scale.y * 0.62 + 0.5; labelPos.project(camera); // sits clear of the counter
     const hl = $('hoverLabel');
     hl.style.left = ((labelPos.x + 1) / 2 * innerWidth) + 'px';
     hl.style.top = ((1 - labelPos.y) / 2 * innerHeight) + 'px';
