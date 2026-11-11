@@ -82,7 +82,7 @@ body {
 .wallet-panel .empty { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
 .wallet-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 50vh; overflow: auto; }
 .wallet-list li { display: grid; grid-template-columns: 36px 1fr; gap: 10px; align-items: center; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.05); }
-.wallet-list img { width: 36px; height: 36px; }
+.wallet-list img { width: 36px; height: 36px; object-fit: contain; }
 .wallet-list strong { display: block; font-size: 13px; }
 .wallet-list span { font: 11px/1.3 var(--font-mono); color: var(--muted); }
 
@@ -134,7 +134,7 @@ body {
 }
 .front .art { position: absolute; inset: 0; background-size: 100% 100%; background-repeat: no-repeat; }
 .zone { position: absolute; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 calc(var(--u) * 8); }
-.name-zone { top: 9%; height: 22%; justify-content: flex-end; gap: calc(var(--u) * 1.4); }
+.name-zone { top: 8%; height: 16.5%; justify-content: flex-end; gap: calc(var(--u) * 1.4); }
 .eyebrow { font: 600 calc(var(--u) * 2.9) / 1 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase; color: color-mix(in srgb, var(--brand) 75%, var(--ink)); }
 .cname {
   margin: 0; font-family: var(--font-display); font-weight: 800; letter-spacing: -0.025em;
@@ -142,10 +142,11 @@ body {
 }
 .cname .ch { display: inline-block; transform-origin: 50% 100%; white-space: pre; }
 .clogo {
-  position: absolute; left: calc(50% - var(--u) * 13); top: calc(40% - var(--u) * 13); width: calc(var(--u) * 26); height: calc(var(--u) * 26);
-  filter: drop-shadow(0 calc(var(--u) * 2) calc(var(--u) * 3) rgba(23, 24, 42, 0.28));
+  /* full inner width of the coupon, centered on the 2/5 line (26% + 28%/2 = 40%) */
+  position: absolute; left: calc(var(--u) * 7); right: calc(var(--u) * 7); width: calc(100% - var(--u) * 14); top: 26%; height: 28%;
+  object-fit: contain; filter: drop-shadow(0 calc(var(--u) * 2) calc(var(--u) * 3) rgba(23, 24, 42, 0.28));
 }
-.detail-zone { top: 49.5%; height: 30%; justify-content: flex-start; gap: calc(var(--u) * 2.2); }
+.detail-zone { top: 55.5%; height: 24.5%; justify-content: flex-start; gap: calc(var(--u) * 1.8); }
 .short { margin: 0; font-size: calc(var(--u) * 4.2); line-height: 1.32; min-height: 2.64em; max-width: 30ch; text-wrap: balance; }
 .ptype {
   display: inline-flex; align-items: center; gap: calc(var(--u) * 1.4);
@@ -222,7 +223,7 @@ body {
   overscroll-behavior: contain;
 }
 .back-head { display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: center; }
-.back-head img { width: 52px; height: 52px; }
+.back-head img { width: 52px; height: 52px; object-fit: contain; }
 .back-head h3 { margin: 0; font: 800 22px/1.05 var(--font-display); letter-spacing: -0.02em; text-wrap: balance; }
 .back-head span { font: 600 11px/1.3 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--brand); }
 .back-long { margin: 0; font-size: 15px; line-height: 1.55; max-width: 62ch; color: #2c2c3e; }
@@ -678,9 +679,10 @@ const SHAPES = ['circle', 'pill', 'diamond', 'hex', 'squircle', 'star', 'shield'
 const TYPES = ['Option', 'Discount', 'Freebie'];
 function stackSize(c) { return c.remaining <= 0 ? 1 : clamp(Math.round(c.remaining / 4), 2, 15); }
 function drawUploadedLogo(img) {
-  const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S; const ctx = cv.getContext('2d');
-  const k = Math.min(224 / img.width, 224 / img.height), w = img.width * k, h = img.height * k;
-  ctx.drawImage(img, (S - w) / 2, (S - h) / 2, w, h); return cv;
+  // keep the logo's own proportions so wide wordmarks can span the coupon
+  const k = Math.min(720 / img.width, 360 / img.height);
+  const cv = document.createElement('canvas'); cv.width = Math.max(1, Math.round(img.width * k)); cv.height = Math.max(1, Math.round(img.height * k));
+  cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); return cv;
 }
 function makeArt(c) {
   c.serial = `No. ${c.id}-${String(c.total).padStart(4, '0')}`;
@@ -1472,7 +1474,8 @@ function frame() {
     const bob = Math.sin(t * 0.8 + s.phase * 6.28) * 0.035;
     const sold = s.c.remaining <= 0 ? 0.45 : 1;
     const sc = 0.5 * s.appear * (1 + PULSE_AMP * pulse + 0.18 * s.hoverV);
-    s.logo.scale.set(sc, sc, 1);
+    const asp = s.c.logoCanvas.width / s.c.logoCanvas.height;
+    if (asp >= 1) { const w = sc * Math.min(asp, 2.2); s.logo.scale.set(w, w / asp, 1); } else s.logo.scale.set(sc * asp, sc, 1);
     s.logo.position.set(s.x, s.topY + 0.62 + bob + s.hop + 0.12 * s.hoverV, s.z);
     const vis = clamp(s.logoFade * s.dim * sold, 0, 1);
     s.logo.material.opacity = vis;
