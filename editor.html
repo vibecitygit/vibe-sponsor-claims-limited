@@ -440,6 +440,8 @@ async function boot() {
   } catch (e) { /* system fonts */ }
   await Promise.all(deck.coupons.map(D.loadImg));
   renderAll();
+  // redraw once the fonts arrive if they were still loading
+  if (!document.fonts.check('900 20px "Barlow Condensed"')) document.fonts.load('900 80px "Barlow Condensed"').then(renderAll).catch(() => {});
 }
 boot();
 })();

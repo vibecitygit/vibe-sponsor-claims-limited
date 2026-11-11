@@ -322,7 +322,7 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const EMBED = location.hash === '#embed';
 if (EMBED) document.documentElement.classList.add('embed');
 /* Spacing the host page sends: columns (0 = auto: 3 narrow, 5 wide), card width and gap in CSS px. */
-const embedCfg = { cols: 0, cardPx: 150, gapPx: 24 };
+const embedCfg = { cols: 0, cardPx: 150, gapPx: 50, fill: 1 };
 const PULSE_AMP = reduced ? 0 : 0.012;
 function mix(hexA, hexB, t) { const a = new THREE.Color(hexA), b = new THREE.Color(hexB); return a.lerp(b, t); }
 
@@ -449,38 +449,28 @@ function syncCards(s) {
 /* ---------- Layout & camera fit ---------- */
 const camRig = { target: new THREE.Vector3(), dir: new THREE.Vector3(), dist: 12, par: new THREE.Vector2(), parT: new THREE.Vector2() };
 let portrait = false;
-/* Fanned grid: one row up to 5, two rows above that, each row on an arc around a shared pivot in front of the deck. */
-function embedCols(n) { return Math.max(1, Math.min(n, embedCfg.cols || (innerWidth < 640 ? 3 : 5))); }
-/* Balanced rows for a grid of at most `cols` columns: fewest rows, cards spread evenly, fuller rows first. */
-function balancedGrid(n, cols, sx, sz) {
-  const rowsN = Math.ceil(n / cols), base = Math.floor(n / rowsN), extra = n % rowsN, out = [];
-  for (let r = 0; r < rowsN; r++) {
-    const inRow = base + (r < extra ? 1 : 0);
-    for (let col = 0; col < inRow; col++) out.push({ x: (col - (inRow - 1) / 2) * sx, z: (r - (rowsN - 1) / 2) * sz, rot: 0 });
-  }
-  return out;
+/* One layout for the deck page and the embedded block, so the block looks like the deck.
+   Spacing is the gap between cards in card widths (a card is 1 wide). The deck page uses
+   fixed values; embedded, the host page's spacing controls set it.
+   Phones: a straight grid of at most 3 columns. Wider: rows fanned on arcs around one pivot
+   in front of the deck, at most 5 per row. Either way rows are balanced: the fewest rows the
+   column count allows, cards spread evenly, fuller rows first (4 → 2-2, 5 → 3-2, 10 → 3-3-2-2). */
+function layoutGap() { return EMBED ? embedCfg.gapPx / embedCfg.cardPx : (portrait ? 0.32 : 0.34); }
+function layoutCols(n) { return Math.max(1, Math.min(n, (EMBED && embedCfg.cols) || (portrait ? 3 : 5))); }
+function rowSizes(n, cols) {
+  const rowsN = Math.ceil(n / cols), base = Math.floor(n / rowsN), extra = n % rowsN;
+  return Array.from({ length: rowsN }, (_, r) => base + (r < extra ? 1 : 0));
 }
 function arrangement(n) {
-  if (EMBED) { // world card width is 1, so the gap in card widths sets the spacing
-    const g = embedCfg.gapPx / embedCfg.cardPx;
-    return balancedGrid(n, embedCols(n), 1 + g, CH + g + 0.45);
-  }
-  // phones: a straight grid of at most 3 columns. Use as few rows as 3 columns allow, then spread
-  // the cards evenly across them, fuller rows first: 4 → 2-2, 5 → 3-2, 7 → 3-2-2, 10 → 3-3-2-2.
+  const g = layoutGap(), sizes = rowSizes(n, layoutCols(n)), m = sizes.length, out = [];
   if (portrait) {
-    const rowsN = Math.ceil(n / 3), base = Math.floor(n / rowsN), extra = n % rowsN, sx = 1.32, sz = 2.2, out = []; // ~1/3 card of air between columns
-    for (let r = 0; r < rowsN; r++) {
-      const inRow = base + (r < extra ? 1 : 0);
-      for (let col = 0; col < inRow; col++) out.push({ x: (col - (inRow - 1) / 2) * sx, z: (r - (rowsN - 1) / 2) * sz, rot: 0 });
-    }
+    const sx = 1 + g, sz = CH + 0.28 + g;
+    sizes.forEach((cnt, r) => { for (let col = 0; col < cnt; col++) out.push({ x: (col - (cnt - 1) / 2) * sx, z: (r - (m - 1) / 2) * sz, rot: 0 }); });
     return out;
   }
-  const rows = n <= 5 ? [n] : [Math.ceil(n / 2), Math.floor(n / 2)];
-  const gap = portrait ? 2.25 : 2.45, rBack = portrait ? 7.5 : 11.5, chord = portrait ? 0.84 : 1.34;
-  const out = [];
-  rows.forEach((cnt, row) => {
-    const two = rows.length === 2, R = two && row === 1 ? rBack - gap : rBack;
-    const zc = two ? (row === 0 ? -gap / 2 : gap / 2) : 0, pivotZ = zc + R;
+  const rowGap = CH + 0.85, rBack = 11.5, chord = 1 + g, pivotZ = rBack - (m - 1) / 2 * rowGap;
+  sizes.forEach((cnt, r) => {
+    const R = rBack - r * rowGap;
     for (let col = 0; col < cnt; col++) { const a = (col - (cnt - 1) / 2) * (chord / R); out.push({ x: Math.sin(a) * R, z: pivotZ - Math.cos(a) * R, rot: -a }); }
   });
   return out;
@@ -516,25 +506,23 @@ function layout(animate) {
 /* Embed: a fixed horizontal field of view, with the camera distance chosen so one world unit
    (a card's width) spans embedCfg.cardPx on screen. Width alone sets the scale, so the block's
    height can follow its content: the needed height is measured and sent to the host page. */
-const EMBED_ELEV = 56;
 let lastPostedH = 0;
 function layoutEmbed(slots, animate) {
-  const w = innerWidth;
-  // a narrow field of view keeps perspective gentle, so near and far rows stay close in size (narrower still on phones, where the grid runs deeper)
-  const hfov = w < 640 ? 8 : 14;
-  const t = Math.tan(THREE.MathUtils.degToRad(hfov) / 2);
-  const h = innerHeight;
+  const w = innerWidth, h = innerHeight;
+  // the deck page's own camera angles; its vertical FOV turned into a fixed horizontal one at the
+  // deck page's typical screen shape, so the block keeps the same depth and tilt
+  const elev = THREE.MathUtils.degToRad(portrait ? 60 : 52);
+  const t = Math.tan(THREE.MathUtils.degToRad(portrait ? 30 : 26) / 2) * (portrait ? 0.46 : 1.6);
   camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(t / camera.aspect));
-  const elev = THREE.MathUtils.degToRad(EMBED_ELEV);
   camRig.dir.set(0, Math.sin(elev), Math.cos(elev));
   camRig.target.set(0, 0.3, 0);
-  let d = w / (2 * embedCfg.cardPx * t);
+  // fit by width: the grid spans `fill` of the block (1 when the gap is maximised)
+  const xLim = 0.985 * embedCfg.fill;
+  let d = 2;
   const place = () => { camera.position.copy(camRig.target).addScaledVector(camRig.dir, d); camera.lookAt(camRig.target); camera.updateProjectionMatrix(); camera.updateMatrixWorld(); };
-  place();
-  // perspective makes the front row project wider than the set card size: pull back until every card fits
-  let xMax = 0;
-  slots.forEach(p => { for (const dx of [-0.5, 0.5]) for (const dz of [-0.8, 0.8]) xMax = Math.max(xMax, Math.abs(new THREE.Vector3(p.x + dx, 0, p.z + dz).project(camera).x)); });
-  if (xMax > 0.995) { d *= xMax / 0.995; place(); }
+  const widest = () => { let x = 0; slots.forEach(p => { const cs = Math.cos(p.rot), sn = Math.sin(p.rot); for (const dx of [-0.5, 0.5]) for (const dz of [-0.8, 0.8]) x = Math.max(x, Math.abs(new THREE.Vector3(p.x + dx * cs + dz * sn, 0, p.z - dx * sn + dz * cs).project(camera).x)); }); return x; };
+  for (let i = 0; i < 400; i++) { place(); if (widest() <= xLim) break; d *= 1.02; }
+  for (let i = 0; i < 60; i++) { d *= 0.995; place(); if (widest() > xLim) { d /= 0.995; place(); break; } }
   let yMin = Infinity, yMax = -Infinity;
   slots.forEach(p => { for (const dz of [-0.85, 0.85]) for (const y of [0, 1.15]) { const v = new THREE.Vector3(p.x, y, p.z + dz).project(camera); yMin = Math.min(yMin, v.y); yMax = Math.max(yMax, v.y); } });
   // shift the view so the content's vertical centre sits mid-block
@@ -551,6 +539,7 @@ if (EMBED) addEventListener('message', e => {
   embedCfg.cols = clamp(Math.round(+c.cols || 0), 0, 5);
   embedCfg.cardPx = clamp(+c.cardPx || 150, 40, 600);
   embedCfg.gapPx = clamp(+c.gapPx || 0, 0, 2000);
+  embedCfg.fill = clamp(+c.fill || 1, 0.2, 1);
   if (stacks.length) layout(state.dealt);
 });
 
@@ -1111,6 +1100,10 @@ async function boot() {
   } catch (e) { /* fall back to system fonts */ }
   state.count = SAVED.count;
   await Promise.all(COUPONS.map(loadImg));
+  // if the fonts were still loading when the cards were drawn, redraw them once they arrive
+  const fontsReady = () => document.fonts.check('900 20px "Barlow Condensed"') && document.fonts.check('700 20px "DM Sans"');
+  if (!fontsReady()) Promise.all([document.fonts.load('900 80px "Barlow Condensed"'), document.fonts.load('700 22px "DM Sans"')])
+    .then(() => { if (fontsReady()) stacks.forEach(refreshStackArt); }).catch(() => {});
   buildStacks();
   buildSrNav();
   updateSubline();

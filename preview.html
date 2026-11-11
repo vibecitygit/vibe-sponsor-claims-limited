@@ -310,7 +310,7 @@ function compute() {
 
 function post() {
   const f = $('frame');
-  try { f.contentWindow.postMessage({ type: 'deck-config', cols: calc.cols, cardPx: calc.card, gapPx: calc.gap }, location.origin); } catch (e) { /* frame not ready */ }
+  try { f.contentWindow.postMessage({ type: 'deck-config', cols: calc.cols, cardPx: calc.card, gapPx: calc.gap, fill: calc.used / calc.content }, location.origin); } catch (e) { /* frame not ready */ }
 }
 
 function render() {
