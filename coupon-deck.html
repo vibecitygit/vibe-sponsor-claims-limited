@@ -441,12 +441,13 @@ const camRig = { target: new THREE.Vector3(), dir: new THREE.Vector3(), dist: 12
 let portrait = false;
 /* Fanned grid: one row up to 5, two rows above that, each row on an arc around a shared pivot in front of the deck. */
 function arrangement(n) {
-  // phones: a straight grid of at most 3 columns, rows top to bottom, a short last row centred
+  // phones: a straight grid of at most 3 columns. Use as few rows as 3 columns allow, then spread
+  // the cards evenly across them, fuller rows first: 4 → 2-2, 5 → 3-2, 7 → 3-2-2, 10 → 3-3-2-2.
   if (portrait) {
-    const cols = Math.min(3, n), rowsN = Math.ceil(n / cols), sx = 1.16, sz = 1.95, out = [];
-    for (let i = 0; i < n; i++) {
-      const r = Math.floor(i / cols), inRow = r === rowsN - 1 ? n - r * cols : cols, col = i - r * cols;
-      out.push({ x: (col - (inRow - 1) / 2) * sx, z: (r - (rowsN - 1) / 2) * sz, rot: 0 });
+    const rowsN = Math.ceil(n / 3), base = Math.floor(n / rowsN), extra = n % rowsN, sx = 1.16, sz = 1.95, out = [];
+    for (let r = 0; r < rowsN; r++) {
+      const inRow = base + (r < extra ? 1 : 0);
+      for (let col = 0; col < inRow; col++) out.push({ x: (col - (inRow - 1) / 2) * sx, z: (r - (rowsN - 1) / 2) * sz, rot: 0 });
     }
     return out;
   }
