@@ -209,7 +209,7 @@ input[type=range] { width: 100%; accent-color: var(--ember); }
       <h2>Cards</h2>
       <div class="row"><span class="lbl" id="colsLbl">Columns</span><span class="val" id="colsOut">5</span></div>
       <div class="seg" id="cols" role="group" aria-labelledby="colsLbl"></div>
-      <div class="row"><label class="lbl" for="card">Card width</label><span class="val" id="cardOut">150<small>px</small></span></div>
+      <div class="row"><label class="lbl" for="card" id="cardLbl">Card width</label><span class="val" id="cardOut">150<small>px</small></span></div>
       <input type="range" id="card" min="70" max="300" step="1" value="150">
     </section>
 
@@ -280,7 +280,7 @@ const $ = id => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const PRESETS = [['Phone', 375], ['Phone L', 430], ['Tablet', 768], ['Laptop', 1280], ['Desktop', 1440]];
 const COLS = ['Auto', 1, 2, 3, 4, 5];
-const st = { devW: 1280, maxW: 1600, autoPad: true, gutter: 45, pad: 41, cols: 'Auto', card: 150, maximize: true, gapCap: 160, gap: 24 };
+const st = { devW: 1280, maxW: 1600, autoPad: true, gutter: 45, pad: 41, cols: 'Auto', card: 150, cardPhone: 84, maximize: true, gapCap: 160, gap: 24 };
 let deckCount = DeckCore.load().count;
 let frameH = 480;
 let calc = null;
@@ -297,14 +297,15 @@ function compute() {
   const content = Math.max(120, Math.min(avail, st.maxW));
   const colsWanted = st.cols === 'Auto' ? (st.devW < 640 ? 3 : 5) : st.cols;
   const cols = Math.max(1, Math.min(colsWanted, deckCount));
-  let card = st.card, minGap = cols > 1 ? 8 : 0;
+  const cardSet = phone ? st.cardPhone : st.card; // phones keep their own card width so the cards breathe
+  let card = cardSet, minGap = cols > 1 ? 8 : 0;
   if (cols * card + (cols - 1) * minGap > content) card = (content - (cols - 1) * minGap) / cols;
   const gapMax = cols > 1 ? (content - cols * card) / (cols - 1) : 0;
   const gap = cols > 1 ? (st.maximize ? Math.min(gapMax, st.gapCap) : Math.min(st.gap, gapMax)) : 0;
   const rowsN = Math.ceil(deckCount / cols), base = Math.floor(deckCount / rowsN), extra = deckCount % rowsN;
   const rows = Array.from({ length: rowsN }, (_, r) => base + (r < extra ? 1 : 0));
   const used = cols * card + (cols - 1) * gap;
-  return { phone, gutter, pad, avail, content, cols, card, gap, gapMax, rows, used };
+  return { phone, gutter, pad, avail, content, cols, card, cardSet, gap, gapMax, rows, used };
 }
 
 function post() {
@@ -330,7 +331,9 @@ function render() {
   $('gutterOut').innerHTML = `${r(c.gutter)}<small>px</small>`; $('padOut').innerHTML = `${r(c.pad)}<small>px</small>`;
   if (st.autoPad) { $('gutter').value = r(c.gutter); $('pad').value = r(c.pad); }
   $('colsOut').textContent = st.cols === 'Auto' ? `Auto · ${c.cols}` : c.cols;
-  $('cardOut').innerHTML = `${r(c.card)}<small>px</small>` + (c.card < st.card ? ' <small>(shrunk to fit)</small>' : '');
+  $('cardOut').innerHTML = `${r(c.card)}<small>px</small>` + (c.card < c.cardSet ? ' <small>(shrunk to fit)</small>' : '');
+  $('card').value = c.cardSet;
+  $('cardLbl').textContent = c.phone ? 'Card width (phones)' : 'Card width';
   $('gapCapOut').innerHTML = `${st.gapCap}<small>px</small>`;
   $('gap').max = Math.max(0, Math.floor(c.gapMax));
   if (st.maximize) $('gap').value = r(c.gap);
@@ -380,7 +383,7 @@ COLS.forEach(v => {
 });
 const bindRange = (id, key) => $(id).addEventListener('input', e => { st[key] = +e.target.value; render(); });
 bindRange('devW', 'devW'); bindRange('maxW', 'maxW'); bindRange('gutter', 'gutter'); bindRange('pad', 'pad');
-bindRange('card', 'card'); bindRange('gapCap', 'gapCap'); bindRange('gap', 'gap');
+$('card').addEventListener('input', e => { st[calc && calc.phone ? 'cardPhone' : 'card'] = +e.target.value; render(); }); bindRange('gapCap', 'gapCap'); bindRange('gap', 'gap');
 $('autoPad').addEventListener('change', e => { st.autoPad = e.target.checked; $('gutter').disabled = $('pad').disabled = st.autoPad; if (!st.autoPad) { st.gutter = +$('gutter').value; st.pad = +$('pad').value; } render(); });
 $('maximize').addEventListener('change', e => { st.maximize = e.target.checked; $('gap').disabled = st.maximize; $('gapCap').disabled = !st.maximize; if (!st.maximize) st.gap = +$('gap').value; render(); });
 $('showGuides').addEventListener('change', e => $('guides').classList.toggle('on', e.target.checked));
