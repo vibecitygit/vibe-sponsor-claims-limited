@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Deck Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="shared/tokens.css">
+<link rel="stylesheet" href="shared/coupon.css">
+<style>
+/* Layout: an admin page in the Vibe City Dark theme. Sticky header, then a two-column work area:
+   the form on the left, a live coupon preview pinned on the right (stacked on phones, preview first). */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--night); color: var(--fg); font: 400 14px/1.4 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+[hidden] { display: none !important; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding-block: 18px 16px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px));
+  background: var(--night); border-bottom: 1px solid var(--line);
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--night); }
+.mark { display: block; font: 800 16px/1 var(--font-display); text-transform: uppercase; margin-bottom: 4px; }
+h1 { margin: 0; font: 900 clamp(30px, 4vw, 44px)/0.9 var(--font-display); text-transform: uppercase; }
+h1 em { font-style: normal; color: var(--ember); }
+.top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.status { font: 700 11px/1.25 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
+.status i { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+.status.warn { color: var(--ember); }
+.status.warn i { background: var(--ember); }
+.pill {
+  display: inline-flex; align-items: center; gap: 8px; height: 33px; padding: 0 18px; border-radius: 100px;
+  font: 700 11px/1 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; cursor: pointer;
+  background: transparent; color: var(--fg); border: 1px solid color-mix(in srgb, var(--fg) 48%, transparent);
+  transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.pill:hover { border-color: var(--fg); }
+.pill.primary { background: var(--ember); border-color: var(--ember); color: var(--on-brand); }
+.pill.primary:hover { box-shadow: var(--shadow-lift); }
+
+.work {
+  display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 32px; align-items: start;
+  max-width: 1180px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px));
+}
+.panel { background: var(--raised); border: 1px solid var(--line-strong); min-width: 0; }
+.sec { padding: 24px 28px; display: grid; gap: 14px; min-width: 0; }
+.sec + .sec { border-top: 1px solid var(--line); }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+h2 { margin: 0; font: 800 18px/1 var(--font-display); text-transform: uppercase; }
+.lbl { font: 700 11px/1.25 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.note { margin: 0; font-size: 12px; line-height: 1.45; color: var(--muted); max-width: 60ch; }
+output.count { font: 900 34px/1 var(--font-display); color: var(--ember); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--ember); }
+.ticks { display: flex; justify-content: space-between; font: 400 10px/1 var(--font-body); color: var(--muted); }
+
+.picker { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; }
+.pick {
+  position: relative; aspect-ratio: 1; padding: 6px; cursor: pointer; display: grid; place-items: center;
+  background: var(--warm); border: 1px solid var(--line-strong); border-radius: 0;
+}
+.pick img { width: 100%; height: 100%; object-fit: contain; }
+.pick.off { opacity: 0.35; }
+.pick.on { border-color: var(--ember); box-shadow: inset 0 0 0 3px var(--ember); }
+.pick b { position: absolute; left: 4px; top: 3px; font: 700 9px/1 var(--font-body); color: var(--muted); }
+
+.target { display: grid; grid-template-columns: 64px 1fr; gap: 14px; align-items: center; }
+.target img { width: 64px; height: 64px; object-fit: contain; }
+.target strong { display: block; font: 900 24px/1 var(--font-display); text-transform: uppercase; }
+.target span { font-size: 12px; color: var(--muted); }
+
+.field { display: grid; gap: 6px; min-width: 0; }
+.g2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.g3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+input[type=text], input[type=number], select, textarea {
+  width: 100%; padding: 9px 10px; border-radius: 3px; border: 1px solid var(--line-strong);
+  background: var(--night); color: var(--fg); font: 400 14px/1.4 var(--font-body);
+}
+textarea { resize: vertical; min-height: 72px; }
+input[type=color] { width: 100%; height: 39px; padding: 2px; border-radius: 3px; border: 1px solid var(--line-strong); background: var(--night); }
+.dim { opacity: 0.45; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.sbtn {
+  appearance: none; cursor: pointer; border-radius: 2px; padding: 12px; font: 800 12px/1 var(--font-body); letter-spacing: 0.045em; text-transform: uppercase;
+  background: transparent; color: var(--fg); border: 1px solid var(--fg);
+}
+.sbtn:hover { background: rgba(245, 242, 233, 0.08); }
+.sbtn.primary { background: var(--ember); color: var(--on-brand); border-color: var(--ember); }
+.sbtn[disabled] { opacity: 0.45; cursor: default; }
+.file-btn { position: relative; overflow: hidden; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.file-btn:focus-within { outline: 2px solid var(--ember); outline-offset: 2px; }
+details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; }
+#json { font: 12px/1.4 ui-monospace, Menlo, monospace; min-height: 180px; margin-top: 10px; }
+
+/* Live preview */
+.preview { position: sticky; top: 110px; display: grid; gap: 14px; justify-items: center; }
+.preview-head { width: 100%; display: flex; justify-content: space-between; align-items: baseline; }
+.remain {
+  display: inline-flex; align-items: center; gap: 10px; height: 36px; padding: 0 16px; border-radius: 100px;
+  background: var(--raised); border: 1px solid var(--line-strong);
+  font: 700 11px/1 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; font-variant-numeric: tabular-nums;
+}
+.remain b { font: 900 22px/1 var(--font-display); color: var(--ember); }
+.meter { width: 54px; height: 4px; background: var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--ember); }
+.pcard { --u: 3.2px; position: relative; width: 320px; height: 512px; max-width: 100%; }
+.pcard .face { position: absolute; inset: 0; }
+.pcard .btn { pointer-events: none; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); transform: translateX(-50%) translateY(10px);
+  padding: 11px 18px; border-radius: 100px; background: var(--fg); color: var(--ink); white-space: nowrap; z-index: 20;
+  font: 700 11px/1 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase;
+  opacity: 0; pointer-events: none; transition: opacity .25s var(--ease), transform .25s var(--ease);
+}
+.toast.on { opacity: 1; transform: translateX(-50%); }
+
+@media (max-width: 900px) {
+  .top { position: static; }
+  .work { grid-template-columns: minmax(0, 1fr); gap: 20px; padding-top: 20px; }
+  .preview { position: static; order: -1; }
+  .pcard { --u: 2.6px; width: 260px; height: 416px; }
+  .picker { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .sec { padding: 20px; }
+}
+@media (max-width: 420px) { .g3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <span class="mark">Vibe City</span>
+    <h1>Deck <em>Editor</em></h1>
+  </div>
+  <div class="top-actions">
+    <span class="status" id="status" role="status" aria-live="polite"><i aria-hidden="true"></i><span>Loaded</span></span>
+    <a class="pill primary" href="index.html">View deck ↗</a>
+  </div>
+</header>
+
+<main class="work">
+  <div class="panel">
+    <section class="sec">
+      <div class="sec-head"><label class="lbl" for="countRange">Coupons in the deck</label><output class="count" id="countOut" for="countRange">10</output></div>
+      <input type="range" id="countRange" min="1" max="10" step="1" value="10">
+      <div class="ticks" aria-hidden="true"><span>1</span><span>5</span><span>10</span></div>
+      <p class="note">The deck shows cards 1 to this number. Cards past it stay saved but off the table.</p>
+    </section>
+
+    <section class="sec">
+      <h2>Pick a card</h2>
+      <div class="picker" id="picker"></div>
+    </section>
+
+    <form class="sec" id="form" autocomplete="off">
+      <div class="target"><img id="tLogo" alt="Current logo"><div><strong id="tName"></strong><span id="tState"></span></div></div>
+      <div class="btns">
+        <label class="sbtn file-btn">Upload logo<input type="file" id="logoFile" accept="image/png,image/jpeg,image/svg+xml,image/webp"></label>
+        <button type="button" class="sbtn" id="useMono" hidden>Use monogram</button>
+      </div>
+      <p class="note">An uploaded logo keeps its proportions and sets the coupon colour from its main colour. You can change the colour after.</p>
+      <div class="g3" id="monoFields">
+        <label class="field"><span class="lbl">Monogram</span><input type="text" id="mark" maxlength="3"></label>
+        <label class="field"><span class="lbl">Shape</span><select id="shape">
+          <option value="circle">Circle</option><option value="pill">Pill</option><option value="diamond">Diamond</option><option value="hex">Hexagon</option><option value="squircle">Squircle</option>
+          <option value="star">Burst</option><option value="shield">Shield</option><option value="octagon">Octagon</option><option value="ring">Ring</option><option value="tri">Triangle</option></select></label>
+        <label class="field"><span class="lbl">Colour</span><input type="color" id="color"></label>
+      </div>
+      <label class="field"><span class="lbl">Brand name</span><input type="text" id="brand" maxlength="24"></label>
+      <label class="field"><span class="lbl">Short description</span><input type="text" id="short" maxlength="64"></label>
+      <div class="g2">
+        <label class="field"><span class="lbl">Promotion type</span><select id="type"><option>Option</option><option>Discount</option><option>Freebie</option></select></label>
+        <label class="field"><span class="lbl">Year</span><input type="text" id="year" maxlength="11"></label>
+      </div>
+      <div class="g2">
+        <label class="field"><span class="lbl">Valid from</span><input type="text" id="from" maxlength="5" placeholder="MM/DD"></label>
+        <label class="field"><span class="lbl">Valid to</span><input type="text" id="to" maxlength="5" placeholder="MM/DD"></label>
+      </div>
+      <div class="g2">
+        <label class="field"><span class="lbl">Remaining</span><input type="number" id="remaining" min="0" max="9999" inputmode="numeric"></label>
+        <label class="field"><span class="lbl">Total issued</span><input type="number" id="total" min="1" max="9999" inputmode="numeric"></label>
+      </div>
+      <div class="field">
+        <div class="sec-head"><label class="lbl" for="bpm">Logo beat (BPM)</label><span class="lbl" id="bpmOut">90</span></div>
+        <input type="range" id="bpm" min="40" max="180" step="1">
+      </div>
+      <div class="g2">
+        <label class="field"><span class="lbl">Where</span><input type="text" id="where" maxlength="40"></label>
+        <label class="field"><span class="lbl">Limit</span><input type="text" id="limit" maxlength="30"></label>
+      </div>
+      <label class="field"><span class="lbl">Full description (back of the coupon)</span><textarea id="long" maxlength="420" rows="3"></textarea></label>
+      <label class="field"><span class="lbl">Terms, one per line</span><textarea id="terms" rows="4"></textarea></label>
+      <div class="btns"><button type="button" class="sbtn" id="resetCard">Reset this card</button></div>
+    </form>
+
+    <section class="sec">
+      <h2>Deck data</h2>
+      <p class="note">The same JSON a site connector would send: an array of up to 10 coupons, in table order. Its length sets the deck size.</p>
+      <div class="btns">
+        <button type="button" class="sbtn" id="copyJson">Copy deck JSON</button>
+        <button type="button" class="sbtn" id="resetAll">Reset to sample offers</button>
+      </div>
+      <details id="jsonBox">
+        <summary>Paste or edit JSON</summary>
+        <textarea id="json" spellcheck="false" aria-label="Deck JSON"></textarea>
+        <div class="btns" style="margin-top:10px"><button type="button" class="sbtn primary" id="loadJson">Load JSON</button></div>
+      </details>
+    </section>
+  </div>
+
+  <aside class="preview" aria-label="Live coupon preview">
+    <div class="preview-head"><span class="lbl" id="pLabel">Preview</span><span class="lbl">Front of coupon</span></div>
+    <div class="remain"><b id="pRemain">0</b><span id="pTotal">of 0 remaining</span><span class="meter"><i id="pMeter"></i></span></div>
+    <div class="pcard" id="pcard">
+      <div class="face front">
+        <div class="art" id="pArt"></div>
+        <div class="zone name-zone">
+          <span class="eyebrow" id="pEyebrow"></span>
+          <h2 class="cname" id="pName"></h2>
+        </div>
+        <img class="clogo" id="pLogo" alt="">
+        <div class="zone detail-zone">
+          <p class="short" id="pShort"></p>
+          <span class="ptype"><i></i><span id="pType"></span></span>
+          <div class="dates"><span class="year" id="pYear"></span><span class="valid" id="pValid"></span></div>
+        </div>
+        <div class="zone action-zone" aria-hidden="true">
+          <span class="btn btn-claim">Claim</span>
+          <span class="btn btn-ghost">Terms →</span>
+        </div>
+      </div>
+    </div>
+    <p class="note">Changes save as you type. The deck page reloads from them when it opens, and updates live in tabs that are already open.</p>
+  </aside>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="shared/deck-core.js"></script>
+<script>
+(() => {
+'use strict';
+const D = window.DeckCore;
+const $ = id => document.getElementById(id);
+let deck = D.load();
+let cur = 0;
+let saveTimer = null, artTimer = null, toastTimer = null;
+
+/* ---------- Saving (the "connector" write) ---------- */
+function setStatus(text, warn) {
+  $('status').classList.toggle('warn', !!warn);
+  $('status').querySelector('span').textContent = text;
+}
+function persist(now) {
+  clearTimeout(saveTimer);
+  setStatus('Saving…');
+  saveTimer = setTimeout(() => {
+    const ok = D.save(deck);
+    setStatus(ok ? 'Saved' : 'Not saved: this browser blocks storage', !ok);
+  }, now ? 0 : 250);
+}
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 2200);
+}
+
+/* ---------- Art ---------- */
+function logoCanvas(c) { return c._img ? D.drawUploadedLogo(c._img) : D.drawLogo(c); }
+function renderArt(c) {
+  c._logoURL = logoCanvas(c).toDataURL();
+  c._faceURL = D.drawFace(c, D.serialOf(c)).toDataURL('image/jpeg', 0.88);
+}
+
+/* ---------- Picker ---------- */
+function renderPicker() {
+  const box = $('picker'); box.innerHTML = '';
+  deck.coupons.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'pick' + (i === cur ? ' on' : '') + (i < deck.count ? '' : ' off');
+    b.setAttribute('aria-pressed', String(i === cur));
+    b.setAttribute('aria-label', `Card ${i + 1}: ${c.brand}${i < deck.count ? '' : ' (not in the deck)'}`);
+    b.innerHTML = '<b></b><img alt="">';
+    b.querySelector('b').textContent = i + 1;
+    b.querySelector('img').src = c._logoURL;
+    b.addEventListener('click', () => { cur = i; renderPicker(); fillForm(); renderPreview(); });
+    box.appendChild(b);
+  });
+}
+
+/* ---------- Form ---------- */
+const FIELDS = ['brand', 'mark', 'shape', 'color', 'type', 'short', 'from', 'to', 'year', 'remaining', 'total', 'bpm', 'where', 'limit', 'long'];
+function fillForm() {
+  const c = deck.coupons[cur];
+  FIELDS.forEach(k => { $(k).value = c[k]; });
+  $('terms').value = c.terms.join('\n');
+  $('bpmOut').textContent = c.bpm;
+  $('tLogo').src = c._logoURL; $('tName').textContent = c.brand;
+  $('tState').textContent = cur < deck.count ? `Card ${cur + 1} · on the table` : `Card ${cur + 1} · off the table (raise the deck size to ${cur + 1})`;
+  $('monoFields').classList.toggle('dim', !!c.logoImg);
+  $('useMono').hidden = !c.logoImg;
+}
+function readForm() {
+  const c = deck.coupons[cur];
+  FIELDS.forEach(k => { c[k] = $(k).value; });
+  c.terms = $('terms').value.split('\n');
+  D.sanitize(c);
+  $('bpmOut').textContent = c.bpm;
+}
+
+/* ---------- Preview ---------- */
+function renderPreview() {
+  const c = deck.coupons[cur];
+  $('pcard').style.setProperty('--brand', c.color);
+  $('pArt').style.backgroundImage = `url(${c._faceURL})`;
+  $('pEyebrow').textContent = `${c.type} offer`;
+  $('pName').textContent = c.brand;
+  $('pLogo').src = c._logoURL; $('pLogo').alt = `${c.brand} logo`;
+  $('pShort').textContent = c.short;
+  $('pType').textContent = c.type;
+  $('pYear').textContent = c.year;
+  $('pValid').textContent = `Valid ${c.from} – ${c.to}`;
+  $('pRemain').textContent = c.remaining;
+  $('pTotal').textContent = `of ${c.total} remaining`;
+  $('pMeter').style.width = (c.remaining / c.total * 100).toFixed(1) + '%';
+  $('pLabel').textContent = `Preview · card ${cur + 1}`;
+}
+function refreshCurrent(withArt) {
+  const c = deck.coupons[cur];
+  if (withArt) renderArt(c);
+  renderPreview();
+  $('tLogo').src = c._logoURL; $('tName').textContent = c.brand;
+  const img = $('picker').children[cur]?.querySelector('img'); if (img) img.src = c._logoURL;
+}
+
+$('form').addEventListener('submit', e => e.preventDefault());
+$('form').addEventListener('input', e => {
+  if (e.target.type === 'file') return;
+  readForm();
+  refreshCurrent(false);
+  clearTimeout(artTimer);
+  artTimer = setTimeout(() => refreshCurrent(true), e.target.type === 'color' || e.target.tagName === 'SELECT' ? 0 : 140);
+  persist();
+});
+$('form').addEventListener('change', e => { if (e.target.type === 'number') fillForm(); });
+
+$('logoFile').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { toast('Choose a PNG, JPG, SVG or WebP image'); return; }
+  const c = deck.coupons[cur], r = new FileReader();
+  r.onload = () => {
+    const im = new Image();
+    im.onload = () => {
+      const cv = D.drawUploadedLogo(im);
+      c.logoImg = cv.toDataURL('image/png');
+      const picked = D.logoColor(cv); if (picked) c.color = picked;
+      D.loadImg(c).then(() => { renderArt(c); fillForm(); refreshCurrent(false); persist(true); toast(picked ? 'Logo replaced · colour taken from it' : 'Logo replaced'); });
+    };
+    im.onerror = () => toast('That image could not be read');
+    im.src = r.result;
+  };
+  r.readAsDataURL(file);
+});
+$('useMono').addEventListener('click', () => {
+  const c = deck.coupons[cur]; c.logoImg = null; c._img = null;
+  renderArt(c); fillForm(); refreshCurrent(false); persist(true);
+});
+$('resetCard').addEventListener('click', () => {
+  const fresh = D.sample().coupons[cur];
+  deck.coupons[cur] = fresh; renderArt(fresh); fillForm(); refreshCurrent(false); persist(true);
+  toast(`Card ${cur + 1} reset`);
+});
+
+/* ---------- Deck size ---------- */
+$('countRange').addEventListener('input', e => {
+  deck.count = +e.target.value; $('countOut').textContent = deck.count;
+  renderPicker(); fillForm(); persist();
+});
+
+/* ---------- JSON in and out ---------- */
+function deckJSON() {
+  return JSON.stringify(deck.coupons.slice(0, deck.count).map(c => { const o = D.editable(c); if (!o.logoImg) delete o.logoImg; return o; }), null, 2);
+}
+$('copyJson').addEventListener('click', () => {
+  const json = deckJSON(), ta = $('json');
+  ta.value = json; $('jsonBox').open = true;
+  const fallback = () => { ta.focus(); ta.select(); toast('Select and copy the JSON below'); };
+  try { navigator.clipboard.writeText(json).then(() => toast('Deck JSON copied'), fallback); } catch (err) { fallback(); }
+});
+$('loadJson').addEventListener('click', () => {
+  let arr;
+  try { arr = JSON.parse($('json').value); } catch (err) { toast('That JSON could not be parsed. Check for a missing comma or bracket.'); return; }
+  if (!Array.isArray(arr) || !arr.length) { toast('Paste an array of 1 to 10 coupon objects'); return; }
+  arr = arr.slice(0, deck.coupons.length);
+  arr.forEach((o, i) => { const c = deck.coupons[i]; if (o && typeof o === 'object') D.EDIT_KEYS.forEach(k => { if (k in o) c[k] = o[k]; }); D.sanitize(c); });
+  deck.count = arr.length;
+  Promise.all(deck.coupons.map(D.loadImg)).then(() => {
+    renderAll(); persist(true);
+    toast(`Loaded ${arr.length} coupon${arr.length === 1 ? '' : 's'}`);
+  });
+});
+$('resetAll').addEventListener('click', () => {
+  deck = D.clear(); cur = 0;
+  Promise.all(deck.coupons.map(D.loadImg)).then(() => { renderAll(); setStatus('Saved'); toast('Deck reset to the sample offers'); });
+});
+
+/* ---------- Edits from another editor tab ---------- */
+D.subscribe(d => {
+  if ($('form').contains(document.activeElement)) return; // don't yank the field someone is typing in
+  deck = d;
+  Promise.all(deck.coupons.map(D.loadImg)).then(renderAll);
+});
+
+function renderAll() {
+  deck.coupons.forEach(renderArt);
+  $('countRange').value = deck.count; $('countOut').textContent = deck.count;
+  renderPicker(); fillForm(); renderPreview();
+}
+
+async function boot() {
+  try {
+    await Promise.race([
+      Promise.all([document.fonts.load('900 80px "Barlow Condensed"'), document.fonts.load('700 22px "DM Sans"')]),
+      new Promise(r => setTimeout(r, 2500)),
+    ]);
+  } catch (e) { /* system fonts */ }
+  await Promise.all(deck.coupons.map(D.loadImg));
+  renderAll();
+}
+boot();
+})();
+</script>
+</body>
+</html>

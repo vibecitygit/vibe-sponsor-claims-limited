@@ -3,37 +3,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="shared/tokens.css">
+<link rel="stylesheet" href="shared/coupon.css">
 <style>
 /* Layout: one full-bleed WebGL scene (invisible table, fogged horizon); DOM overlay for the presented coupon.
-   Tokens follow the Vibe City design system: Dark theme for the page, Paper theme for the coupon stock, one orange accent. */
-:root {
-  --night: #0b0b0b;          /* surface */
-  --raised: #1a1a1a;         /* surface-raised */
-  --warm: #24211f;           /* surface-warm */
-  --fg: #f5f2e9;             /* ink (Dark) */
-  --fg-soft: #f0ede7;        /* ink-soft (Dark) */
-  --muted: #c9c5be;          /* muted (Dark) */
-  --line: rgba(255, 255, 255, 0.21);
-  --line-strong: #444444;
-  --ember: #ff4937;          /* brand / brand-ink on Dark */
-  --on-brand: #0b0b0b;
-  --success: #a6ddb7;
-  --paper: #f5f2e9;          /* surface (Paper) */
-  --paper-raised: #ebe7df;   /* surface-raised (Paper) */
-  --ink: #0b0b0b;            /* ink (Paper) */
-  --ink-soft: #11100e;
-  --paper-muted: #48433d;    /* muted (Paper) */
-  --paper-line: rgba(17, 16, 14, 0.22);
-  --brand-ink-paper: #a54635;
-  --brand: #c8743a;          /* the sponsor's own colour, set per coupon */
-  --ease: cubic-bezier(.23, 1, .32, 1);
-  --shadow-lift: 0 8px 24px rgba(190, 55, 36, .28);
-  --shadow-modal: 0 24px 90px rgba(0, 0, 0, .5);
-  --font-display: "Barlow Condensed", Impact, "Arial Narrow", sans-serif;
-  --font-body: "DM Sans", Arial, sans-serif;
-  --font-mono: "DM Sans", Arial, sans-serif;
-  color-scheme: dark;
-}
+   Tokens come from shared/tokens.css, coupon face styles from shared/coupon.css. */
 html, body { height: 100%; }
 body {
   background: var(--night);
@@ -147,53 +121,6 @@ body {
   perspective: 1800px; opacity: 0;
 }
 .flipper { position: absolute; inset: 0; transform-style: preserve-3d; }
-.face {
-  position: absolute; inset: 0; border-radius: 12px; overflow: hidden;
-  backface-visibility: hidden; -webkit-backface-visibility: hidden;
-  background: var(--paper); color: var(--ink);
-  box-shadow: var(--shadow-modal);
-}
-.front .art { position: absolute; inset: 0; background-size: 100% 100%; background-repeat: no-repeat; }
-.zone { position: absolute; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 calc(var(--u) * 8); }
-.name-zone { top: 7.5%; height: 14%; justify-content: flex-end; gap: calc(var(--u) * 1.4); }
-.eyebrow { font: 700 calc(var(--u) * 3.1) / 1.25 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand-ink-paper); }
-.cname {
-  margin: 0; font-family: var(--font-display); font-weight: 900; letter-spacing: 0; text-transform: uppercase;
-  font-size: calc(var(--u) * 10); line-height: 0.92; text-wrap: balance; perspective: 400px;
-}
-.cname .ch { display: inline-block; transform-origin: 50% 100%; white-space: pre; }
-.clogo {
-  /* full inner width of the coupon, centered on the 2/5 line (22% + 36%/2 = 40%) */
-  position: absolute; left: calc(var(--u) * 7); right: calc(var(--u) * 7); width: calc(100% - var(--u) * 14); top: 22%; height: 36%;
-  object-fit: contain; filter: drop-shadow(0 calc(var(--u) * 2) calc(var(--u) * 3) rgba(23, 24, 42, 0.28));
-}
-.detail-zone { top: 58.5%; height: 21.5%; justify-content: flex-start; gap: calc(var(--u) * 1.3); }
-.short { margin: 0; font-size: calc(var(--u) * 4.2); line-height: 1.3; color: var(--ink-soft); min-height: 2.64em; max-width: 30ch; text-wrap: balance; }
-.ptype {
-  display: inline-flex; align-items: center; gap: calc(var(--u) * 1.4);
-  padding: calc(var(--u) * 1.1) calc(var(--u) * 2.6); border-radius: 3px;
-  font: 700 calc(var(--u) * 2.9) / 1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--ink); border: 1px solid var(--paper-line); background: var(--paper-raised);
-}
-.ptype i { width: calc(var(--u) * 1.6); height: calc(var(--u) * 1.6); border-radius: 50%; background: var(--ember); }
-.dates { display: grid; justify-items: center; gap: calc(var(--u) * 0.6); margin-top: auto; }
-.year { font: 900 calc(var(--u) * 8) / 1 var(--font-display); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
-.valid { font: 700 calc(var(--u) * 3.1) / 1.25 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--paper-muted); font-variant-numeric: tabular-nums; }
-.action-zone { top: 83%; height: 13%; flex-direction: row; justify-content: center; gap: calc(var(--u) * 3); padding: 0 calc(var(--u) * 7); }
-.btn {
-  appearance: none; border: 1px solid transparent; cursor: pointer; border-radius: 100px;
-  font: 800 calc(var(--u) * 3.9) / 1 var(--font-body); letter-spacing: 0.09em; text-transform: uppercase;
-  height: calc(var(--u) * 11.5); padding: 0 calc(var(--u) * 6);
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  transition: transform .2s var(--ease), box-shadow .2s var(--ease), background-color .2s var(--ease);
-}
-.btn:active { transform: scale(0.97); }
-.btn[disabled] { cursor: default; opacity: .55; }
-.btn-claim { flex: 1.3; background: var(--ember); border-color: var(--ember); color: var(--on-brand); }
-.btn-claim:hover:not([disabled]) { box-shadow: var(--shadow-lift); }
-.btn-ghost { flex: 1; background: transparent; color: var(--ink); border-color: color-mix(in srgb, var(--ink) 48%, transparent); }
-.btn-ghost:hover { border-color: var(--ink); }
-
 /* Above-card pill + close */
 .pill-row {
   position: absolute; left: 50%; bottom: calc(100% + 14px); transform: translateX(-50%);
@@ -272,66 +199,9 @@ body {
   background: var(--fg); color: var(--ink); font: 700 11px/1 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
 }
 
-/* ---------- Deck editor ---------- */
 .top-actions { display: flex; gap: 8px; pointer-events: auto; }
-.editor {
-  position: fixed; z-index: 35; display: flex; flex-direction: column;
-  top: calc(env(safe-area-inset-top, 0px) + 74px); bottom: 16px;
-  right: max(16px, env(safe-area-inset-right, 0px)); width: 340px;
-  background: var(--raised); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: var(--shadow-modal);
-}
-.editor[hidden] { display: none; }
-.ed-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
-.ed-head { border-top: 4px solid var(--ember); border-radius: 12px 12px 0 0; }
-.ed-head h2 { margin: 0; font: 900 26px/1 var(--font-display); text-transform: uppercase; }
-.ed-body { flex: 1; overflow: auto; overscroll-behavior: contain; padding: 14px 16px 18px; display: grid; gap: 18px; align-content: start; }
-.ed-sec { display: grid; gap: 10px; min-width: 0; }
-.ed-sec + .ed-sec { padding-top: 16px; border-top: 1px solid var(--line); }
-.lbl { font: 700 11px/1.25 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-.ed-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.ed-row output { font: 900 30px/1 var(--font-display); color: var(--ember); font-variant-numeric: tabular-nums; }
-.editor input[type=range] { width: 100%; accent-color: var(--ember); }
-.ticks { display: flex; justify-content: space-between; font: 400 10px/1 var(--font-body); color: var(--muted); padding: 0 2px; }
-.picker { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
-.pick { aspect-ratio: 1; border-radius: 0; border: 1px solid var(--line-strong); background: var(--warm); padding: 6px; cursor: pointer; display: grid; place-items: center; }
-.pick img { width: 100%; height: 100%; object-fit: contain; }
-.pick.off { opacity: 0.35; }
-.pick.on { border-color: var(--ember); box-shadow: inset 0 0 0 3px var(--ember); }
-.ed-target { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center; }
-.ed-target img { width: 56px; height: 56px; object-fit: contain; }
-.ed-target strong { display: block; font: 800 20px/1 var(--font-display); text-transform: uppercase; }
-.ed-target span { font-size: 12px; color: var(--muted); }
-.field { display: grid; gap: 5px; min-width: 0; }
-.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.editor input[type=text], .editor input[type=number], .editor select, .editor textarea {
-  width: 100%; box-sizing: border-box; padding: 9px 10px; border-radius: 3px; border: 1px solid var(--line-strong);
-  background: var(--night); color: var(--fg); font: 400 14px/1.4 var(--font-body);
-}
-.editor textarea { resize: vertical; min-height: 64px; }
-.editor input:focus-visible, .editor select:focus-visible, .editor textarea:focus-visible { outline: 2px solid var(--ember); outline-offset: 1px; }
-.editor input[type=color] { width: 100%; height: 38px; padding: 2px; border-radius: 3px; border: 1px solid var(--line-strong); background: var(--night); }
-.dim { opacity: 0.45; }
-.ed-btns { display: flex; flex-wrap: wrap; gap: 8px; }
-.sbtn {
-  appearance: none; cursor: pointer; border-radius: 2px; padding: 12px; font: 800 12px/1 var(--font-body); letter-spacing: 0.045em; text-transform: uppercase;
-  background: transparent; color: var(--fg); border: 1px solid var(--fg);
-}
-.sbtn:hover { background: rgba(245, 242, 233, 0.08); }
-.sbtn.primary { background: var(--ember); color: var(--on-brand); border-color: var(--ember); }
-.sbtn[disabled] { opacity: 0.45; cursor: default; }
-.file-btn { position: relative; overflow: hidden; }
-.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.file-btn:focus-within { outline: 2px solid var(--ember); outline-offset: 2px; }
-.ed-note { margin: 0; font-size: 12px; line-height: 1.45; color: var(--muted); }
-details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg); }
-#edJson { font: 12px/1.4 var(--font-mono); min-height: 140px; margin-top: 8px; }
-@media (max-width: 719px) {
-  .editor { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 56vh; border-radius: 12px 12px 0 0; border-bottom: 0;
-    padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
-  .wallet-btn .wl { display: none; }
-}
-
+a.wallet-btn { text-decoration: none; }
+@media (max-width: 719px) { .wallet-btn .wl { display: none; } }
 @media (max-width: 520px) {
   .hint { font-size: 11px; }
   .brandmark p { font-size: 10px; }
@@ -350,10 +220,10 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
     <p id="subline">10 limited offers</p>
   </div>
   <div class="top-actions">
-  <button class="wallet-btn" id="editBtn" aria-expanded="false" aria-controls="editor">
+  <a class="wallet-btn" id="editBtn" href="editor.html">
     <span class="glyph" aria-hidden="true">✳</span>
     <span class="wl">Edit deck</span>
-  </button>
+  </a>
   <button class="wallet-btn" id="walletBtn" aria-expanded="false" aria-controls="walletPanel">
     <span class="wl">Wallet</span>
     <span class="linked-dot" title="Account linked"></span>
@@ -361,81 +231,6 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
   </button>
   </div>
 </header>
-<aside class="editor" id="editor" hidden aria-label="Deck editor">
-  <div class="ed-head">
-    <h2>Deck editor</h2>
-    <button class="xbtn" id="edClose" aria-label="Close deck editor">×</button>
-  </div>
-  <div class="ed-body">
-    <section class="ed-sec">
-      <div class="ed-row"><label class="lbl" for="countRange">Coupons in the deck</label><output id="countOut" for="countRange">10</output></div>
-      <input type="range" id="countRange" min="1" max="10" step="1" value="10" disabled>
-      <div class="ticks" aria-hidden="true"><span>1</span><span>5</span><span>10</span></div>
-    </section>
-    <section class="ed-sec">
-      <span class="lbl">Pick a card</span>
-      <div class="picker" id="picker"></div>
-      <p class="ed-note">Or click a stack on the table. Faded cards are outside the deck.</p>
-    </section>
-    <form class="ed-sec" id="edForm" autocomplete="off">
-      <div class="ed-target"><img id="edLogoPreview" alt="Current logo"><div><strong id="edTitle"></strong><span id="edState"></span></div></div>
-      <div class="ed-btns">
-        <label class="sbtn file-btn">Upload logo<input type="file" id="edLogoFile" accept="image/png,image/jpeg,image/svg+xml,image/webp"></label>
-        <button type="button" class="sbtn" id="edUseMono" hidden>Use monogram</button>
-      </div>
-      <div class="grid3" id="edMonoFields">
-        <label class="field"><span class="lbl">Monogram</span><input type="text" id="edMark" maxlength="3"></label>
-        <label class="field"><span class="lbl">Shape</span><select id="edShape">
-          <option value="circle">Circle</option><option value="pill">Pill</option><option value="diamond">Diamond</option><option value="hex">Hexagon</option><option value="squircle">Squircle</option>
-          <option value="star">Burst</option><option value="shield">Shield</option><option value="octagon">Octagon</option><option value="ring">Ring</option><option value="tri">Triangle</option></select></label>
-        <label class="field"><span class="lbl">Color</span><input type="color" id="edColor"></label>
-      </div>
-      <label class="field"><span class="lbl">Brand name</span><input type="text" id="edBrand" maxlength="24"></label>
-      <label class="field"><span class="lbl">Short description</span><input type="text" id="edShort" maxlength="64"></label>
-      <div class="grid2">
-        <label class="field"><span class="lbl">Promotion type</span><select id="edType"><option>Option</option><option>Discount</option><option>Freebie</option></select></label>
-        <label class="field"><span class="lbl">Year</span><input type="text" id="edYear" maxlength="11"></label>
-      </div>
-      <div class="grid2">
-        <label class="field"><span class="lbl">Valid from</span><input type="text" id="edFrom" maxlength="5" placeholder="MM/DD"></label>
-        <label class="field"><span class="lbl">Valid to</span><input type="text" id="edTo" maxlength="5" placeholder="MM/DD"></label>
-      </div>
-      <div class="grid2">
-        <label class="field"><span class="lbl">Remaining</span><input type="number" id="edRemaining" min="0" max="9999" inputmode="numeric"></label>
-        <label class="field"><span class="lbl">Total issued</span><input type="number" id="edTotal" min="1" max="9999" inputmode="numeric"></label>
-      </div>
-      <div class="field">
-        <div class="ed-row"><label class="lbl" for="edBpm">Logo beat (BPM)</label><span class="lbl" id="edBpmOut">90</span></div>
-        <input type="range" id="edBpm" min="40" max="180" step="1">
-      </div>
-      <div class="grid2">
-        <label class="field"><span class="lbl">Where</span><input type="text" id="edWhere" maxlength="40"></label>
-        <label class="field"><span class="lbl">Limit</span><input type="text" id="edLimit" maxlength="30"></label>
-      </div>
-      <label class="field"><span class="lbl">Full description (back of card)</span><textarea id="edLong" maxlength="420" rows="3"></textarea></label>
-      <label class="field"><span class="lbl">Terms, one per line</span><textarea id="edTerms" rows="4"></textarea></label>
-      <div class="ed-btns">
-        <button type="button" class="sbtn primary" id="edPreview">Preview coupon</button>
-        <button type="button" class="sbtn" id="edReset">Reset this card</button>
-      </div>
-    </form>
-    <section class="ed-sec">
-      <span class="lbl">Deck data</span>
-      <div class="ed-btns">
-        <button type="button" class="sbtn" id="edCopy">Copy deck JSON</button>
-        <button type="button" class="sbtn" id="edResetAll">Reset all</button>
-      </div>
-      <details id="jsonBox">
-        <summary>Paste or edit JSON</summary>
-        <textarea id="edJson" spellcheck="false" aria-label="Deck JSON"></textarea>
-        <div class="ed-btns" style="margin-top:8px"><button type="button" class="sbtn primary" id="edImport">Load JSON</button></div>
-      </details>
-      <p class="ed-note">An array of up to 10 coupons. Its length sets the deck size. Edits are saved in this browser only.</p>
-    </section>
-  </div>
-</aside>
-
-
 <div class="wallet-panel" id="walletPanel" hidden>
   <h2>Your wallet</h2>
   <p class="empty" id="walletEmpty">Claimed offers land here once you link an account.</p>
@@ -504,146 +299,24 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="shared/deck-core.js"></script>
 <script>
 (() => {
 'use strict';
 
-/* ================= Data ================= */
-const COUPONS = [
-  { id: 'HAL', brand: 'Halcyon Coffee', mark: 'Hc', shape: 'circle', color: '#c8743a', bpm: 72, dub: true,
-    type: 'Freebie', short: 'A free 12oz oat latte with any pastry.', from: '11/14', to: '12/31', year: '2026',
-    remaining: 42, total: 120, where: 'All 6 Halcyon cafés', limit: '1 per person',
-    long: 'Pick any pastry from the case and your oat latte is on us. Swap to any plant milk or make it iced at no charge. Works at the counter or through the Halcyon order-ahead line.',
-    terms: ['Valid on one 12oz latte with purchase of any pastry.', 'Plant-milk and iced swaps included; extra shots are charged.', 'Not valid with other offers or loyalty rewards.', 'Show the QR code before paying.'] },
-  { id: 'TDW', brand: 'Tidewater Surf', mark: 'Tw', shape: 'pill', color: '#2c8fa8', bpm: 96,
-    type: 'Discount', short: '25% off any full wetsuit, in store only.', from: '11/11', to: '11/30', year: '2026',
-    remaining: 8, total: 40, where: 'Tidewater Pier St.', limit: '1 per person',
-    long: 'Take a quarter off any full-length wetsuit from the winter wall, 3/2 through 6/5. Fitting is free and staff will size you in the shop before you commit.',
-    terms: ['25% off one full wetsuit at regular price.', 'Excludes springsuits, boots and hoods.', 'In-store purchase only.', 'Returns refund the discounted price.'] },
-  { id: 'NBR', brand: 'Northbound Rail', mark: 'NR', shape: 'diamond', color: '#3e5ba9', bpm: 84,
-    type: 'Option', short: 'Pick one: a seat upgrade or a lounge pass.', from: '11/18', to: '01/15', year: '2026 – 27',
-    remaining: 17, total: 50, where: 'Any Northbound station', limit: '1 per booking',
-    long: 'Choose how you travel: move up to First on any single journey under 4 hours, or spend your wait in the Platform Lounge with coffee and quiet desks. Decide at the ticket desk.',
-    terms: ['Choose one option when you redeem; it cannot be split.', 'Upgrade subject to First Class availability.', 'Lounge pass valid for 3 hours on the day of travel.', 'Not exchangeable for cash or credit.'] },
-  { id: 'PLM', brand: 'Plume Cycles', mark: 'Pl', shape: 'hex', color: '#d2483f', bpm: 120,
-    type: 'Discount', short: '$40 off a full service tune-up.', from: '11/11', to: '12/20', year: '2026',
-    remaining: 31, total: 60, where: 'Plume Workshop, Dock 4', limit: '1 per bike',
-    long: 'Our full tune-up covers gears, brakes, wheel truing and a drivetrain clean. With this coupon the $95 service drops to $55. Book a slot and drop the bike off in the morning.',
-    terms: ['Applies to the Full Service tune-up only.', 'Parts are charged separately at shelf price.', 'Booking required; walk-ins as space allows.', 'One coupon per bicycle.'] },
-  { id: 'EMR', brand: 'Ember & Rye', mark: 'E&R', shape: 'squircle', color: '#b5552b', bpm: 60, dub: true,
-    type: 'Freebie', short: 'A free sourdough loaf, Saturdays only.', from: '11/15', to: '12/27', year: '2026',
-    remaining: 55, total: 80, where: 'Ember & Rye Bakery', limit: '1 per Saturday',
-    long: 'Our 36-hour country sourdough, baked at dawn. Come in on any Saturday morning during the run and take a loaf home with no purchase needed while the batch lasts.',
-    terms: ['Saturdays only, while the morning batch lasts.', 'Country sourdough only; specialty loaves excluded.', 'No purchase required.', 'One loaf per person per Saturday.'] },
-  { id: 'LUM', brand: 'Lumen Cinema', mark: 'Lu', shape: 'star', color: '#d9a32e', bpm: 128,
-    type: 'Option', short: '2-for-1 tickets or a free large popcorn.', from: '11/12', to: '12/18', year: '2026',
-    remaining: 24, total: 100, where: 'Lumen, Screens 1–5', limit: '1 per visit',
-    long: 'Bring a friend for free on any standard screening, or keep it solo and get a large popcorn on the house. Works for matinees and evening shows, Monday through Thursday.',
-    terms: ['Monday to Thursday screenings only.', '2-for-1 applies to standard 2D seats.', 'Choose one option at the box office.', 'Excludes premieres and special events.'] },
-  { id: 'FLD', brand: 'Fieldnote Books', mark: 'Fn', shape: 'shield', color: '#4e7d4a', bpm: 90,
-    type: 'Discount', short: '15% off your whole basket, any genre.', from: '11/11', to: '12/24', year: '2026',
-    remaining: 12, total: 30, where: 'Fieldnote, Market Row', limit: '1 per person',
-    long: 'Fill a basket from any shelf (new releases, used stacks, stationery) and take 15% off the total. Staff can gift-wrap anything over $20 at no cost through December.',
-    terms: ['15% off the full basket in one transaction.', 'Excludes gift cards and event tickets.', 'Cannot be combined with member pricing.', 'In-store only.'] },
-  { id: 'KLN', brand: 'Kiln Studio', mark: 'Ki', shape: 'octagon', color: '#9c5a8e', bpm: 104,
-    type: 'Freebie', short: 'A free intro wheel class for one.', from: '11/20', to: '01/31', year: '2026 – 27',
-    remaining: 4, total: 20, where: 'Kiln Studio, Unit 9', limit: '1 per person',
-    long: 'A two-hour beginner session on the wheel. Clay, glaze and one firing are included, and you collect your finished piece about two weeks later.',
-    terms: ['Valid for one seat in an Intro to Wheel class.', 'Booking required at least 48 hours ahead.', 'Includes clay, glaze and one firing.', 'Cancellations under 24 hours forfeit the seat.'] },
-  { id: 'ORB', brand: 'Orbit Arcade', mark: 'Ob', shape: 'ring', color: '#6b4fd0', bpm: 140,
-    type: 'Option', short: '20 free tokens or one hour of free play.', from: '11/11', to: '12/31', year: '2026',
-    remaining: 38, total: 75, where: 'Orbit Arcade, Level 2', limit: '1 per visit',
-    long: 'Load 20 tokens onto a play card, or get a wristband for one hour of unlimited cabinet play. The rhythm machines and the racing pods are included.',
-    terms: ['Choose tokens or timed play at the desk.', 'Wristband hour starts when issued.', 'Excludes prize-redemption games.', 'Under 12s with an adult.'] },
-  { id: 'VRD', brand: 'Verdant Grocer', mark: 'Vg', shape: 'tri', color: '#2f8a5e', bpm: 110,
-    type: 'Discount', short: '$10 off when you spend $50 or more.', from: '11/11', to: '11/29', year: '2026',
-    remaining: 60, total: 150, where: 'Both Verdant stores', limit: '1 per household',
-    long: 'Stock up on the weekly shop and take $10 off at the till once you hit $50. Works on produce, the deli counter and the bulk bins.',
-    terms: ['Minimum spend $50 after other discounts.', 'Excludes alcohol, tobacco and gift cards.', 'One coupon per household per week.', 'In-store only.'] },
-];
-
-const DEFAULTS = JSON.parse(JSON.stringify(COUPONS));
 
 /* ================= Helpers ================= */
+const { SHAPES, TYPES, EDIT_KEYS, mulberry32, hashStr, drawLogo, drawFace, drawUploadedLogo, loadImg, serialOf } = DeckCore;
+const SAVED = DeckCore.load();
+const COUPONS = SAVED.coupons;
 const $ = (id) => document.getElementById(id);
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const PULSE_AMP = reduced ? 0 : 0.012;
-function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 function mix(hexA, hexB, t) { const a = new THREE.Color(hexA), b = new THREE.Color(hexB); return a.lerp(b, t); }
 
-/* ================= Canvas art ================= */
-function shapePath(ctx, shape, cx, cy, R) {
-  ctx.beginPath();
-  const poly = (n, r, rot) => { for (let i = 0; i < n; i++) { const a = rot + i * Math.PI * 2 / n; const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); };
-  switch (shape) {
-    case 'circle': case 'ring': ctx.arc(cx, cy, R, 0, Math.PI * 2); break;
-    case 'pill': { const w = R * 2, h = R * 1.35, r = h / 2; ctx.roundRect(cx - w / 2, cy - h / 2, w, h, r); break; }
-    case 'diamond': poly(4, R * 1.08, -Math.PI / 2); break;
-    case 'hex': poly(6, R * 1.02, 0); break;
-    case 'octagon': poly(8, R * 1.0, Math.PI / 8); break;
-    case 'squircle': ctx.roundRect(cx - R * 0.9, cy - R * 0.9, R * 1.8, R * 1.8, R * 0.55); break;
-    case 'tri': poly(3, R * 1.12, -Math.PI / 2); break;
-    case 'star': for (let i = 0; i < 24; i++) { const a = -Math.PI / 2 + i * Math.PI / 12; const r = i % 2 ? R * 0.82 : R * 1.02; const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); break;
-    case 'shield': ctx.moveTo(cx - R * 0.85, cy - R * 0.85); ctx.lineTo(cx + R * 0.85, cy - R * 0.85); ctx.lineTo(cx + R * 0.85, cy + R * 0.1); ctx.quadraticCurveTo(cx + R * 0.8, cy + R * 0.8, cx, cy + R * 1.05); ctx.quadraticCurveTo(cx - R * 0.8, cy + R * 0.8, cx - R * 0.85, cy + R * 0.1); ctx.closePath(); break;
-  }
-}
-function drawLogo(c) {
-  const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S;
-  const ctx = cv.getContext('2d'); const cx = S / 2, cy = S / 2, R = 100;
-  ctx.lineJoin = 'round';
-  shapePath(ctx, c.shape, cx, cy, R);
-  ctx.fillStyle = c.color; ctx.strokeStyle = c.color; ctx.lineWidth = 18; ctx.stroke(); ctx.fill();
-  ctx.save(); ctx.translate(cx, cy); ctx.scale(0.8, 0.8); ctx.translate(-cx, -cy);
-  shapePath(ctx, c.shape, cx, cy, R); ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 3.5; ctx.stroke(); ctx.restore();
-  if (c.shape === 'ring') { ctx.beginPath(); ctx.arc(cx + R * 0.52, cy - R * 0.52, 11, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); }
-  const fs = c.mark.length > 2 ? 64 : 84;
-  ctx.fillStyle = '#fff'; ctx.font = `900 ${fs + 14}px "Barlow Condensed", Impact, sans-serif`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(c.mark.toUpperCase(), cx, cy + (c.shape === 'tri' ? 22 : 4));
-  return cv;
-}
-function drawFace(c, serial) {
-  const W = 600, H = 960, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-  const ctx = cv.getContext('2d');
-  ctx.fillStyle = '#f5f2e9'; ctx.fillRect(0, 0, W, H);
-  // paper grain
-  const rng = mulberry32(hashStr(c.id));
-  for (let i = 0; i < 2600; i++) { ctx.fillStyle = `rgba(60,50,40,${0.02 + rng() * 0.04})`; ctx.fillRect(rng() * W, rng() * H, 1.4, 1.4); }
-  // guilloche rosette (security-print watermark) centered at 40%
-  const gx = W / 2, gy = H * 0.4;
-  ctx.strokeStyle = c.color; ctx.lineWidth = 1.1;
-  for (let k = 0; k < 14; k++) {
-    ctx.globalAlpha = 0.09 + (k % 3) * 0.025; ctx.beginPath();
-    for (let t = 0; t <= Math.PI * 2 + 0.01; t += 0.01) {
-      const r = 150 + 34 * Math.sin(9 * t + k * 0.45) + 16 * Math.cos(17 * t - k * 0.3) + k * 3;
-      const x = gx + Math.cos(t) * r, y = gy + Math.sin(t) * r; t ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-    }
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
-  // inset border
-  ctx.strokeStyle = c.color; ctx.globalAlpha = 0.35; ctx.lineWidth = 2; ctx.strokeRect(18, 18 + H * 0.075, W - 36, H - 36 - H * 0.075); ctx.globalAlpha = 1;
-  // top band
-  ctx.fillStyle = c.color; ctx.fillRect(0, 0, W, H * 0.075);
-  ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.font = '700 22px "DM Sans", Arial, sans-serif'; ctx.textBaseline = 'middle';
-  ctx.textAlign = 'left'; ctx.fillText(serial.toUpperCase(), 30, H * 0.0375);
-  ctx.textAlign = 'right'; ctx.fillText('LIMITED RUN', W - 30, H * 0.0375);
-  // microtext rule under band
-  ctx.fillStyle = c.color; ctx.globalAlpha = 0.45; ctx.font = '700 11px "DM Sans", Arial, sans-serif'; ctx.textAlign = 'left';
-  ctx.fillText((c.brand.toUpperCase() + ' · ').repeat(12), 22, H * 0.075 + 26); ctx.globalAlpha = 1;
-  // perforation + notches
-  const py = H * 0.8;
-  ctx.strokeStyle = 'rgba(17,16,14,0.4)'; ctx.setLineDash([10, 9]); ctx.lineWidth = 2.4;
-  ctx.beginPath(); ctx.moveTo(34, py); ctx.lineTo(W - 34, py); ctx.stroke(); ctx.setLineDash([]);
-  ctx.fillStyle = '#0b0b0b';
-  ctx.beginPath(); ctx.arc(0, py, 18, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(W, py, 18, 0, Math.PI * 2); ctx.fill();
-  return cv;
-}
 function radialTex(inner = 'rgba(255,255,255,1)') {
   const S = 128, cv = document.createElement('canvas'); cv.width = cv.height = S; const ctx = cv.getContext('2d');
   const g = ctx.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
@@ -694,37 +367,9 @@ const AX_Y = new THREE.Vector3(0, 1, 0);
 const stacks = [];
 const hitMat = new THREE.MeshBasicMaterial({ visible: false });
 
-const SHAPES = ['circle', 'pill', 'diamond', 'hex', 'squircle', 'star', 'shield', 'octagon', 'ring', 'tri'];
-const TYPES = ['Option', 'Discount', 'Freebie'];
 function stackSize(c) { return c.remaining <= 0 ? 1 : clamp(Math.round(c.remaining / 4), 2, 15); }
-function drawUploadedLogo(img) {
-  // keep the logo's own proportions so wide wordmarks can span the coupon
-  const k = Math.min(720 / img.width, 360 / img.height);
-  const cv = document.createElement('canvas'); cv.width = Math.max(1, Math.round(img.width * k)); cv.height = Math.max(1, Math.round(img.height * k));
-  cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); return cv;
-}
-/* Read the dominant brand colour out of an uploaded logo: skip transparent, near-white,
-   near-black and grey pixels, bucket the rest by hue, and take the most saturated-weighted bucket. */
-function logoColor(cv) {
-  const S = 64, t = document.createElement('canvas'); t.width = t.height = S;
-  const ctx = t.getContext('2d'); ctx.drawImage(cv, 0, 0, S, S);
-  let d; try { d = ctx.getImageData(0, 0, S, S).data; } catch (e) { return null; }
-  const buckets = Array.from({ length: 24 }, () => ({ w: 0, r: 0, g: 0, b: 0 }));
-  for (let i = 0; i < d.length; i += 4) {
-    if (d[i + 3] < 128) continue;
-    const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, ch = mx - mn;
-    if (ch < 0.12 || l < 0.1 || l > 0.94) continue;
-    let h = mx === r ? ((g - b) / ch) % 6 : mx === g ? (b - r) / ch + 2 : (r - g) / ch + 4; h = (h * 60 + 360) % 360;
-    const k = buckets[Math.floor(h / 15)], w = ch;
-    k.w += w; k.r += d[i] * w; k.g += d[i + 1] * w; k.b += d[i + 2] * w;
-  }
-  const best = buckets.reduce((a, b) => (b.w > a.w ? b : a));
-  if (best.w < 2) return null;
-  const hex = v => Math.round(v / best.w).toString(16).padStart(2, '0');
-  return '#' + hex(best.r) + hex(best.g) + hex(best.b);
-}
 function makeArt(c) {
-  c.serial = `No. ${c.id}-${String(c.total).padStart(4, '0')}`;
+  c.serial = serialOf(c);
   c.logoCanvas = c._img ? drawUploadedLogo(c._img) : drawLogo(c); c.logoURL = c.logoCanvas.toDataURL();
   c.faceCanvas = drawFace(c, c.serial); c.faceURL = c.faceCanvas.toDataURL('image/jpeg', 0.9);
 }
@@ -869,14 +514,13 @@ function setCount(n) {
   });
   layout(true);
   entering.forEach((s, k) => { s.enter = false; dealStack(s, 0.25 + k * 0.1); });
-  if (state.editing) { renderPicker(); fillEditor(); }
-  updateSubline(); buildSrNav(); save();
+  updateSubline(); buildSrNav();
 }
 function updateSubline() { const n = state.count; $('subline').textContent = `${n} limited offer${n === 1 ? '' : 's'}`; }
 
 /* ================= State ================= */
 const state = { dealt: false, ready: false, busy: false, sel: null, view: 'deck', linked: false, wallet: [], removeOnClose: false, hovered: null, W: 320, H: 512,
-  count: COUPONS.length, editing: false, editTarget: null, shiftX: 0, shiftY: 0, zoom: 1 };
+  count: COUPONS.length, shiftX: 0, shiftY: 0, zoom: 1 };
 const fly = { card: null, s: null, layer: 0, p: 0, mat: null };
 
 /* ---------- Intro: deal from the horizon, riffle into stacks ---------- */
@@ -913,10 +557,10 @@ function intro() {
     tl.to(s, { appear: 1, duration: 0.9, ease: 'elastic.out(1, 0.45)' }, done);
   });
   tl.add(() => {
-    state.dealt = true; state.ready = true; $('countRange').disabled = false;
+    state.dealt = true; state.ready = true;
     $('hint').textContent = portrait ? 'Tap a stack to open its offer · taller stacks have more left' : 'Click a stack to open its offer · taller stacks have more left';
   }, '-=0.6');
-  tl.add(() => { act.forEach(s => s.cards.forEach(c => { c.userData.free = false; })); });
+  tl.add(() => { act.forEach(s => s.cards.forEach(c => { c.userData.free = false; })); flushPending(); });
 }
 
 /* ---------- Picking ---------- */
@@ -937,14 +581,14 @@ canvas.addEventListener('pointerleave', () => setHover(null));
 canvas.addEventListener('pointerdown', e => { downAt = { x: e.clientX, y: e.clientY }; });
 canvas.addEventListener('pointerup', e => {
   if (!downAt) return; const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y); downAt = null;
-  if (moved > 8) return; const s = pick(e); if (!s) return; if (state.editing) pickForEdit(s); else select(s);
+  if (moved > 8) return; const s = pick(e); if (s) select(s);
 });
 function setHover(s) {
   if (state.hovered === s) return;
   state.hovered = s; canvas.classList.toggle('pointer', !!s);
   $('hoverLabel').classList.toggle('on', !!s);
   if (s) {
-    $('hoverLabel').querySelector('strong').textContent = state.editing ? `Edit ${s.c.brand}` : s.c.brand;
+    $('hoverLabel').querySelector('strong').textContent = s.c.brand;
     $('hoverLabel').querySelector('span').textContent = `${s.c.type} · ${s.c.remaining} of ${s.c.total} left`;
   }
 }
@@ -1019,7 +663,6 @@ function resetDOM() {
 /* ================= Select → fly → present ================= */
 function select(s) {
   if (!state.ready || state.busy || state.view !== 'deck') return;
-  if (state.editing) toggleEditor(false);
   state.busy = true; state.sel = s; state.view = 'flying'; setHover(null);
   $('hint').style.opacity = 0;
   resetDOM(); fillDOM(s); sizeCardDOM(); gsap.set(cardEl, { width: state.W, height: state.H });
@@ -1122,6 +765,7 @@ function endSelection() {
   state.sel = null; state.view = 'deck'; state.busy = false; state.removeOnClose = false;
   backdrop.classList.remove('open'); stage.classList.remove('open');
   $('hint').style.opacity = 1;
+  flushPending();
 }
 function finishRemoval() {
   const s = state.sel;
@@ -1290,7 +934,7 @@ $('doneBtn').addEventListener('click', closeCoupon);
 backdrop.addEventListener('click', closeCoupon);
 stage.addEventListener('click', e => { if (e.target === stage) closeCoupon(); });
 addEventListener('keydown', e => {
-  if (e.key === 'Escape') { if (!$('walletPanel').hidden) toggleWallet(false); else if (state.editing) toggleEditor(false); else closeCoupon(); }
+  if (e.key === 'Escape') { if (!$('walletPanel').hidden) toggleWallet(false); else closeCoupon(); }
 });
 function toggleWallet(force) {
   const p = $('walletPanel'); const open = force ?? p.hidden;
@@ -1307,178 +951,34 @@ function buildSrNav() {
     b.textContent = `Open ${s.c.brand}: ${s.c.short} ${s.c.remaining} of ${s.c.total} remaining.`;
     b.addEventListener('focus', () => { if (state.view === 'deck') setHover(s); });
     b.addEventListener('blur', () => setHover(null));
-    b.addEventListener('click', () => state.editing ? pickForEdit(s) : select(s));
+    b.addEventListener('click', () => select(s));
     nav.appendChild(b);
   });
 }
 
-/* ================= Deck data: persistence, editor, JSON ================= */
-const STORE_KEY = 'sponsor-drops-deck-v1';
-const EDIT_KEYS = ['brand', 'mark', 'shape', 'color', 'bpm', 'type', 'short', 'from', 'to', 'year', 'remaining', 'total', 'where', 'limit', 'long', 'terms', 'logoImg'];
-const LIMITS = { brand: 24, mark: 3, short: 64, from: 5, to: 5, year: 11, where: 40, limit: 30, long: 420 };
-function sanitize(c) {
-  for (const k of Object.keys(LIMITS)) c[k] = String(c[k] ?? '').slice(0, LIMITS[k]);
-  if (!c.brand.trim()) c.brand = 'Untitled sponsor';
-  if (!c.mark.trim()) c.mark = c.brand.slice(0, 2);
-  c.total = clamp(Math.round(+c.total || 1), 1, 9999);
-  c.remaining = clamp(Math.round(+c.remaining || 0), 0, c.total);
-  c.bpm = clamp(Math.round(+c.bpm || 90), 40, 180);
-  if (!SHAPES.includes(c.shape)) c.shape = 'circle';
-  if (!/^#[0-9a-f]{6}$/i.test(c.color || '')) c.color = '#888888';
-  if (!TYPES.includes(c.type)) c.type = 'Discount';
-  if (!Array.isArray(c.terms)) c.terms = String(c.terms || '').split('\n');
-  c.terms = c.terms.map(t => String(t).trim().slice(0, 160)).filter(Boolean).slice(0, 8);
-  if (typeof c.logoImg !== 'string' || !c.logoImg.startsWith('data:image/')) c.logoImg = null;
-  return c;
-}
-function editable(c) { const o = {}; EDIT_KEYS.forEach(k => { o[k] = c[k]; }); return o; }
-function loadImg(c) {
-  if (!c.logoImg) { c._img = null; return Promise.resolve(); }
-  return new Promise(res => { const im = new Image(); im.onload = () => { c._img = im; res(); }; im.onerror = () => { c.logoImg = null; c._img = null; res(); }; im.src = c.logoImg; });
-}
-function save() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify({ count: state.count, coupons: COUPONS.map(editable) })); }
-  catch (e) { /* storage full or blocked: the deck still works for this visit */ }
-}
-function loadSaved() {
-  try {
-    const raw = localStorage.getItem(STORE_KEY); if (!raw) return;
-    const d = JSON.parse(raw);
-    if (Array.isArray(d.coupons)) d.coupons.slice(0, COUPONS.length).forEach((o, i) => { EDIT_KEYS.forEach(k => { if (k in o) COUPONS[i][k] = o[k]; }); sanitize(COUPONS[i]); });
-    if (d.count) state.count = clamp(+d.count, 1, COUPONS.length);
-  } catch (e) { /* ignore bad or blocked storage */ }
-}
-
-const editor = $('editor');
-const F = id => $(id);
-let applyTimer = null;
-function renderPicker() {
-  const box = $('picker'); box.innerHTML = '';
-  stacks.forEach(s => {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'pick' + (s === state.editTarget ? ' on' : '') + (s.active ? '' : ' off');
-    b.setAttribute('aria-pressed', String(s === state.editTarget));
-    b.title = s.active ? s.c.brand : `${s.c.brand} (not in deck)`;
-    b.innerHTML = '<img alt="">'; b.querySelector('img').src = s.c.logoURL;
-    b.setAttribute('aria-label', b.title);
-    b.addEventListener('click', () => pickForEdit(s));
-    box.appendChild(b);
+/* ================= Deck data: live from the editor page ================= */
+/* The editor (editor.html) writes the deck through DeckCore.save(); this page only reads.
+   Edits arriving while a coupon is open or cards are moving wait until the table is idle. */
+let pendingDeck = null;
+function applyDeck(d) {
+  if (!state.dealt || state.view !== 'deck' || state.busy) { pendingDeck = d; return; }
+  pendingDeck = null;
+  const changed = [];
+  const loads = d.coupons.map((nc, i) => {
+    const c = COUPONS[i]; if (!c) return null;
+    const before = JSON.stringify(DeckCore.editable(c)), imgChanged = nc.logoImg !== c.logoImg;
+    EDIT_KEYS.forEach(k => { c[k] = nc[k]; });
+    if (JSON.stringify(DeckCore.editable(c)) !== before) changed.push(stacks[i]);
+    return imgChanged ? loadImg(c) : null;
+  });
+  Promise.all(loads).then(() => {
+    changed.forEach(s => { refreshStackArt(s); syncCards(s); });
+    setCount(d.count);
+    if (changed.length) { buildSrNav(); toast(changed.length === 1 ? `${changed[0].c.brand} updated` : 'Deck updated'); }
   });
 }
-function fillEditor() {
-  const s = state.editTarget; if (!s) return; const c = s.c;
-  $('edTitle').textContent = c.brand;
-  $('edState').textContent = s.active ? `Card ${s.i + 1} · in the deck` : `Card ${s.i + 1} · not in the deck (raise the slider to ${s.i + 1})`;
-  $('edLogoPreview').src = c.logoURL;
-  F('edBrand').value = c.brand; F('edMark').value = c.mark; F('edShape').value = c.shape; F('edColor').value = c.color;
-  F('edType').value = c.type; F('edShort').value = c.short; F('edFrom').value = c.from; F('edTo').value = c.to; F('edYear').value = c.year;
-  F('edRemaining').value = c.remaining; F('edTotal').value = c.total; F('edBpm').value = c.bpm; $('edBpmOut').textContent = c.bpm;
-  F('edWhere').value = c.where; F('edLimit').value = c.limit; F('edLong').value = c.long; F('edTerms').value = c.terms.join('\n');
-  $('edMonoFields').classList.toggle('dim', !!c.logoImg);
-  $('edUseMono').hidden = !c.logoImg;
-  $('edPreview').disabled = !s.active;
-}
-function readEditor() {
-  const c = state.editTarget.c;
-  Object.assign(c, {
-    brand: F('edBrand').value, mark: F('edMark').value, shape: F('edShape').value, color: F('edColor').value,
-    type: F('edType').value, short: F('edShort').value, from: F('edFrom').value, to: F('edTo').value, year: F('edYear').value,
-    remaining: F('edRemaining').value, total: F('edTotal').value, bpm: F('edBpm').value,
-    where: F('edWhere').value, limit: F('edLimit').value, long: F('edLong').value, terms: F('edTerms').value.split('\n'),
-  });
-  sanitize(c);
-  $('edBpmOut').textContent = c.bpm;
-}
-function applyEdit(s, refill) {
-  refreshStackArt(s); syncCards(s);
-  if (refill) fillEditor(); else { $('edLogoPreview').src = s.c.logoURL; $('edTitle').textContent = s.c.brand; }
-  const img = $('picker').children[s.i]?.querySelector('img'); if (img) img.src = s.c.logoURL;
-  buildSrNav(); save();
-}
-function pickForEdit(s) {
-  state.editTarget = s; renderPicker(); fillEditor();
-  if (s.active) gsap.timeline().to(s, { hop: 0.18, duration: 0.18, ease: 'power2.out' }).to(s, { hop: 0, duration: 0.4, ease: 'bounce.out' });
-}
-function updateShift(open, dur) {
-  // phones: pull the camera back and recentre the deck in the strip between the header and the sheet
-  let shiftY = 0, zoom = open && !portrait ? 1 + (editor.offsetWidth + 16) / innerWidth * 0.75 : 1;
-  if (portrait && open) {
-    const sheet = editor.getBoundingClientRect().height, head = 76, vis = Math.max(120, innerHeight - sheet - head);
-    zoom = clamp(0.72 * innerHeight / vis, 1, 2.6); shiftY = innerHeight / 2 - (head + vis / 2);
-  }
-  gsap.to(state, { shiftX: open && !portrait ? (editor.offsetWidth + 16) / 2 : 0, shiftY, zoom, duration: dur, ease: 'power3.inOut' });
-}
-function toggleEditor(force) {
-  const open = force ?? editor.hidden;
-  if (open && (state.view !== 'deck' || state.busy)) return;
-  editor.hidden = !open; state.editing = open;
-  $('editBtn').setAttribute('aria-expanded', String(open));
-  if (open) {
-    toggleWallet(false);
-    if (!state.editTarget) state.editTarget = stacks.find(s => s.active) || stacks[0];
-    renderPicker(); fillEditor();
-    gsap.fromTo(editor, { opacity: 0, x: portrait ? 0 : 24, y: portrait ? 40 : 0 }, { opacity: 1, x: 0, y: 0, duration: 0.35, ease: 'power3.out' });
-  }
-  updateShift(open, 0.6);
-  $('hint').textContent = open ? 'Click a stack to pick it for editing' : (portrait ? 'Tap a stack to open its offer · taller stacks have more left' : 'Click a stack to open its offer · taller stacks have more left');
-  $('hint').style.opacity = open && portrait ? 0 : 1;
-}
-
-$('editBtn').addEventListener('click', () => toggleEditor());
-$('edClose').addEventListener('click', () => toggleEditor(false));
-$('countRange').addEventListener('input', e => { $('countOut').textContent = e.target.value; setCount(+e.target.value); });
-$('edForm').addEventListener('submit', e => e.preventDefault());
-$('edForm').addEventListener('input', e => {
-  if (!state.editTarget || e.target.type === 'file') return;
-  readEditor();
-  clearTimeout(applyTimer);
-  applyTimer = setTimeout(() => applyEdit(state.editTarget, false), e.target.type === 'color' || e.target.tagName === 'SELECT' ? 0 : 160);
-});
-$('edForm').addEventListener('change', e => { if (e.target.type === 'number' && state.editTarget) fillEditor(); });
-$('edLogoFile').addEventListener('change', e => {
-  const file = e.target.files && e.target.files[0]; e.target.value = '';
-  if (!file || !state.editTarget) return;
-  if (!file.type.startsWith('image/')) { toast('Choose an image file (PNG, JPG, SVG or WebP)'); return; }
-  const s = state.editTarget, r = new FileReader();
-  r.onload = () => {
-    const im = new Image();
-    im.onload = () => {
-      const cv = drawUploadedLogo(im); s.c.logoImg = cv.toDataURL('image/png');
-      const picked = logoColor(cv); if (picked) s.c.color = picked;
-      loadImg(s.c).then(() => { applyEdit(s, true); toast(picked ? 'Logo replaced · coupon colours taken from it' : 'Logo replaced'); });
-    };
-    im.onerror = () => toast('That image could not be read');
-    im.src = r.result;
-  };
-  r.readAsDataURL(file);
-});
-$('edUseMono').addEventListener('click', () => { const s = state.editTarget; s.c.logoImg = null; s.c._img = null; applyEdit(s, true); });
-$('edPreview').addEventListener('click', () => { const s = state.editTarget; if (!s || !s.active) return; toggleEditor(false); gsap.delayedCall(0.35, () => select(s)); });
-$('edReset').addEventListener('click', () => {
-  const s = state.editTarget; Object.assign(s.c, JSON.parse(JSON.stringify(DEFAULTS[s.i]))); s.c.logoImg = null; s.c._img = null; s.c.claimed = false;
-  applyEdit(s, true); toast(`${s.c.brand} reset`);
-});
-$('edResetAll').addEventListener('click', () => {
-  stacks.forEach(s => { Object.assign(s.c, JSON.parse(JSON.stringify(DEFAULTS[s.i]))); s.c.logoImg = null; s.c._img = null; s.c.claimed = false; refreshStackArt(s); syncCards(s); });
-  $('countRange').value = COUPONS.length; $('countOut').textContent = COUPONS.length; setCount(COUPONS.length);
-  renderPicker(); fillEditor(); buildSrNav(); save(); toast('Deck reset to the sample offers');
-});
-$('edCopy').addEventListener('click', () => {
-  const json = JSON.stringify(COUPONS.slice(0, state.count).map(c => { const o = editable(c); if (!o.logoImg) delete o.logoImg; return o; }), null, 2);
-  const ta = $('edJson'); ta.value = json; $('jsonBox').open = true;
-  navigator.clipboard?.writeText(json).then(() => toast('Deck JSON copied'), () => { ta.focus(); ta.select(); toast('Select and copy the JSON below'); }) ?? (ta.focus(), ta.select());
-});
-$('edImport').addEventListener('click', () => {
-  let arr;
-  try { arr = JSON.parse($('edJson').value); } catch (e) { toast('That JSON could not be parsed. Check for a missing comma or bracket.'); return; }
-  if (!Array.isArray(arr) || !arr.length) { toast('Paste an array of 1 to 10 coupon objects'); return; }
-  arr = arr.slice(0, COUPONS.length);
-  Promise.all(arr.map((o, i) => { const c = COUPONS[i]; EDIT_KEYS.forEach(k => { if (o && k in o) c[k] = o[k]; }); sanitize(c); return loadImg(c); })).then(() => {
-    arr.forEach((o, i) => { refreshStackArt(stacks[i]); syncCards(stacks[i]); });
-    $('countRange').value = arr.length; $('countOut').textContent = arr.length; setCount(arr.length);
-    renderPicker(); fillEditor(); buildSrNav(); save(); toast(`Loaded ${arr.length} coupon${arr.length === 1 ? '' : 's'}`);
-  });
-});
+function flushPending() { if (pendingDeck) applyDeck(pendingDeck); }
+DeckCore.subscribe(applyDeck);
 
 /* ================= Render loop ================= */
 const clock = new THREE.Clock();
@@ -1504,7 +1004,7 @@ function frame() {
     let pulse = Math.exp(-beat * 5);
     if (s.c.dub) pulse += 0.5 * Math.exp(-(((beat - 0.24) + 1) % 1) * 9);
     const rip = (t * bps * 0.25 + s.phase) % 1;
-    const lit = state.hovered === s || (state.editing && state.editTarget === s);
+    const lit = state.hovered === s;
     s.hoverV = lerp(s.hoverV, lit ? 1 : 0, 0.15);
     // settled cards follow their stack (lets the fan re-flow smoothly)
     for (let l = 0; l < s.cards.length; l++) { const card = s.cards[l]; if (card.userData.free || card === fly.card) continue; const p = layerPose(s, l, card); card.position.copy(p.pos); card.quaternion.copy(p.quat); }
@@ -1547,15 +1047,14 @@ async function boot() {
       new Promise(r => setTimeout(r, 2500)),
     ]);
   } catch (e) { /* fall back to system fonts */ }
-  loadSaved();
+  state.count = SAVED.count;
   await Promise.all(COUPONS.map(loadImg));
   buildStacks();
   buildSrNav();
   updateSubline();
-  $('countRange').value = state.count; $('countOut').textContent = state.count;
   layout();
   stacks.forEach(s => s.cards.forEach(c => { c.userData.free = true; c.position.set(0, -50, -200); }));
-  addEventListener('resize', () => { layout(); updateShift(state.editing, 0); });
+  addEventListener('resize', () => { layout(); });
   requestAnimationFrame(frame);
   intro();
 }

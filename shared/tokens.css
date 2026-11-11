@@ -1,0 +1,29 @@
+/* Vibe City design tokens: Dark theme for pages, Paper theme for coupon stock, one orange accent. */
+:root {
+  --night: #0b0b0b;          /* surface */
+  --raised: #1a1a1a;         /* surface-raised */
+  --warm: #24211f;           /* surface-warm */
+  --fg: #f5f2e9;             /* ink (Dark) */
+  --fg-soft: #f0ede7;        /* ink-soft (Dark) */
+  --muted: #c9c5be;          /* muted (Dark) */
+  --line: rgba(255, 255, 255, 0.21);
+  --line-strong: #444444;
+  --ember: #ff4937;          /* brand / brand-ink on Dark */
+  --on-brand: #0b0b0b;
+  --success: #a6ddb7;
+  --paper: #f5f2e9;          /* surface (Paper) */
+  --paper-raised: #ebe7df;   /* surface-raised (Paper) */
+  --ink: #0b0b0b;            /* ink (Paper) */
+  --ink-soft: #11100e;
+  --paper-muted: #48433d;    /* muted (Paper) */
+  --paper-line: rgba(17, 16, 14, 0.22);
+  --brand-ink-paper: #a54635;
+  --brand: #c8743a;          /* the sponsor's own colour, set per coupon */
+  --ease: cubic-bezier(.23, 1, .32, 1);
+  --shadow-lift: 0 8px 24px rgba(190, 55, 36, .28);
+  --shadow-modal: 0 24px 90px rgba(0, 0, 0, .5);
+  --font-display: "Barlow Condensed", Impact, "Arial Narrow", sans-serif;
+  --font-body: "DM Sans", Arial, sans-serif;
+  --font-mono: "DM Sans", Arial, sans-serif;
+  color-scheme: dark;
+}
