@@ -99,6 +99,7 @@ body {
 }
 .hover-label.on { opacity: 1; }
 .hover-label strong { display: block; font: 800 18px/1 var(--font-display); text-transform: uppercase; }
+.hover-label em { display: block; margin: 4px 0 6px; font: 500 13px/1.3 var(--font-body); font-style: normal; color: var(--fg-soft); white-space: normal; max-width: 240px; }
 .hover-label span { font: 400 10px/1.4 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 
 /* ---------- Presentation stage ---------- */
@@ -238,7 +239,7 @@ a.wallet-btn { text-decoration: none; }
 </div>
 
 <nav class="sr-only" aria-label="Offers" id="srNav"></nav>
-<div class="hover-label" id="hoverLabel" aria-hidden="true"><strong></strong><span></span></div>
+<div class="hover-label" id="hoverLabel" aria-hidden="true"><strong></strong><em></em><span></span></div>
 <div class="hint" id="hint">Loading today's offers…</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -372,17 +373,19 @@ function makeArt(c) {
   c.serial = serialOf(c);
   c.logoCanvas = c._img ? drawUploadedLogo(c._img) : drawLogo(c); c.logoURL = c.logoCanvas.toDataURL();
   c.faceCanvas = drawFace(c, c.serial); c.faceURL = c.faceCanvas.toDataURL('image/jpeg', 0.9);
+  c.tableCanvas = drawFace(c, c.serial, true); // table cards also preview the offer
+  if (c.plainTex) { c.plainTex.dispose(); c.plainTex = null; }
 }
 function refreshStackArt(s) {
   makeArt(s.c);
-  s.faceMat.map.image = s.c.faceCanvas; s.faceMat.map.needsUpdate = true;
+  s.faceMat.map.image = s.c.tableCanvas; s.faceMat.map.needsUpdate = true;
   s.logo.material.map.dispose(); s.logo.material.map = new THREE.CanvasTexture(s.c.logoCanvas); s.logo.material.needsUpdate = true;
   s.edgeABase.copy(mix('#ebe7df', s.c.color, 0.4)); s.ripple.material.color.set(s.c.color);
 }
 function buildStacks() {
   COUPONS.forEach((c, i) => {
     makeArt(c);
-    const faceTex = new THREE.CanvasTexture(c.faceCanvas); faceTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const faceTex = new THREE.CanvasTexture(c.tableCanvas); faceTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
     const faceMat = new THREE.MeshBasicMaterial({ map: faceTex });
     const edgeA = new THREE.MeshBasicMaterial({ color: mix('#ebe7df', c.color, 0.4) });
     const edgeB = new THREE.MeshBasicMaterial({ color: new THREE.Color('#d9d4ca') });
@@ -391,7 +394,7 @@ function buildStacks() {
     const matsB = [edgeB, edgeB, faceMat, backMat, edgeB, edgeB];
 
     const s = { c, i, x: 0, z: 0, rot: 0, base: i * 0.004, cards: [], matsA, matsB, faceMat, edgeA, edgeB, edgeABase: edgeA.color.clone(), edgeBBase: edgeB.color.clone(),
-      active: i < state.count, appear: 0, logoFade: 1, dim: 1, hover: 0, hoverV: 0, hop: 0, phase: rand(0, 1), topY: 0 };
+      active: i < state.count, shownRemaining: c.remaining, appear: 0, logoFade: 1, dim: 1, hover: 0, hoverV: 0, hop: 0, phase: rand(0, 1), topY: 0 };
     const n = stackSize(c);
     for (let l = 0; l < n; l++) addCard(s);
     s.topY = s.base + n * STEP;
@@ -566,6 +569,7 @@ function setHover(s) {
   $('hoverLabel').classList.toggle('on', !!s);
   if (s) {
     $('hoverLabel').querySelector('strong').textContent = s.c.brand;
+    $('hoverLabel').querySelector('em').textContent = s.c.short;
     $('hoverLabel').querySelector('span').textContent = `${s.c.type} · ${s.c.remaining} of ${s.c.total} left`;
   }
 }
@@ -647,7 +651,10 @@ function select(s) {
 
   const card = s.cards[s.cards.length - 1];
   fly.card = card; fly.s = s; fly.layer = s.cards.length - 1; fly.p = 0;
-  fly.mat = card.material; const m = card.material.slice(); m[2] = s.faceMat.clone(); card.material = m;
+  fly.mat = card.material; const m = card.material.slice(); m[2] = s.faceMat.clone();
+  // the lifted card swaps to the plain stock so it hands off cleanly to the open coupon, whose text animates in
+  if (!s.c.plainTex) { s.c.plainTex = new THREE.CanvasTexture(s.c.faceCanvas); s.c.plainTex.anisotropy = renderer.capabilities.getMaxAnisotropy(); }
+  m[2].map = s.c.plainTex; card.material = m;
   card.renderOrder = 5;
 
   gsap.to(s, { logoFade: 0, duration: 0.45, ease: 'power2.out' });
@@ -736,6 +743,7 @@ function flyBack() {
 }
 function endSelection() {
   const s = state.sel;
+  if (s.shownRemaining !== s.c.remaining) { refreshStackArt(s); s.shownRemaining = s.c.remaining; buildSrNav(); } // keep the table's "X of Y left" current after a claim
   gsap.to(s, { logoFade: 1, duration: 0.6 });
   gsap.fromTo(s, { appear: 0.3 }, { appear: 1, duration: 0.9, ease: 'elastic.out(1, 0.45)' });
   stacks.forEach(o => gsap.to(o, { dim: 1, duration: 0.6 }));

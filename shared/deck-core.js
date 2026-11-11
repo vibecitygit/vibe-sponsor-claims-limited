@@ -156,7 +156,24 @@ function drawLogo(c) {
   ctx.fillText(c.mark.toUpperCase(), cx, cy + (c.shape === 'tri' ? 22 : 4));
   return cv;
 }
-function drawFace(c, serial) {
+function wrapLines(ctx, text, maxW, maxLines) {
+  const words = String(text).split(/\s+/).filter(Boolean), lines = [];
+  let line = '';
+  for (const w of words) {
+    const t = line ? line + ' ' + w : w;
+    if (ctx.measureText(t).width <= maxW || !line) line = t; else { lines.push(line); line = w; }
+  }
+  if (line) lines.push(line);
+  if (lines.length > maxLines) {
+    const kept = lines.slice(0, maxLines); let last = kept[maxLines - 1] + '…';
+    while (ctx.measureText(last).width > maxW && last.length > 2) last = last.slice(0, -2) + '…';
+    kept[maxLines - 1] = last; return kept;
+  }
+  return lines;
+}
+/* withPreview: the table version of the card, which also prints the promotion type, a short
+   description of the offer and how many are left, sized to read at table distance. */
+function drawFace(c, serial, withPreview) {
   const W = 600, H = 960, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
   ctx.fillStyle = '#f5f2e9'; ctx.fillRect(0, 0, W, H);
@@ -192,6 +209,21 @@ function drawFace(c, serial) {
   ctx.fillStyle = '#0b0b0b';
   ctx.beginPath(); ctx.arc(0, py, 18, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.arc(W, py, 18, 0, Math.PI * 2); ctx.fill();
+  if (withPreview) {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '3px';
+    ctx.fillStyle = '#a54635'; ctx.font = '800 28px "DM Sans", Arial, sans-serif';
+    ctx.fillText(`${c.type} offer`.toUpperCase(), W / 2, H * 0.455);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    // a narrow centred column, so the text stays clear where neighbouring cards overlap on phones
+    ctx.fillStyle = '#0b0b0b'; ctx.font = '800 62px "Barlow Condensed", Impact, sans-serif';
+    const lines = wrapLines(ctx, c.short.toUpperCase(), W - 190, 4);
+    lines.forEach((ln, i) => ctx.fillText(ln, W / 2, H * 0.455 + 68 + i * 58));
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '3px';
+    ctx.fillStyle = '#48433d'; ctx.font = '700 26px "DM Sans", Arial, sans-serif';
+    ctx.fillText(`${c.remaining} OF ${c.total} LEFT`, W / 2, H * 0.765);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  }
   return cv;
 }
 function drawUploadedLogo(img) {
