@@ -211,6 +211,19 @@ a.wallet-btn { text-decoration: none; }
   .hint { font-size: 11px; }
   .brandmark p { font-size: 10px; }
 }
+/* Narrow screens and small embeds: keep the counter and close button inside the frame */
+.rw-short { display: none; }
+.pill-row { max-width: calc(100vw - 16px); }
+@media (max-width: 420px) {
+  .pill-row { gap: 8px; bottom: calc(100% + 10px); }
+  .remain { height: 32px; padding: 0 12px; gap: 6px; }
+  .remain b { font-size: 19px; }
+  .rw-long { display: none; }
+  .rw-short { display: inline; }
+  .meter { width: 36px; }
+  .xbtn { width: 32px; height: 32px; font-size: 18px; flex: none; }
+}
+@media (max-width: 330px) { .meter { display: none; } }
 @media (prefers-reduced-motion: reduce) {
   .remain { animation: none; }
 }
@@ -251,7 +264,7 @@ a.wallet-btn { text-decoration: none; }
 <div id="stage" role="dialog" aria-modal="true" aria-labelledby="cname">
   <div class="card" id="card">
     <div class="pill-row" id="pillRow">
-      <div class="remain"><b id="remainNum">42</b><span id="remainText">of 120 remaining</span><span class="meter"><i id="meterFill"></i></span></div>
+      <div class="remain"><b id="remainNum">42</b><span id="remainText">of <span id="remainTotal">120</span><span class="rw-long"> remaining</span><span class="rw-short"> left</span></span><span class="meter"><i id="meterFill"></i></span></div>
       <button class="xbtn" id="closeBtn" aria-label="Close offer and return to deck">×</button>
     </div>
     <div class="flipper" id="flipper">
@@ -691,7 +704,7 @@ function syncClaimButtons(c) {
 }
 function updateRemain(c) {
   $('remainNum').textContent = c.remaining;
-  $('remainText').textContent = `of ${c.total} remaining`;
+  $('remainTotal').textContent = c.total;
   $('meterFill').style.width = (c.remaining / c.total * 100).toFixed(1) + '%';
 }
 function resetDOM() {
