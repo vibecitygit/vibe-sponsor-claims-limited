@@ -1,0 +1,1127 @@
+<title>Sponsor Drops</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one full-bleed WebGL dusk scene (invisible table, fogged horizon); DOM overlay for the presented coupon. Single dark world by design. */
+:root {
+  --night: #0d0e22;
+  --dusk: #2a2350;
+  --haze: #4b3b63;
+  --ember: #f2b880;
+  --paper: #f2eee6;
+  --ink: #17182a;
+  --muted: #a9a3c4;
+  --line: rgba(255, 255, 255, 0.14);
+  --brand: #c8743a;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Instrument Sans", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--night);
+  color: #ecebf6;
+  font-family: var(--font-body);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#scene.pointer { cursor: pointer; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---------- Chrome ---------- */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 18px);
+  padding-bottom: 12px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  pointer-events: none;
+}
+.brandmark { display: grid; gap: 4px; min-width: 0; }
+.brandmark h1 {
+  margin: 0; font-family: var(--font-display); font-weight: 800; font-size: clamp(22px, 3.2vw, 30px);
+  letter-spacing: -0.02em; line-height: 1;
+}
+.brandmark p {
+  margin: 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+}
+.wallet-btn {
+  pointer-events: auto; position: relative;
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 9px 14px 9px 12px; border-radius: 999px;
+  background: rgba(20, 18, 44, 0.6); border: 1px solid var(--line);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  color: #f4f2ff; font: 600 13px/1 var(--font-body); cursor: pointer;
+}
+.wallet-btn:hover { border-color: rgba(255,255,255,0.3); }
+.wallet-btn:focus-visible, button:focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
+.wallet-btn svg { width: 18px; height: 18px; }
+.wallet-count {
+  min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; display: grid; place-items: center;
+  background: var(--ember); color: var(--ink); font: 700 12px/1 var(--font-mono); font-variant-numeric: tabular-nums;
+}
+.linked-dot { width: 7px; height: 7px; border-radius: 50%; background: #7be0a8; box-shadow: 0 0 8px #7be0a8; display: none; }
+.wallet-btn.linked .linked-dot { display: block; }
+
+.wallet-panel {
+  position: fixed; z-index: 40; width: min(320px, calc(100vw - 32px));
+  top: calc(env(safe-area-inset-top, 0px) + 66px);
+  right: max(16px, env(safe-area-inset-right, 0px));
+  background: rgba(18, 16, 40, 0.92); border: 1px solid var(--line); border-radius: 16px;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  padding: 14px; display: grid; gap: 10px; box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+.wallet-panel[hidden] { display: none; }
+.wallet-panel h2 { margin: 0; font: 700 15px/1.2 var(--font-display); }
+.wallet-panel .empty { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.wallet-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 50vh; overflow: auto; }
+.wallet-list li { display: grid; grid-template-columns: 36px 1fr; gap: 10px; align-items: center; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.05); }
+.wallet-list img { width: 36px; height: 36px; }
+.wallet-list strong { display: block; font-size: 13px; }
+.wallet-list span { font: 11px/1.3 var(--font-mono); color: var(--muted); }
+
+.hint {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; text-align: center; pointer-events: none;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  font: 12px/1.4 var(--font-mono); letter-spacing: 0.06em; color: var(--muted);
+  transition: opacity .4s;
+}
+
+.hover-label {
+  position: fixed; z-index: 25; left: 0; top: 0; pointer-events: none;
+  transform: translate(-50%, -100%); opacity: 0; transition: opacity .18s;
+  padding: 8px 12px; border-radius: 10px; white-space: nowrap;
+  background: rgba(14, 12, 34, 0.86); border: 1px solid var(--line);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.hover-label.on { opacity: 1; }
+.hover-label strong { display: block; font: 700 14px/1.2 var(--font-display); }
+.hover-label span { font: 11px/1.4 var(--font-mono); color: var(--muted); }
+
+/* ---------- Presentation stage ---------- */
+#backdrop {
+  position: fixed; inset: 0; z-index: 50; opacity: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 45%, rgba(30, 24, 62, 0.35), rgba(8, 7, 22, 0.78));
+  backdrop-filter: blur(7px) saturate(0.8); -webkit-backdrop-filter: blur(7px) saturate(0.8);
+}
+#backdrop.open { pointer-events: auto; }
+#stage {
+  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center;
+  visibility: hidden; pointer-events: none;
+}
+#stage.open { visibility: visible; }
+#stage.open .card { pointer-events: auto; }
+
+.card {
+  --u: 3.2px;
+  position: relative; width: 320px; height: 512px;
+  perspective: 1800px; opacity: 0;
+}
+.flipper { position: absolute; inset: 0; transform-style: preserve-3d; }
+.face {
+  position: absolute; inset: 0; border-radius: 5px; overflow: hidden;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  background: var(--paper); color: var(--ink);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 2px 0 rgba(255,255,255,0.4) inset;
+}
+.front .art { position: absolute; inset: 0; background-size: 100% 100%; background-repeat: no-repeat; }
+.zone { position: absolute; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 calc(var(--u) * 8); }
+.name-zone { top: 9%; height: 22%; justify-content: flex-end; gap: calc(var(--u) * 1.4); }
+.eyebrow { font: 600 calc(var(--u) * 2.9) / 1 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase; color: color-mix(in srgb, var(--brand) 75%, var(--ink)); }
+.cname {
+  margin: 0; font-family: var(--font-display); font-weight: 800; letter-spacing: -0.025em;
+  font-size: calc(var(--u) * 8); line-height: 1; text-wrap: balance; perspective: 400px;
+}
+.cname .ch { display: inline-block; transform-origin: 50% 100%; white-space: pre; }
+.clogo {
+  position: absolute; left: calc(50% - var(--u) * 13); top: calc(40% - var(--u) * 13); width: calc(var(--u) * 26); height: calc(var(--u) * 26);
+  filter: drop-shadow(0 calc(var(--u) * 2) calc(var(--u) * 3) rgba(23, 24, 42, 0.28));
+}
+.detail-zone { top: 49.5%; height: 30%; justify-content: flex-start; gap: calc(var(--u) * 2.2); }
+.short { margin: 0; font-size: calc(var(--u) * 4.2); line-height: 1.32; min-height: 2.64em; max-width: 30ch; text-wrap: balance; }
+.ptype {
+  display: inline-flex; align-items: center; gap: calc(var(--u) * 1.4);
+  padding: calc(var(--u) * 1.1) calc(var(--u) * 2.6); border-radius: 999px;
+  font: 700 calc(var(--u) * 2.9) / 1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--brand); border: 1.5px solid color-mix(in srgb, var(--brand) 55%, transparent);
+  background: color-mix(in srgb, var(--brand) 10%, transparent);
+}
+.ptype i { width: calc(var(--u) * 1.6); height: calc(var(--u) * 1.6); border-radius: 50%; background: var(--brand); }
+.dates { display: grid; justify-items: center; gap: calc(var(--u) * 0.6); margin-top: auto; }
+.year { font: 800 calc(var(--u) * 6.6) / 1 var(--font-display); letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
+.valid { font: 600 calc(var(--u) * 3.4) / 1 var(--font-mono); letter-spacing: 0.06em; color: #4d4c5e; font-variant-numeric: tabular-nums; }
+.action-zone { top: 83%; height: 13%; flex-direction: row; justify-content: center; gap: calc(var(--u) * 3); padding: 0 calc(var(--u) * 7); }
+.btn {
+  appearance: none; border: 0; cursor: pointer; border-radius: 999px;
+  font: 700 calc(var(--u) * 4.1) / 1 var(--font-body); letter-spacing: 0.01em;
+  height: calc(var(--u) * 11.5); padding: 0 calc(var(--u) * 6);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: transform .15s, filter .15s, background-color .15s;
+}
+.btn:active { transform: scale(0.97); }
+.btn[disabled] { cursor: default; opacity: .55; }
+.btn-claim { flex: 1.3; background: var(--brand); color: #fff; box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 40%, transparent); }
+.btn-claim:hover:not([disabled]) { filter: brightness(1.08); }
+.btn-ghost { flex: 1; background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px rgba(23, 24, 42, 0.35); }
+.btn-ghost:hover { background: rgba(23,24,42,0.06); }
+
+/* Above-card pill + close */
+.pill-row {
+  position: absolute; left: 50%; bottom: calc(100% + 14px); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; white-space: nowrap;
+}
+.remain {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 8px 14px; border-radius: 999px;
+  background: rgba(16, 14, 38, 0.75); border: 1px solid var(--line); color: #fff;
+  font: 600 13px/1 var(--font-body); font-variant-numeric: tabular-nums;
+  animation: bob 3.2s ease-in-out infinite;
+}
+.remain b { font: 700 15px/1 var(--font-mono); color: var(--ember); }
+.meter { width: 54px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.15); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--ember); border-radius: 3px; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+.xbtn {
+  width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  background: rgba(16, 14, 38, 0.75); border: 1px solid var(--line); color: #fff;
+}
+.xbtn svg { width: 14px; height: 14px; }
+
+/* QR state */
+.qr-panel {
+  position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center;
+  gap: calc(var(--u) * 2.2); padding-top: calc(var(--u) * 4);
+}
+.qr-panel::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: calc(var(--u) * 3.4); background: var(--brand); }
+.qr-panel canvas { width: 58%; aspect-ratio: 1; max-width: 100%; image-rendering: pixelated; }
+.qr-panel p { margin: 0; font: 800 calc(var(--u) * 5.2) / 1 var(--font-display); letter-spacing: -0.01em; }
+.qr-code { font: 600 calc(var(--u) * 3.1) / 1 var(--font-mono); letter-spacing: 0.14em; color: #57566a; }
+.after-actions {
+  position: absolute; left: 50%; top: calc(100% + 18px); transform: translateX(-50%);
+  display: none; gap: 10px; white-space: nowrap;
+}
+.after-actions .btn { --u: 3.3px; }
+.btn-link { background: var(--ember); color: var(--ink); }
+.btn-done { background: rgba(255,255,255,0.08); color: #fff; box-shadow: inset 0 0 0 1px var(--line); }
+.spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: rot .7s linear infinite; }
+@keyframes rot { to { transform: rotate(360deg); } }
+
+/* Back / terms */
+.back { transform: rotateY(180deg); display: flex; flex-direction: column; }
+.back-band { height: 10px; background: var(--brand); flex: none; }
+.back-body {
+  flex: 1; overflow: auto; padding: 22px 24px 8px; display: grid; gap: 18px; align-content: start;
+  overscroll-behavior: contain;
+}
+.back-head { display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: center; }
+.back-head img { width: 52px; height: 52px; }
+.back-head h3 { margin: 0; font: 800 22px/1.05 var(--font-display); letter-spacing: -0.02em; text-wrap: balance; }
+.back-head span { font: 600 11px/1.3 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--brand); }
+.back-long { margin: 0; font-size: 15px; line-height: 1.55; max-width: 62ch; color: #2c2c3e; }
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.facts div { padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--brand) 8%, #fff); min-width: 0; }
+.facts dt { font: 600 10px/1.2 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: #6a6979; }
+.facts dd { margin: 4px 0 0; font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; }
+.back h4 { margin: 0 0 8px; font: 700 13px/1.2 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: #6a6979; }
+.back ol { margin: 0; padding-left: 20px; display: grid; gap: 7px; font-size: 14px; line-height: 1.45; color: #2c2c3e; }
+.fine { margin: 0; font: 11px/1.5 var(--font-mono); color: #6a6979; }
+.back-foot {
+  flex: none; display: flex; gap: 10px; padding: 14px 24px 18px; border-top: 1px dashed rgba(23,24,42,0.2);
+}
+.back-foot .btn { --u: 3.4px; }
+.back.wide .back-body { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 36px; padding: 30px 36px 10px; }
+.back.wide .back-head, .back.wide .back-long { grid-column: 1; }
+.back.wide .facts { grid-column: 1; }
+.back.wide .terms-block { grid-column: 2; grid-row: 1 / span 3; }
+.back.wide .fine { grid-column: 1 / -1; }
+.back.wide .back-foot { padding: 16px 36px 22px; }
+
+.toast {
+  position: fixed; left: 50%; z-index: 70; bottom: calc(env(safe-area-inset-bottom, 0px) + 54px);
+  transform: translateX(-50%); padding: 10px 16px; border-radius: 999px; opacity: 0; pointer-events: none;
+  background: #f4f2ff; color: var(--ink); font: 600 13px/1 var(--font-body); white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .hint { font-size: 11px; }
+  .brandmark p { font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .remain { animation: none; }
+}
+</style>
+
+<canvas id="scene" aria-hidden="true"></canvas>
+
+<header class="topbar">
+  <div class="brandmark">
+    <h1>Sponsor Drops</h1>
+    <p id="subline">10 limited offers</p>
+  </div>
+  <button class="wallet-btn" id="walletBtn" aria-expanded="false" aria-controls="walletPanel">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 14.5h2"/><path d="M6 6l9-3 1.5 3"/></svg>
+    Wallet
+    <span class="linked-dot" title="Account linked"></span>
+    <span class="wallet-count" id="walletCount">0</span>
+  </button>
+</header>
+
+<div class="wallet-panel" id="walletPanel" hidden>
+  <h2>Your wallet</h2>
+  <p class="empty" id="walletEmpty">Claimed offers land here once you link an account.</p>
+  <ul class="wallet-list" id="walletList"></ul>
+</div>
+
+<nav class="sr-only" aria-label="Offers" id="srNav"></nav>
+<div class="hover-label" id="hoverLabel" aria-hidden="true"><strong></strong><span></span></div>
+<div class="hint" id="hint">Dealing today's offers…</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div id="backdrop"></div>
+<div id="stage" role="dialog" aria-modal="true" aria-labelledby="cname">
+  <div class="card" id="card">
+    <div class="pill-row" id="pillRow">
+      <div class="remain"><b id="remainNum">42</b><span id="remainText">of 120 remaining</span><span class="meter"><i id="meterFill"></i></span></div>
+      <button class="xbtn" id="closeBtn" aria-label="Close offer and return to deck">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l10 10M12 2L2 12"/></svg>
+      </button>
+    </div>
+    <div class="flipper" id="flipper">
+      <div class="face front" id="front">
+        <div class="art" id="art"></div>
+        <div class="zone name-zone">
+          <span class="eyebrow" id="ceyebrow">Sponsor offer</span>
+          <h2 class="cname" id="cname"></h2>
+        </div>
+        <img class="clogo" id="clogo" alt="">
+        <div class="zone detail-zone" id="details">
+          <p class="short" id="cshort"></p>
+          <span class="ptype" id="ctype"><i></i><span></span></span>
+          <div class="dates">
+            <span class="year" id="cyear"></span>
+            <span class="valid" id="cvalid"></span>
+          </div>
+        </div>
+        <div class="zone action-zone" id="actions">
+          <button class="btn btn-claim" id="claimBtn">Claim</button>
+          <button class="btn btn-ghost" id="termsBtn">Terms</button>
+        </div>
+        <div class="qr-panel" id="qrPanel" aria-live="polite">
+          <canvas id="qr" width="290" height="290" aria-label="QR code for this offer" role="img"></canvas>
+          <p>Present to claim.</p>
+          <span class="qr-code" id="qrCode"></span>
+        </div>
+      </div>
+      <div class="face back" id="back">
+        <div class="back-band"></div>
+        <div class="back-body" id="backBody">
+          <div class="back-head"><img id="bLogo" alt=""><div><span id="bType"></span><h3 id="bTitle"></h3></div></div>
+          <p class="back-long" id="bLong"></p>
+          <dl class="facts" id="bFacts"></dl>
+          <div class="terms-block"><h4>Terms</h4><ol id="bTerms"></ol></div>
+          <p class="fine" id="bFine"></p>
+        </div>
+        <div class="back-foot">
+          <button class="btn btn-ghost" id="backBtn">← Back</button>
+          <button class="btn btn-claim" id="backClaimBtn">Claim</button>
+        </div>
+      </div>
+    </div>
+    <div class="after-actions" id="afterActions">
+      <button class="btn btn-link" id="linkBtn">Link account</button>
+      <button class="btn btn-done" id="doneBtn">Done</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* ================= Data ================= */
+const COUPONS = [
+  { id: 'HAL', brand: 'Halcyon Coffee', mark: 'Hc', shape: 'circle', color: '#c8743a', bpm: 72, dub: true,
+    type: 'Freebie', short: 'A free 12oz oat latte with any pastry.', from: '11/14', to: '12/31', year: '2026',
+    remaining: 42, total: 120, where: 'All 6 Halcyon cafés', limit: '1 per person',
+    long: 'Pick any pastry from the case and your oat latte is on us. Swap to any plant milk or make it iced at no charge. Works at the counter or through the Halcyon order-ahead line.',
+    terms: ['Valid on one 12oz latte with purchase of any pastry.', 'Plant-milk and iced swaps included; extra shots are charged.', 'Not valid with other offers or loyalty rewards.', 'Show the QR code before paying.'] },
+  { id: 'TDW', brand: 'Tidewater Surf', mark: 'Tw', shape: 'pill', color: '#2c8fa8', bpm: 96,
+    type: 'Discount', short: '25% off any full wetsuit, in store only.', from: '11/11', to: '11/30', year: '2026',
+    remaining: 8, total: 40, where: 'Tidewater Pier St.', limit: '1 per person',
+    long: 'Take a quarter off any full-length wetsuit from the winter wall, 3/2 through 6/5. Fitting is free and staff will size you in the shop before you commit.',
+    terms: ['25% off one full wetsuit at regular price.', 'Excludes springsuits, boots and hoods.', 'In-store purchase only.', 'Returns refund the discounted price.'] },
+  { id: 'NBR', brand: 'Northbound Rail', mark: 'NR', shape: 'diamond', color: '#3e5ba9', bpm: 84,
+    type: 'Option', short: 'Pick one: a seat upgrade or a lounge pass.', from: '11/18', to: '01/15', year: '2026 – 27',
+    remaining: 17, total: 50, where: 'Any Northbound station', limit: '1 per booking',
+    long: 'Choose how you travel: move up to First on any single journey under 4 hours, or spend your wait in the Platform Lounge with coffee and quiet desks. Decide at the ticket desk.',
+    terms: ['Choose one option when you redeem; it cannot be split.', 'Upgrade subject to First Class availability.', 'Lounge pass valid for 3 hours on the day of travel.', 'Not exchangeable for cash or credit.'] },
+  { id: 'PLM', brand: 'Plume Cycles', mark: 'Pl', shape: 'hex', color: '#d2483f', bpm: 120,
+    type: 'Discount', short: '$40 off a full service tune-up.', from: '11/11', to: '12/20', year: '2026',
+    remaining: 31, total: 60, where: 'Plume Workshop, Dock 4', limit: '1 per bike',
+    long: 'Our full tune-up covers gears, brakes, wheel truing and a drivetrain clean. With this coupon the $95 service drops to $55. Book a slot and drop the bike off in the morning.',
+    terms: ['Applies to the Full Service tune-up only.', 'Parts are charged separately at shelf price.', 'Booking required; walk-ins as space allows.', 'One coupon per bicycle.'] },
+  { id: 'EMR', brand: 'Ember & Rye', mark: 'E&R', shape: 'squircle', color: '#b5552b', bpm: 60, dub: true,
+    type: 'Freebie', short: 'A free sourdough loaf, Saturdays only.', from: '11/15', to: '12/27', year: '2026',
+    remaining: 55, total: 80, where: 'Ember & Rye Bakery', limit: '1 per Saturday',
+    long: 'Our 36-hour country sourdough, baked at dawn. Come in on any Saturday morning during the run and take a loaf home with no purchase needed while the batch lasts.',
+    terms: ['Saturdays only, while the morning batch lasts.', 'Country sourdough only; specialty loaves excluded.', 'No purchase required.', 'One loaf per person per Saturday.'] },
+  { id: 'LUM', brand: 'Lumen Cinema', mark: 'Lu', shape: 'star', color: '#d9a32e', bpm: 128,
+    type: 'Option', short: '2-for-1 tickets or a free large popcorn.', from: '11/12', to: '12/18', year: '2026',
+    remaining: 24, total: 100, where: 'Lumen, Screens 1–5', limit: '1 per visit',
+    long: 'Bring a friend for free on any standard screening, or keep it solo and get a large popcorn on the house. Works for matinees and evening shows, Monday through Thursday.',
+    terms: ['Monday to Thursday screenings only.', '2-for-1 applies to standard 2D seats.', 'Choose one option at the box office.', 'Excludes premieres and special events.'] },
+  { id: 'FLD', brand: 'Fieldnote Books', mark: 'Fn', shape: 'shield', color: '#4e7d4a', bpm: 90,
+    type: 'Discount', short: '15% off your whole basket, any genre.', from: '11/11', to: '12/24', year: '2026',
+    remaining: 12, total: 30, where: 'Fieldnote, Market Row', limit: '1 per person',
+    long: 'Fill a basket from any shelf (new releases, used stacks, stationery) and take 15% off the total. Staff can gift-wrap anything over $20 at no cost through December.',
+    terms: ['15% off the full basket in one transaction.', 'Excludes gift cards and event tickets.', 'Cannot be combined with member pricing.', 'In-store only.'] },
+  { id: 'KLN', brand: 'Kiln Studio', mark: 'Ki', shape: 'octagon', color: '#9c5a8e', bpm: 104,
+    type: 'Freebie', short: 'A free intro wheel class for one.', from: '11/20', to: '01/31', year: '2026 – 27',
+    remaining: 4, total: 20, where: 'Kiln Studio, Unit 9', limit: '1 per person',
+    long: 'A two-hour beginner session on the wheel. Clay, glaze and one firing are included, and you collect your finished piece about two weeks later.',
+    terms: ['Valid for one seat in an Intro to Wheel class.', 'Booking required at least 48 hours ahead.', 'Includes clay, glaze and one firing.', 'Cancellations under 24 hours forfeit the seat.'] },
+  { id: 'ORB', brand: 'Orbit Arcade', mark: 'Ob', shape: 'ring', color: '#6b4fd0', bpm: 140,
+    type: 'Option', short: '20 free tokens or one hour of free play.', from: '11/11', to: '12/31', year: '2026',
+    remaining: 38, total: 75, where: 'Orbit Arcade, Level 2', limit: '1 per visit',
+    long: 'Load 20 tokens onto a play card, or get a wristband for one hour of unlimited cabinet play. The rhythm machines and the racing pods are included.',
+    terms: ['Choose tokens or timed play at the desk.', 'Wristband hour starts when issued.', 'Excludes prize-redemption games.', 'Under 12s with an adult.'] },
+  { id: 'VRD', brand: 'Verdant Grocer', mark: 'Vg', shape: 'tri', color: '#2f8a5e', bpm: 110,
+    type: 'Discount', short: '$10 off when you spend $50 or more.', from: '11/11', to: '11/29', year: '2026',
+    remaining: 60, total: 150, where: 'Both Verdant stores', limit: '1 per household',
+    long: 'Stock up on the weekly shop and take $10 off at the till once you hit $50. Works on produce, the deli counter and the bulk bins.',
+    terms: ['Minimum spend $50 after other discounts.', 'Excludes alcohol, tobacco and gift cards.', 'One coupon per household per week.', 'In-store only.'] },
+];
+
+/* ================= Helpers ================= */
+const $ = (id) => document.getElementById(id);
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const PULSE_AMP = reduced ? 0.03 : 0.16;
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function mix(hexA, hexB, t) { const a = new THREE.Color(hexA), b = new THREE.Color(hexB); return a.lerp(b, t); }
+
+/* ================= Canvas art ================= */
+function shapePath(ctx, shape, cx, cy, R) {
+  ctx.beginPath();
+  const poly = (n, r, rot) => { for (let i = 0; i < n; i++) { const a = rot + i * Math.PI * 2 / n; const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); };
+  switch (shape) {
+    case 'circle': case 'ring': ctx.arc(cx, cy, R, 0, Math.PI * 2); break;
+    case 'pill': { const w = R * 2, h = R * 1.35, r = h / 2; ctx.roundRect(cx - w / 2, cy - h / 2, w, h, r); break; }
+    case 'diamond': poly(4, R * 1.08, -Math.PI / 2); break;
+    case 'hex': poly(6, R * 1.02, 0); break;
+    case 'octagon': poly(8, R * 1.0, Math.PI / 8); break;
+    case 'squircle': ctx.roundRect(cx - R * 0.9, cy - R * 0.9, R * 1.8, R * 1.8, R * 0.55); break;
+    case 'tri': poly(3, R * 1.12, -Math.PI / 2); break;
+    case 'star': for (let i = 0; i < 24; i++) { const a = -Math.PI / 2 + i * Math.PI / 12; const r = i % 2 ? R * 0.82 : R * 1.02; const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); break;
+    case 'shield': ctx.moveTo(cx - R * 0.85, cy - R * 0.85); ctx.lineTo(cx + R * 0.85, cy - R * 0.85); ctx.lineTo(cx + R * 0.85, cy + R * 0.1); ctx.quadraticCurveTo(cx + R * 0.8, cy + R * 0.8, cx, cy + R * 1.05); ctx.quadraticCurveTo(cx - R * 0.8, cy + R * 0.8, cx - R * 0.85, cy + R * 0.1); ctx.closePath(); break;
+  }
+}
+function drawLogo(c) {
+  const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const ctx = cv.getContext('2d'); const cx = S / 2, cy = S / 2, R = 100;
+  ctx.lineJoin = 'round';
+  shapePath(ctx, c.shape, cx, cy, R);
+  ctx.fillStyle = c.color; ctx.strokeStyle = c.color; ctx.lineWidth = 18; ctx.stroke(); ctx.fill();
+  // inner highlight
+  const g = ctx.createLinearGradient(0, cy - R, 0, cy + R); g.addColorStop(0, 'rgba(255,255,255,0.28)'); g.addColorStop(0.55, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,0.18)');
+  ctx.fillStyle = g; ctx.fill();
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(0.8, 0.8); ctx.translate(-cx, -cy);
+  shapePath(ctx, c.shape, cx, cy, R); ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 5; ctx.stroke(); ctx.restore();
+  if (c.shape === 'ring') { ctx.beginPath(); ctx.arc(cx + R * 0.52, cy - R * 0.52, 11, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); }
+  const fs = c.mark.length > 2 ? 64 : 84;
+  ctx.fillStyle = '#fff'; ctx.font = `800 ${fs}px "Bricolage Grotesque", system-ui, sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(c.mark, cx, cy + (c.shape === 'tri' ? 22 : 4));
+  return cv;
+}
+function drawFace(c, serial) {
+  const W = 600, H = 960, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#f2eee6'; ctx.fillRect(0, 0, W, H);
+  // paper grain
+  const rng = mulberry32(hashStr(c.id));
+  for (let i = 0; i < 2600; i++) { ctx.fillStyle = `rgba(60,50,40,${0.02 + rng() * 0.04})`; ctx.fillRect(rng() * W, rng() * H, 1.4, 1.4); }
+  // guilloche rosette (security-print watermark) centered at 40%
+  const gx = W / 2, gy = H * 0.4;
+  ctx.strokeStyle = c.color; ctx.lineWidth = 1.1;
+  for (let k = 0; k < 14; k++) {
+    ctx.globalAlpha = 0.09 + (k % 3) * 0.025; ctx.beginPath();
+    for (let t = 0; t <= Math.PI * 2 + 0.01; t += 0.01) {
+      const r = 150 + 34 * Math.sin(9 * t + k * 0.45) + 16 * Math.cos(17 * t - k * 0.3) + k * 3;
+      const x = gx + Math.cos(t) * r, y = gy + Math.sin(t) * r; t ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  // inset border
+  ctx.strokeStyle = c.color; ctx.globalAlpha = 0.35; ctx.lineWidth = 2; ctx.strokeRect(18, 18 + H * 0.075, W - 36, H - 36 - H * 0.075); ctx.globalAlpha = 1;
+  // top band
+  ctx.fillStyle = c.color; ctx.fillRect(0, 0, W, H * 0.075);
+  ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.font = '600 22px "JetBrains Mono", monospace'; ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left'; ctx.fillText(serial, 30, H * 0.0375);
+  ctx.textAlign = 'right'; ctx.fillText('LIMITED RUN', W - 30, H * 0.0375);
+  // microtext rule under band
+  ctx.fillStyle = c.color; ctx.globalAlpha = 0.45; ctx.font = '600 11px "JetBrains Mono", monospace'; ctx.textAlign = 'left';
+  ctx.fillText((c.brand.toUpperCase() + ' · ').repeat(12), 22, H * 0.075 + 26); ctx.globalAlpha = 1;
+  // perforation + notches
+  const py = H * 0.8;
+  ctx.strokeStyle = 'rgba(23,24,42,0.35)'; ctx.setLineDash([10, 9]); ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.moveTo(34, py); ctx.lineTo(W - 34, py); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = '#1a1730';
+  ctx.beginPath(); ctx.arc(0, py, 18, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(W, py, 18, 0, Math.PI * 2); ctx.fill();
+  return cv;
+}
+function radialTex(inner = 'rgba(255,255,255,1)') {
+  const S = 128, cv = document.createElement('canvas'); cv.width = cv.height = S; const ctx = cv.getContext('2d');
+  const g = ctx.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+  g.addColorStop(0, inner); g.addColorStop(0.35, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, S, S); return new THREE.CanvasTexture(cv);
+}
+
+/* ================= Three.js scene ================= */
+const canvas = $('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+const SKY_MID = new THREE.Color('#4b3b63'), SKY_GLOW = new THREE.Color('#f2b880');
+const FOG_COL = SKY_MID.clone().add(SKY_GLOW.clone().multiplyScalar(0.32));
+scene.fog = new THREE.Fog(FOG_COL, 15, 50);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 500);
+
+const sky = new THREE.Mesh(new THREE.SphereGeometry(300, 32, 16), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: { top: { value: new THREE.Color('#0d0e22') }, mid: { value: SKY_MID }, bot: { value: new THREE.Color('#1a1630') }, glow: { value: SKY_GLOW } },
+  vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
+  fragmentShader: `uniform vec3 top; uniform vec3 mid; uniform vec3 bot; uniform vec3 glow; varying vec3 vW;
+    void main(){ vec3 d = normalize(vW - cameraPosition); float y = d.y;
+      vec3 c = y > 0.0 ? mix(mid, top, pow(smoothstep(0.0, 0.5, y), 0.75)) : mix(mid, bot, smoothstep(0.0, 0.3, -y));
+      c += glow * exp(-abs(y) * 26.0) * 0.32; gl_FragColor = vec4(c, 1.0); }`
+}));
+sky.renderOrder = -1; scene.add(sky);
+
+scene.add(new THREE.HemisphereLight(0xb9b2f0, 0x2a2040, 0.42));
+const sun = new THREE.DirectionalLight(0xffe2c4, 0.55); sun.position.set(-4, 11, 6); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10, near: 1, far: 40 }); sun.shadow.radius = 4; sun.shadow.bias = -0.0008;
+scene.add(sun);
+const rim = new THREE.DirectionalLight(0xd9a0ff, 0.35); rim.position.set(0, 3, -12); scene.add(rim);
+
+const table = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.ShadowMaterial({ opacity: 0.32 }));
+table.rotation.x = -Math.PI / 2; table.receiveShadow = true; scene.add(table);
+
+const CW = 1, CH = 1.6, T = 0.024, STEP = 0.034;
+const cardGeo = new THREE.BoxGeometry(CW, T, CH);
+const glowTex = radialTex();
+const QX90 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+const AX_Z = new THREE.Vector3(0, 0, 1);
+
+const stacks = [];
+const hitMeshes = [];
+const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+
+function buildStacks() {
+  COUPONS.forEach((c, i) => {
+    c.serial = `No. ${c.id}-${String(c.total).padStart(4, '0')}`;
+    c.logoCanvas = drawLogo(c); c.logoURL = c.logoCanvas.toDataURL();
+    const face = drawFace(c, c.serial); c.faceURL = face.toDataURL('image/jpeg', 0.9);
+    const faceTex = new THREE.CanvasTexture(face); faceTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const faceMat = new THREE.MeshStandardMaterial({ map: faceTex, roughness: 0.82, metalness: 0 });
+    const edgeA = new THREE.MeshStandardMaterial({ color: mix('#efe9de', c.color, 0.55), roughness: 0.9 });
+    const edgeB = new THREE.MeshStandardMaterial({ color: new THREE.Color('#efe9de'), roughness: 0.9 });
+    const backMat = new THREE.MeshStandardMaterial({ color: new THREE.Color('#d8d1c4'), roughness: 0.9 });
+    const matsA = [edgeA, edgeA, faceMat, backMat, edgeA, edgeA];
+    const matsB = [edgeB, edgeB, faceMat, backMat, edgeB, edgeB];
+
+    const s = { c, i, x: 0, z: 0, cards: [], matsA, matsB, faceMat, edgeA, edgeB, edgeABase: edgeA.color.clone(), edgeBBase: edgeB.color.clone(),
+      appear: 0, logoFade: 1, dim: 1, hover: 0, hoverV: 0, hop: 0, spin: 0, phase: rand(0, 1), topY: 0 };
+    const n = clamp(Math.round(c.remaining / 4), 2, 15);
+    for (let l = 0; l < n; l++) addCard(s);
+    s.topY = n * STEP;
+
+    const logo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c.logoCanvas), transparent: true, depthWrite: false, fog: false }));
+    logo.renderOrder = 3; scene.add(logo); s.logo = logo;
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color(c.color), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+    glow.renderOrder = 2; scene.add(glow); s.glow = glow;
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 3.2), new THREE.MeshBasicMaterial({ map: glowTex, color: new THREE.Color(c.color), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 }));
+    floor.rotation.x = -Math.PI / 2; floor.position.y = 0.002; scene.add(floor); s.floor = floor;
+
+    const hit = new THREE.Mesh(new THREE.BoxGeometry(1.35, 2.2, 1.9), hitMat); hit.userData.stack = s; scene.add(hit); s.hit = hit; hitMeshes.push(hit);
+    stacks.push(s);
+  });
+}
+function addCard(s) {
+  const l = s.cards.length;
+  const m = new THREE.Mesh(cardGeo, l % 2 ? s.matsB : s.matsA);
+  m.castShadow = true; m.receiveShadow = true;
+  m.userData = { jx: rand(-0.025, 0.025), jz: rand(-0.03, 0.03), ry: rand(-0.06, 0.06) };
+  scene.add(m); s.cards.push(m); return m;
+}
+function layerPose(s, l, card) {
+  const u = card.userData;
+  return { pos: new THREE.Vector3(s.x + u.jx, l * STEP + T / 2, s.z + u.jz), quat: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, u.ry, 0)) };
+}
+
+/* ---------- Layout & camera fit ---------- */
+const camRig = { target: new THREE.Vector3(), dir: new THREE.Vector3(), dist: 12, par: new THREE.Vector2(), parT: new THREE.Vector2() };
+let portrait = false;
+function layout() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h;
+  portrait = w / h < 0.85;
+  const cols = portrait ? 2 : 5, rows = Math.ceil(stacks.length / cols);
+  const sx = portrait ? 1.8 : 1.85, sz = portrait ? 2.6 : 2.5;
+  stacks.forEach((s, i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    s.x = (col - (cols - 1) / 2) * sx; s.z = (row - (rows - 1) / 2) * sz;
+    s.hit.position.set(s.x, 0.95, s.z); s.floor.position.x = s.x; s.floor.position.z = s.z;
+    if (state.dealt) s.cards.forEach((card, l) => { if (card !== fly.card) { const p = layerPose(s, l, card); card.position.copy(p.pos); } });
+  });
+  camera.fov = portrait ? 46 : 36;
+  const elev = THREE.MathUtils.degToRad(portrait ? 46 : 38);
+  camRig.dir.set(0, Math.sin(elev), Math.cos(elev));
+  camRig.target.set(0, 0.25, portrait ? 0.35 : 0.25);
+  // grow distance until every stack corner + logo fits
+  const pts = [];
+  stacks.forEach(s => { for (const dx of [-0.6, 0.6]) for (const dz of [-0.85, 0.85]) { pts.push(new THREE.Vector3(s.x + dx, 0, s.z + dz)); pts.push(new THREE.Vector3(s.x + dx, 1.75, s.z + dz)); } });
+  const yTop = portrait ? 0.7 : 0.74, yBot = -0.86, xLim = 0.93;
+  let d = 4;
+  for (; d < 60; d += 0.2) {
+    camera.position.copy(camRig.target).addScaledVector(camRig.dir, d); camera.lookAt(camRig.target); camera.updateProjectionMatrix(); camera.updateMatrixWorld();
+    if (pts.every(p => { const v = p.clone().project(camera); return Math.abs(v.x) < xLim && v.y < yTop && v.y > yBot; })) break;
+  }
+  camRig.dist = d;
+  sizeCardDOM();
+}
+
+/* ================= State ================= */
+const state = { dealt: false, ready: false, busy: false, sel: null, view: 'deck', linked: false, wallet: [], removeOnClose: false, hovered: null, W: 320, H: 512 };
+const fly = { card: null, s: null, layer: 0, p: 0, mat: null };
+
+/* ---------- Intro: deal from the horizon, riffle into stacks ---------- */
+function intro() {
+  const tl = gsap.timeline();
+  let k = 0;
+  const maxL = Math.max(...stacks.map(s => s.cards.length));
+  const dealEnd = [];
+  for (let l = 0; l < maxL; l++) for (const s of stacks) {
+    const card = s.cards[l]; if (!card) continue;
+    const side = l % 2 ? 1 : -1, hi = Math.floor(l / 2);
+    const land = { x: s.x + side * 0.36, y: hi * STEP + T / 2, z: s.z + side * 0.05 };
+    card.position.set(rand(-22, 22), rand(0.2, 2.5), -48 - rand(0, 8));
+    card.rotation.set(0, rand(-3, 3), Math.PI);
+    const t0 = k * 0.022; k++;
+    tl.to(card.position, { x: land.x, z: land.z, duration: 1.3, ease: 'power3.out' }, t0)
+      .to(card.position, { y: land.y + 1.3 + rand(0, 0.9), duration: 0.6, ease: 'sine.out' }, t0)
+      .to(card.position, { y: land.y, duration: 0.7, ease: 'power2.in' }, t0 + 0.6)
+      .to(card.rotation, { y: card.userData.ry + side * 0.2, z: 0, duration: 1.3, ease: 'power3.out' }, t0);
+    dealEnd[s.i] = t0 + 1.3;
+  }
+  const riffleStart = Math.max(...dealEnd) + 0.1;
+  stacks.forEach((s, si) => {
+    const T0 = riffleStart + si * 0.085;
+    s.cards.forEach((card, l) => {
+      const p = layerPose(s, l, card);
+      const at = T0 + l * 0.034;
+      tl.to(card.position, { x: p.pos.x, y: p.pos.y, z: p.pos.z, duration: 0.3, ease: 'power2.inOut' }, at)
+        .to(card.rotation, { keyframes: [{ z: (l % 2 ? -0.22 : 0.22), duration: 0.12 }, { z: 0, duration: 0.18 }] }, at)
+        .to(card.rotation, { y: card.userData.ry, duration: 0.3 }, at);
+    });
+    const done = T0 + s.cards.length * 0.034 + 0.3;
+    tl.to(s, { appear: 1, duration: 0.9, ease: 'elastic.out(1, 0.45)' }, done);
+  });
+  tl.add(() => {
+    state.dealt = true; state.ready = true;
+    $('hint').textContent = portrait ? 'Tap a stack to open its offer · taller stacks have more left' : 'Click a stack to open its offer · taller stacks have more left';
+  }, '-=0.6');
+}
+
+/* ---------- Ambient attention-seeking hops ---------- */
+function scheduleHop() {
+  if (reduced) return;
+  gsap.delayedCall(rand(1.4, 2.6), () => {
+    if (state.ready && state.view === 'deck' && !state.busy) {
+      const pool = stacks.filter(s => s !== state.hovered && s.c.remaining > 0);
+      const s = pool[Math.floor(Math.random() * pool.length)];
+      if (s) {
+        gsap.timeline().to(s, { hop: 0.42, duration: 0.26, ease: 'power2.out' }).to(s, { hop: 0, duration: 0.5, ease: 'bounce.out' });
+        gsap.fromTo(s, { spin: 0 }, { spin: Math.PI * 2 * (Math.random() < 0.5 ? 1 : -1), duration: 0.7, ease: 'power2.inOut' });
+      }
+    }
+    scheduleHop();
+  });
+}
+
+/* ---------- Picking ---------- */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let downAt = null;
+function pick(e) {
+  ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(hitMeshes, false)[0];
+  return hit ? hit.object.userData.stack : null;
+}
+canvas.addEventListener('pointermove', e => {
+  camRig.parT.set(e.clientX / innerWidth - 0.5, e.clientY / innerHeight - 0.5);
+  if (!state.ready || state.view !== 'deck' || state.busy) return setHover(null);
+  if (e.pointerType === 'mouse') setHover(pick(e));
+});
+canvas.addEventListener('pointerleave', () => setHover(null));
+canvas.addEventListener('pointerdown', e => { downAt = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener('pointerup', e => {
+  if (!downAt) return; const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y); downAt = null;
+  if (moved > 8) return; const s = pick(e); if (s) select(s);
+});
+function setHover(s) {
+  if (state.hovered === s) return;
+  state.hovered = s; canvas.classList.toggle('pointer', !!s);
+  $('hoverLabel').classList.toggle('on', !!s);
+  if (s) {
+    $('hoverLabel').querySelector('strong').textContent = s.c.brand;
+    $('hoverLabel').querySelector('span').textContent = `${s.c.type} · ${s.c.remaining} of ${s.c.total} left`;
+  }
+}
+
+/* ================= DOM coupon ================= */
+const cardEl = $('card'), flipper = $('flipper'), artEl = $('art'), stage = $('stage'), backdrop = $('backdrop');
+const pillRow = $('pillRow'), afterActions = $('afterActions'), qrPanel = $('qrPanel');
+const frontBits = () => [$('ceyebrow'), $('cname'), $('clogo'), $('details'), $('actions')];
+
+function baseSize() {
+  let W = Math.min(330, innerWidth * 0.8), H = W * 1.6;
+  const maxH = innerHeight - 190; if (H > maxH) { H = Math.max(300, maxH); W = H / 1.6; }
+  return { W: Math.round(W), H: Math.round(H) };
+}
+function sizeCardDOM() {
+  const { W, H } = baseSize(); state.W = W; state.H = H;
+  cardEl.style.setProperty('--u', (W / 100) + 'px');
+  if (state.view === 'deck' || state.view === 'front') gsap.set(cardEl, { width: W, height: H });
+}
+function typeOn(el, text, dur) {
+  const o = { n: 0 }; el.textContent = '';
+  return gsap.to(o, { n: text.length, duration: dur, ease: 'none', onUpdate: () => { el.textContent = text.slice(0, Math.round(o.n)); } });
+}
+function fillDOM(s) {
+  const c = s.c;
+  cardEl.style.setProperty('--brand', c.color);
+  artEl.style.backgroundImage = `url(${c.faceURL})`;
+  $('ceyebrow').textContent = `${c.type} offer`;
+  const nm = $('cname'); nm.innerHTML = '';
+  nm.setAttribute('aria-label', c.brand);
+  [...c.brand].forEach(ch => { const sp = document.createElement('span'); sp.className = 'ch'; sp.textContent = ch; sp.setAttribute('aria-hidden', 'true'); nm.appendChild(sp); });
+  $('clogo').src = c.logoURL; $('clogo').alt = `${c.brand} logo`;
+  $('cshort').textContent = c.short;
+  $('ctype').querySelector('span').textContent = c.type;
+  $('cyear').textContent = c.year;
+  $('cvalid').textContent = `Valid ${c.from} – ${c.to}`;
+  updateRemain(c);
+  // back
+  $('bLogo').src = c.logoURL; $('bType').textContent = `${c.type} · Terms & details`;
+  $('bTitle').textContent = `${c.brand}: ${c.short.replace(/\.$/, '')}`;
+  $('bLong').textContent = c.long;
+  $('bFacts').innerHTML = '';
+  [['Promotion', c.type], ['Valid', `${c.from} – ${c.to} · ${c.year}`], ['Where', c.where], ['Limit', c.limit]].forEach(([k, v]) => {
+    const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt').textContent = k; d.querySelector('dd').textContent = v; $('bFacts').appendChild(d);
+  });
+  $('bTerms').innerHTML = ''; c.terms.forEach(t => { const li = document.createElement('li'); li.textContent = t; $('bTerms').appendChild(li); });
+  $('bFine').textContent = `${c.serial} · ${c.total} coupons issued for this run. Sponsor offers are provided by the merchant named above, who is responsible for honoring them.`;
+  syncClaimButtons(c);
+}
+function syncClaimButtons(c) {
+  const label = c.claimed ? 'Show QR' : (c.remaining <= 0 ? 'All claimed' : 'Claim');
+  for (const b of [$('claimBtn'), $('backClaimBtn')]) { b.textContent = label; b.disabled = !c.claimed && c.remaining <= 0; }
+}
+function updateRemain(c) {
+  $('remainNum').textContent = c.remaining;
+  $('remainText').textContent = `of ${c.total} remaining`;
+  $('meterFill').style.width = (c.remaining / c.total * 100).toFixed(1) + '%';
+}
+function resetDOM() {
+  gsap.killTweensOf([cardEl, flipper, artEl, pillRow, afterActions, qrPanel]);
+  gsap.set(cardEl, { x: 0, y: 0, scale: 1, rotation: 0, opacity: 0, width: state.W, height: state.H });
+  gsap.set(flipper, { rotationY: 0, z: 0 });
+  gsap.set(artEl, { opacity: 1 });
+  gsap.set(['#details *', '#actions .btn', '#cname .ch'], { clearProps: 'all' });
+  gsap.set(frontBits(), { opacity: 0, y: 0, clearProps: 'transform' });
+  gsap.set(qrPanel, { display: 'none', opacity: 1 });
+  gsap.set(afterActions, { display: 'none', opacity: 1 });
+  gsap.set(pillRow, { opacity: 0, y: 0 });
+  $('back').classList.remove('wide');
+}
+
+/* ================= Select → fly → present ================= */
+function select(s) {
+  if (!state.ready || state.busy || state.view !== 'deck') return;
+  state.busy = true; state.sel = s; state.view = 'flying'; setHover(null);
+  $('hint').style.opacity = 0;
+  resetDOM(); fillDOM(s); sizeCardDOM(); gsap.set(cardEl, { width: state.W, height: state.H });
+  stage.classList.add('open'); // laid out (invisible) so the 3D card can match its rect
+
+  const card = s.cards[s.cards.length - 1];
+  fly.card = card; fly.s = s; fly.layer = s.cards.length - 1; fly.p = 0;
+  fly.mat = card.material; const m = card.material.slice(); m[2] = s.faceMat.clone(); m[2].emissive = new THREE.Color(1, 1, 1); m[2].emissiveMap = m[2].map; card.material = m;
+  card.renderOrder = 5;
+
+  gsap.to(s, { logoFade: 0, duration: 0.45, ease: 'power2.out' });
+  gsap.fromTo(s, { hop: 0 }, { hop: 0.5, duration: 0.45, ease: 'power2.out' });
+  stacks.forEach(o => { if (o !== s) gsap.to(o, { dim: 0.32, duration: 0.7 }); });
+  gsap.to(fly, { p: 1, duration: 1.3, ease: 'power3.inOut', delay: 0.12, onComplete: revealFront });
+}
+
+const _v = new THREE.Vector3(), _q = new THREE.Quaternion();
+function presentPose() {
+  const r = cardEl.getBoundingClientRect();
+  const cx = (r.left + r.width / 2) / innerWidth * 2 - 1, cy = -((r.top + r.height / 2) / innerHeight * 2 - 1);
+  const d = CH * innerHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * r.height);
+  const dir = new THREE.Vector3(cx, cy, 0.5).unproject(camera).sub(camera.position).normalize();
+  const fwd = camera.getWorldDirection(new THREE.Vector3());
+  return { pos: camera.position.clone().addScaledVector(dir, d / dir.dot(fwd)), quat: camera.quaternion.clone().multiply(QX90) };
+}
+function updateFly() {
+  if (!fly.card) return;
+  const s = fly.s, e = fly.p;
+  const a = layerPose(s, fly.layer, fly.card), b = presentPose();
+  const c1 = a.pos.clone().add(new THREE.Vector3(0, 2.6, 0.4));
+  const u = 1 - e;
+  fly.card.position.set(0, 0, 0).addScaledVector(a.pos, u * u).addScaledVector(c1, 2 * u * e).addScaledVector(b.pos, e * e);
+  const q = a.quat.clone().slerp(b.quat, e);
+  if (!reduced) q.multiply(_q.setFromAxisAngle(AX_Z, Math.PI * 2 * e));
+  fly.card.quaternion.copy(q);
+  const fm = fly.card.material[2]; fm.emissiveIntensity = e; fm.color.setScalar(1 - e);
+}
+
+function revealFront() {
+  const s = state.sel;
+  const tl = gsap.timeline({ onComplete: () => { state.busy = false; state.view = 'front'; $('claimBtn').focus({ preventScroll: true }); } });
+  tl.to(cardEl, { opacity: 1, duration: 0.22, ease: 'none' })
+    .add(() => { fly.card.visible = false; backdrop.classList.add('open'); })
+    .to(backdrop, { opacity: 1, duration: 0.6 }, '<')
+    .fromTo($('clogo'), { opacity: 0, scale: 0.2, rotation: -25 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.8, ease: 'back.out(2.2)' }, '+=0.05')
+    .set($('cname'), { opacity: 1 }, '-=0.45')
+    .fromTo('#cname .ch', { opacity: 0, yPercent: 90, rotationX: -85 }, { opacity: 1, yPercent: 0, rotationX: 0, duration: 0.55, stagger: 0.032, ease: 'power3.out' }, '-=0.45')
+    .fromTo($('ceyebrow'), { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.4 }, '-=0.3')
+    .set($('details'), { opacity: 1 }, '-=0.25')
+    .add(typeOn($('cshort'), s.c.short, 0.7), '-=0.25')
+    .fromTo('#details .ptype', { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2)' }, '-=0.45')
+    .fromTo('#details .year', { opacity: 0, y: 10, letterSpacing: '0.4em' }, { opacity: 1, y: 0, letterSpacing: '0.04em', duration: 0.6, ease: 'power3.out' }, '-=0.25')
+    .fromTo('#details .valid', { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35 }, '-=0.35')
+    .set($('actions'), { opacity: 1 }, '-=0.15')
+    .fromTo('#actions .btn', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, stagger: 0.08, ease: 'back.out(1.8)' }, '<')
+    .fromTo(pillRow, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6, ease: 'back.out(2)' }, '-=0.35');
+}
+
+/* ---------- Close / return ---------- */
+function closeCoupon() {
+  if (state.busy) return;
+  if (state.view === 'terms') return closeTerms();
+  if (!['front', 'qr'].includes(state.view)) return;
+  state.busy = true;
+  const s = state.sel;
+  const tl = gsap.timeline();
+  tl.to([pillRow, afterActions], { opacity: 0, duration: 0.2 })
+    .to(backdrop, { opacity: 0, duration: 0.5 }, '<');
+  if (state.removeOnClose) {
+    tl.to(cardEl, { opacity: 0, scale: 0.86, y: 40, duration: 0.4, ease: 'power2.in' }, '<')
+      .add(() => finishRemoval());
+    return;
+  }
+  if (state.view === 'qr') {
+    tl.to(qrPanel, { opacity: 0, duration: 0.2 }, '<')
+      .set(qrPanel, { display: 'none' })
+      .to(cardEl, { width: state.W, height: state.H, duration: 0.45, ease: 'expo.inOut' })
+      .to(artEl, { opacity: 1, duration: 0.3 }, '-=0.2');
+  } else {
+    tl.to(frontBits(), { opacity: 0, duration: 0.25, stagger: 0.03 }, '<');
+  }
+  tl.add(() => { fly.card.visible = true; })
+    .to(cardEl, { opacity: 0, duration: 0.2, ease: 'none' })
+    .add(() => { backdrop.classList.remove('open'); stage.classList.remove('open'); flyBack(); });
+}
+function flyBack() {
+  const s = state.sel;
+  state.view = 'flying';
+  gsap.to(fly, { p: 0, duration: 1.05, ease: 'power3.inOut', onComplete: () => {
+    fly.card.material = fly.mat; fly.card.renderOrder = 0;
+    const p = layerPose(s, fly.layer, fly.card); fly.card.position.copy(p.pos); fly.card.quaternion.copy(p.quat);
+    fly.card = null; endSelection();
+  } });
+  gsap.to(s, { hop: 0, duration: 0.6 });
+}
+function endSelection() {
+  const s = state.sel;
+  gsap.to(s, { logoFade: 1, duration: 0.6 });
+  gsap.fromTo(s, { appear: 0.3 }, { appear: 1, duration: 0.9, ease: 'elastic.out(1, 0.45)' });
+  stacks.forEach(o => gsap.to(o, { dim: 1, duration: 0.6 }));
+  state.sel = null; state.view = 'deck'; state.busy = false; state.removeOnClose = false;
+  backdrop.classList.remove('open'); stage.classList.remove('open');
+  $('hint').style.opacity = 1;
+}
+function finishRemoval() {
+  const s = state.sel;
+  const card = fly.card;
+  if (card) { scene.remove(card); const idx = s.cards.indexOf(card); if (idx >= 0) s.cards.splice(idx, 1); }
+  fly.card = null;
+  // keep at least one sold-out card on the table
+  if (s.cards.length === 0) { const m = addCard(s); const p = layerPose(s, 0, m); m.position.copy(p.pos); m.quaternion.copy(p.quat); }
+  gsap.to(s, { hop: 0, duration: 0.5 });
+  resetDOM();
+  endSelection();
+}
+
+/* ---------- Terms: flip + maximize ---------- */
+function openTerms() {
+  if (state.busy || state.view !== 'front') return;
+  state.busy = true;
+  const wide = innerWidth >= 720;
+  const tw = wide ? Math.min(940, innerWidth - 80) : Math.min(innerWidth - 24, 520);
+  const th = wide ? clamp(state.H, 460, innerHeight - 120) : innerHeight - 64;
+  $('back').classList.toggle('wide', wide);
+  $('backBody').scrollTop = 0;
+  const kids = $('backBody').children;
+  gsap.timeline({ onComplete: () => { state.busy = false; state.view = 'terms'; $('backBtn').focus({ preventScroll: true }); } })
+    .to(pillRow, { opacity: 0, y: -12, duration: 0.25 })
+    .to(flipper, { rotationY: 180, duration: 1.05, ease: 'power3.inOut' }, 0.05)
+    .to(flipper, { z: 260, duration: 0.5, ease: 'power2.out' }, 0.05)
+    .to(flipper, { z: 0, duration: 0.65, ease: 'power2.inOut' }, 0.55)
+    .to(cardEl, { width: tw, height: th, duration: 0.8, ease: 'expo.inOut' }, 0.3)
+    .fromTo(kids, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.45, stagger: 0.06, ease: 'power2.out' }, 0.75);
+}
+function closeTerms(then) {
+  if (state.busy || state.view !== 'terms') return;
+  state.busy = true;
+  gsap.timeline({ onComplete: () => { state.busy = false; state.view = 'front'; if (then) then(); else $('termsBtn').focus({ preventScroll: true }); } })
+    .to(flipper, { rotationY: 0, duration: 0.95, ease: 'power3.inOut' }, 0)
+    .to(flipper, { z: 220, duration: 0.45, ease: 'power2.out' }, 0)
+    .to(flipper, { z: 0, duration: 0.6, ease: 'power2.inOut' }, 0.45)
+    .to(cardEl, { width: state.W, height: state.H, duration: 0.75, ease: 'expo.inOut' }, 0.1)
+    .to(pillRow, { opacity: 1, y: 0, duration: 0.4, ease: 'back.out(2)' }, 0.8);
+}
+
+/* ---------- Claim: fade text, morph to square, reveal QR ---------- */
+function buildQR(seed) {
+  const N = 25, g = Array.from({ length: N }, () => Array(N).fill(0)), fixed = Array.from({ length: N }, () => Array(N).fill(false));
+  const rng = mulberry32(seed);
+  const finder = (r0, c0) => { for (let r = -1; r <= 7; r++) for (let c = -1; c <= 7; c++) { const rr = r0 + r, cc = c0 + c; if (rr < 0 || cc < 0 || rr >= N || cc >= N) continue; const on = r >= 0 && r <= 6 && c >= 0 && c <= 6 && (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4)); g[rr][cc] = on ? 1 : 0; fixed[rr][cc] = true; } };
+  finder(0, 0); finder(0, N - 7); finder(N - 7, 0);
+  for (let i = 8; i < N - 8; i++) { g[6][i] = g[i][6] = i % 2 === 0 ? 1 : 0; fixed[6][i] = fixed[i][6] = true; }
+  const ar = N - 7; for (let r = -2; r <= 2; r++) for (let c = -2; c <= 2; c++) { g[ar + r][ar + c] = (Math.max(Math.abs(r), Math.abs(c)) !== 1) ? 1 : 0; fixed[ar + r][ar + c] = true; }
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (!fixed[r][c]) g[r][c] = rng() < 0.48 ? 1 : 0;
+  const cells = [];
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (g[r][c]) cells.push({ r, c, k: fixed[r][c] ? -1 : Math.hypot(r - N / 2, c - N / 2) + rng() * 4 });
+  cells.sort((a, b) => a.k - b.k);
+  return { N, cells };
+}
+function animateQR(qr) {
+  const cv = $('qr'), ctx = cv.getContext('2d'), S = cv.width, q = 2, m = S / (qr.N + q * 2);
+  const o = { n: 0 };
+  const draw = () => {
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, S, S); ctx.fillStyle = '#17182a';
+    const n = Math.round(o.n); for (let i = 0; i < n; i++) { const c = qr.cells[i]; ctx.fillRect(Math.floor((c.c + q) * m), Math.floor((c.r + q) * m), Math.ceil(m), Math.ceil(m)); }
+  };
+  draw();
+  return gsap.to(o, { n: qr.cells.length, duration: 1.1, ease: 'power2.out', onUpdate: draw });
+}
+function claim() {
+  if (state.busy) return;
+  if (state.view === 'terms') return closeTerms(() => claim());
+  if (state.view !== 'front') return;
+  const s = state.sel, c = s.c;
+  if (!c.claimed && c.remaining <= 0) return;
+  state.busy = true;
+  const first = !c.claimed;
+  if (first) {
+    c.claimed = true; c.code = `${c.id}-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${String(Math.floor(rand(1000, 9999)))}`;
+    state.removeOnClose = true;
+  }
+  $('qrCode').textContent = c.code;
+  const S = Math.round(Math.min(state.W * 1.02, innerWidth - 32));
+  const qr = buildQR(hashStr(c.code));
+  syncAfterActions(c);
+  const tl = gsap.timeline({ onComplete: () => { state.busy = false; state.view = 'qr'; syncClaimButtons(c); $('linkBtn').focus({ preventScroll: true }); } });
+  tl.to(['#actions .btn', '#details > *', '#details .dates > *', '#clogo', '#cname .ch', '#ceyebrow'], { opacity: 0, y: -6, duration: 0.22, stagger: 0.02, ease: 'power1.in' })
+    .to(artEl, { opacity: 0, duration: 0.35 }, '-=0.15')
+    .to(cardEl, { width: S, height: S, duration: 0.7, ease: 'expo.inOut' }, '-=0.1')
+    .set(qrPanel, { display: 'flex', opacity: 1 })
+    .fromTo(qrPanel.children, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, stagger: 0.08 })
+    .add(animateQR(qr), '<')
+    .set(afterActions, { display: 'flex' }, '-=0.4')
+    .fromTo(afterActions, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4 }, '<');
+  if (first) {
+    const o = { v: c.remaining };
+    c.remaining -= 1;
+    tl.to(o, { v: c.remaining, duration: 0.6, onUpdate: () => { $('remainNum').textContent = Math.round(o.v); } }, 0.6)
+      .add(() => updateRemain(c), '>')
+      .fromTo('.remain', { scale: 1.12 }, { scale: 1, duration: 0.6, ease: 'elastic.out(1, 0.4)' }, '<');
+  }
+}
+function syncAfterActions(c) {
+  const lb = $('linkBtn');
+  lb.disabled = false;
+  if (c.inWallet) { lb.textContent = 'Saved in wallet'; lb.disabled = true; }
+  else lb.textContent = state.linked ? 'Add to wallet' : 'Link account';
+}
+function linkOrAdd() {
+  if (state.busy || state.view !== 'qr') return;
+  const c = state.sel.c; if (c.inWallet) return;
+  const lb = $('linkBtn');
+  if (state.linked) return addToWallet();
+  state.busy = true; lb.disabled = true;
+  lb.innerHTML = '<span class="spin" aria-hidden="true"></span>Linking…';
+  gsap.delayedCall(reduced ? 0.4 : 1.1, () => {
+    state.linked = true; $('walletBtn').classList.add('linked');
+    lb.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7.5l3.2 3L12 3.5"/></svg>Account linked';
+    toast('Account linked');
+    gsap.delayedCall(0.6, () => { state.busy = false; addToWallet(); });
+  });
+}
+function addToWallet() {
+  if (state.busy) return;
+  state.busy = true;
+  const s = state.sel, c = s.c;
+  const wr = $('walletBtn').getBoundingClientRect(), cr = cardEl.getBoundingClientRect();
+  const dx = (wr.left + wr.width / 2) - (cr.left + cr.width / 2), dy = (wr.top + wr.height / 2) - (cr.top + cr.height / 2);
+  gsap.timeline()
+    .to([afterActions, pillRow], { opacity: 0, duration: 0.2 })
+    .to(cardEl, { x: dx, y: dy, scale: 0.06, rotation: -16, duration: 0.85, ease: 'power3.in' }, 0.1)
+    .to(backdrop, { opacity: 0, duration: 0.6 }, 0.2)
+    .to(cardEl, { opacity: 0, duration: 0.15 }, 0.8)
+    .add(() => {
+      c.inWallet = true; state.wallet.push(c); renderWallet();
+      gsap.fromTo('#walletBtn', { scale: 1.22 }, { scale: 1, duration: 0.8, ease: 'elastic.out(1, 0.35)' });
+      toast(`${c.brand} saved to your wallet`);
+      if (state.removeOnClose) { state.busy = false; finishRemoval(); }
+      else { resetDOM(); fly.card.visible = true; state.busy = false; backdrop.classList.remove('open'); stage.classList.remove('open'); flyBack(); }
+    });
+}
+function renderWallet() {
+  $('walletCount').textContent = state.wallet.length;
+  $('walletEmpty').hidden = state.wallet.length > 0;
+  const ul = $('walletList'); ul.innerHTML = '';
+  state.wallet.forEach(c => {
+    const li = document.createElement('li');
+    li.innerHTML = '<img alt=""><div><strong></strong><span></span></div>';
+    li.querySelector('img').src = c.logoURL; li.querySelector('strong').textContent = c.brand;
+    li.querySelector('span').textContent = `${c.code} · valid to ${c.to}`;
+    ul.appendChild(li);
+  });
+}
+let toastTl;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg;
+  if (toastTl) toastTl.kill();
+  toastTl = gsap.timeline().fromTo(t, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3 }).to(t, { opacity: 0, duration: 0.4, delay: 1.8 });
+}
+
+/* ---------- Wire up controls ---------- */
+$('closeBtn').addEventListener('click', closeCoupon);
+$('claimBtn').addEventListener('click', claim);
+$('backClaimBtn').addEventListener('click', claim);
+$('termsBtn').addEventListener('click', openTerms);
+$('backBtn').addEventListener('click', () => closeTerms());
+$('linkBtn').addEventListener('click', linkOrAdd);
+$('doneBtn').addEventListener('click', closeCoupon);
+backdrop.addEventListener('click', closeCoupon);
+stage.addEventListener('click', e => { if (e.target === stage) closeCoupon(); });
+addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if (!$('walletPanel').hidden) toggleWallet(false); else closeCoupon(); }
+});
+function toggleWallet(force) {
+  const p = $('walletPanel'); const open = force ?? p.hidden;
+  p.hidden = !open; $('walletBtn').setAttribute('aria-expanded', String(open));
+  if (open) gsap.fromTo(p, { opacity: 0, y: -8 }, { opacity: 1, y: 0, duration: 0.25 });
+}
+$('walletBtn').addEventListener('click', e => { e.stopPropagation(); toggleWallet(); });
+document.addEventListener('pointerdown', e => { const p = $('walletPanel'); if (!p.hidden && !p.contains(e.target) && !$('walletBtn').contains(e.target)) toggleWallet(false); });
+
+function buildSrNav() {
+  const nav = $('srNav');
+  stacks.forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = `Open ${s.c.brand}: ${s.c.short} ${s.c.remaining} of ${s.c.total} remaining.`;
+    b.addEventListener('focus', () => { if (state.view === 'deck') setHover(s); });
+    b.addEventListener('blur', () => setHover(null));
+    b.addEventListener('click', () => select(s));
+    nav.appendChild(b);
+  });
+}
+
+/* ================= Render loop ================= */
+const clock = new THREE.Clock();
+const camRight = new THREE.Vector3(), camUp = new THREE.Vector3(0, 1, 0);
+const labelPos = new THREE.Vector3();
+function frame() {
+  const t = clock.getElapsedTime();
+  // parallax (frozen while a coupon is up so the hand-off lines up)
+  const live = state.view === 'deck' && !state.busy && !reduced;
+  camRig.par.lerp(live ? camRig.parT : new THREE.Vector2(), live ? 0.04 : 0.12);
+  camera.position.copy(camRig.target).addScaledVector(camRig.dir, camRig.dist);
+  camRight.set(1, 0, 0);
+  camera.position.addScaledVector(camRight, camRig.par.x * 0.8).addScaledVector(camUp, -camRig.par.y * 0.4);
+  camera.lookAt(camRig.target); camera.updateMatrixWorld();
+  sky.position.copy(camera.position);
+
+  for (const s of stacks) {
+    const bps = s.c.bpm / 60, beat = (t * bps + s.phase) % 1;
+    let pulse = Math.exp(-beat * 6);
+    if (s.c.dub) pulse += 0.55 * Math.exp(-(((beat - 0.24) + 1) % 1) * 9);
+    s.hoverV = lerp(s.hoverV, state.hovered === s ? 1 : 0, 0.15);
+    s.topY = lerp(s.topY, s.cards.length * STEP, 0.08);
+    const bob = Math.sin(t * 0.9 + s.phase * 6.28) * 0.07;
+    const sold = s.c.remaining <= 0 ? 0.45 : 1;
+    const sc = 0.82 * s.appear * (1 + PULSE_AMP * pulse + 0.25 * s.hoverV);
+    s.logo.scale.set(sc, sc, 1);
+    s.logo.position.set(s.x, s.topY + 0.98 + bob + s.hop, s.z);
+    s.logo.material.opacity = clamp(s.logoFade * s.dim * sold, 0, 1);
+    s.logo.material.rotation = Math.sin(t * 0.7 + s.phase * 5) * 0.07 + s.spin;
+    s.glow.position.copy(s.logo.position); s.glow.position.y -= 0.02;
+    const gs = sc * (2.2 + 0.5 * pulse); s.glow.scale.set(gs, gs, 1);
+    s.glow.material.opacity = (0.18 + 0.5 * pulse + 0.3 * s.hoverV) * s.logoFade * s.dim * sold * Math.min(1, s.appear);
+    s.floor.material.opacity = (0.1 + 0.32 * pulse + 0.25 * s.hoverV) * Math.min(1, s.appear) * s.dim * sold;
+    const shade = s.dim;
+    s.faceMat.color.setScalar(shade); s.edgeA.color.copy(s.edgeABase).multiplyScalar(shade); s.edgeB.color.copy(s.edgeBBase).multiplyScalar(shade);
+  }
+  updateFly();
+
+  if (state.hovered) {
+    labelPos.copy(state.hovered.logo.position); labelPos.y += 0.55; labelPos.project(camera);
+    const hl = $('hoverLabel');
+    hl.style.left = ((labelPos.x + 1) / 2 * innerWidth) + 'px';
+    hl.style.top = ((1 - labelPos.y) / 2 * innerHeight) + 'px';
+  }
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+/* ================= Boot ================= */
+async function boot() {
+  try {
+    await Promise.race([
+      Promise.all([document.fonts.load('800 80px "Bricolage Grotesque"'), document.fonts.load('600 22px "JetBrains Mono"')]),
+      new Promise(r => setTimeout(r, 2500)),
+    ]);
+  } catch (e) { /* fall back to system fonts */ }
+  buildStacks();
+  buildSrNav();
+  layout();
+  stacks.forEach(s => s.cards.forEach(c => c.position.set(0, -50, -200)));
+  addEventListener('resize', () => { layout(); });
+  requestAnimationFrame(frame);
+  intro();
+  scheduleHop();
+}
+boot();
+})();
+</script>
