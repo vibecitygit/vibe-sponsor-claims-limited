@@ -94,6 +94,16 @@ html.embed .topbar, html.embed .hint, html.embed .wallet-panel { display: none !
   transition: opacity .4s;
 }
 
+.counts { position: fixed; inset: 0; pointer-events: none; z-index: 22; overflow: hidden; }
+.stack-count {
+  position: absolute; left: 0; top: 0; display: inline-flex; align-items: baseline; gap: 5px; white-space: nowrap;
+  padding: 5px 10px 4px; border-radius: 100px; background: var(--raised); border: 1px solid var(--line-strong);
+  font: 700 10px/1 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  opacity: 0; will-change: transform, opacity;
+}
+.stack-count b { font: 900 16px/0.8 var(--font-display); letter-spacing: 0; color: var(--ember); font-variant-numeric: tabular-nums; }
+.stack-count.sold b { color: var(--muted); }
+@media (max-width: 420px) { .stack-count { padding: 4px 8px 3px; font-size: 9px; } .stack-count b { font-size: 14px; } }
 .hover-label {
   position: fixed; z-index: 25; left: 0; top: 0; pointer-events: none;
   transform: translate(-50%, -100%); opacity: 0; transition: opacity .18s;
@@ -256,6 +266,7 @@ a.wallet-btn { text-decoration: none; }
 </div>
 
 <nav class="sr-only" aria-label="Offers" id="srNav"></nav>
+<div class="counts" id="counts" aria-hidden="true"></div>
 <div class="hover-label" id="hoverLabel" aria-hidden="true"><strong></strong><em></em><span></span></div>
 <div class="hint" id="hint">Loading today's offers…</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -327,6 +338,8 @@ a.wallet-btn { text-decoration: none; }
 const { SHAPES, TYPES, EDIT_KEYS, mulberry32, hashStr, drawLogo, drawFace, drawUploadedLogo, loadImg, serialOf } = DeckCore;
 const SAVED = DeckCore.load();
 const COUPONS = SAVED.coupons;
+let deckTheme = SAVED.theme; // 'paper' | 'dark', from the editor; an embed host may override it
+const cardTheme = () => embedCfg.theme || deckTheme;
 const $ = (id) => document.getElementById(id);
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -335,7 +348,7 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const EMBED = location.hash === '#embed';
 if (EMBED) document.documentElement.classList.add('embed');
 /* Spacing the host page sends: columns (0 = auto: 3 narrow, 5 wide), card width and gap in CSS px. */
-const embedCfg = { cols: 0, cardPx: 150, gapPx: 50, fill: 1 };
+const embedCfg = { cols: 0, cardPx: 150, gapPx: 50, fill: 1, theme: null };
 const PULSE_AMP = reduced ? 0 : 0.012;
 function mix(hexA, hexB, t) { const a = new THREE.Color(hexA), b = new THREE.Color(hexB); return a.lerp(b, t); }
 
@@ -382,7 +395,7 @@ if (EMBED) sky.visible = false;
 
 scene.add(new THREE.HemisphereLight(0xb9b2f0, 0x2a2040, 0.42));
 
-const CW = 1, CH = 1.6, T = 0.024, STEP = 0.034;
+const CW = 1, CH = 1.6, T = 0.03, STEP = 0.056; // at most 6 layers a stack, so each is a little thicker
 const cardGeo = new THREE.BoxGeometry(CW, T, CH);
 const ripTex = ringTex(), shTex = shadowTex();
 const QX90 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2);
@@ -391,35 +404,42 @@ const AX_Y = new THREE.Vector3(0, 1, 0);
 const stacks = [];
 const hitMat = new THREE.MeshBasicMaterial({ visible: false });
 
-function stackSize(c) { return c.remaining <= 0 ? 1 : clamp(Math.round(c.remaining / 4), 2, 15); }
+const stackSize = DeckCore.stackSize; // 1–6 layers from the share left
 function makeArt(c) {
   c.serial = serialOf(c);
   c.logoCanvas = c._img ? drawUploadedLogo(c._img) : drawLogo(c); c.logoURL = c.logoCanvas.toDataURL();
-  c.faceCanvas = drawFace(c, c.serial); c.faceURL = c.faceCanvas.toDataURL('image/jpeg', 0.9);
-  c.tableCanvas = drawFace(c, c.serial, true); // table cards also preview the offer
+  c.faceCanvas = drawFace(c, c.serial, false, cardTheme()); c.faceURL = c.faceCanvas.toDataURL('image/jpeg', 0.9);
+  c.tableCanvas = drawFace(c, c.serial, true, cardTheme()); // table cards also preview the offer
   if (c.plainTex) { c.plainTex.dispose(); c.plainTex = null; }
 }
 function refreshStackArt(s) {
   makeArt(s.c);
   s.faceMat.map.image = s.c.tableCanvas; s.faceMat.map.needsUpdate = true;
   s.logo.material.map.dispose(); s.logo.material.map = new THREE.CanvasTexture(s.c.logoCanvas); s.logo.material.needsUpdate = true;
-  s.edgeABase.copy(mix('#ebe7df', s.c.color, 0.4)); s.ripple.material.color.set(s.c.color);
+  const th = DeckCore.THEMES[cardTheme()];
+  s.edgeABase.copy(mix(th.edge, s.c.color, 0.4)); s.edgeBBase.set(th.edgeB); s.backMat.color.set(th.back);
+  s.ripple.material.color.set(s.c.color);
+  s.countEl.classList.toggle('sold', s.c.remaining <= 0);
 }
 function buildStacks() {
   COUPONS.forEach((c, i) => {
     makeArt(c);
     const faceTex = new THREE.CanvasTexture(c.tableCanvas); faceTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
     const faceMat = new THREE.MeshBasicMaterial({ map: faceTex });
-    const edgeA = new THREE.MeshBasicMaterial({ color: mix('#ebe7df', c.color, 0.4) });
-    const edgeB = new THREE.MeshBasicMaterial({ color: new THREE.Color('#d9d4ca') });
-    const backMat = new THREE.MeshBasicMaterial({ color: new THREE.Color('#bdb5a8') });
+    const th = DeckCore.THEMES[cardTheme()];
+    const edgeA = new THREE.MeshBasicMaterial({ color: mix(th.edge, c.color, 0.4) });
+    const edgeB = new THREE.MeshBasicMaterial({ color: new THREE.Color(th.edgeB) });
+    const backMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(th.back) });
     const matsA = [edgeA, edgeA, faceMat, backMat, edgeA, edgeA];
     const matsB = [edgeB, edgeB, faceMat, backMat, edgeB, edgeB];
 
-    const s = { c, i, x: 0, z: 0, rot: 0, base: i * 0.004, cards: [], matsA, matsB, faceMat, edgeA, edgeB, edgeABase: edgeA.color.clone(), edgeBBase: edgeB.color.clone(),
+    const s = { c, i, x: 0, z: 0, rot: 0, base: i * 0.004, cards: [], matsA, matsB, faceMat, edgeA, edgeB, backMat, edgeABase: edgeA.color.clone(), edgeBBase: edgeB.color.clone(),
       active: i < state.count, shownRemaining: c.remaining, appear: 0, logoFade: 1, dim: 1, hover: 0, hoverV: 0, hop: 0, phase: rand(0, 1), topY: 0 };
     const n = stackSize(c);
     for (let l = 0; l < n; l++) addCard(s);
+    // floating "N left" counter above the stack (DOM, placed over the logo each frame)
+    s.countEl = document.createElement('span'); s.countEl.className = 'stack-count' + (c.remaining <= 0 ? ' sold' : '');
+    s.countEl.innerHTML = '<b></b><span></span>'; $('counts').appendChild(s.countEl); s.countShown = null;
     s.topY = s.base + n * STEP;
 
     const logo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c.logoCanvas), transparent: true, depthWrite: false, fog: false }));
@@ -553,6 +573,8 @@ if (EMBED) addEventListener('message', e => {
   embedCfg.cardPx = clamp(+c.cardPx || 150, 40, 600);
   embedCfg.gapPx = clamp(+c.gapPx || 0, 0, 2000);
   embedCfg.fill = clamp(+c.fill || 1, 0.2, 1);
+  const t = c.theme === 'dark' || c.theme === 'paper' ? c.theme : null;
+  if (t !== embedCfg.theme) { embedCfg.theme = t; if (stacks.length) applyTheme(); }
   if (stacks.length) layout(state.dealt);
 });
 
@@ -671,6 +693,11 @@ function sizeCardDOM() {
 function typeOn(el, text, dur) {
   const o = { n: 0 }; el.textContent = '';
   return gsap.to(o, { n: text.length, duration: dur, ease: 'none', onUpdate: () => { el.textContent = text.slice(0, Math.round(o.n)); } });
+}
+function applyTheme() {
+  const dark = cardTheme() === 'dark';
+  cardEl.classList.toggle('theme-dark', dark);
+  stacks.forEach(refreshStackArt);
 }
 function fillDOM(s) {
   const c = s.c;
@@ -836,8 +863,7 @@ function finishRemoval() {
   const card = fly.card;
   if (card) { scene.remove(card); const idx = s.cards.indexOf(card); if (idx >= 0) s.cards.splice(idx, 1); }
   fly.card = null;
-  // keep at least one sold-out card on the table
-  if (s.cards.length === 0) { const m = addCard(s); const p = layerPose(s, 0, m); m.position.copy(p.pos); m.quaternion.copy(p.quat); }
+  syncCards(s); // the stack shows its share left (1–6 layers), so a claim may or may not change its height
   gsap.to(s, { hop: 0, duration: 0.5 });
   resetDOM();
   endSelection();
@@ -1035,8 +1061,11 @@ function applyDeck(d) {
     if (JSON.stringify(DeckCore.editable(c)) !== before) changed.push(stacks[i]);
     return imgChanged ? loadImg(c) : null;
   });
+  const themeChanged = DeckCore.themeOf(d.theme) !== deckTheme;
+  deckTheme = DeckCore.themeOf(d.theme);
   Promise.all(loads).then(() => {
-    changed.forEach(s => { refreshStackArt(s); syncCards(s); });
+    if (themeChanged) applyTheme();
+    changed.forEach(s => { if (!themeChanged) refreshStackArt(s); syncCards(s); });
     setCount(d.count);
     if (changed.length) { buildSrNav(); toast(changed.length === 1 ? `${changed[0].c.brand} updated` : 'Deck updated'); }
   });
@@ -1092,9 +1121,21 @@ function frame() {
     s.faceMat.color.setScalar(shade); s.edgeA.color.copy(s.edgeABase).multiplyScalar(shade); s.edgeB.color.copy(s.edgeBBase).multiplyScalar(shade);
   }
   updateFly();
+  // floating counters ride just above each logo
+  for (const s of stacks) {
+    const el = s.countEl;
+    const key = s.c.remaining;
+    if (s.countShown !== key) { s.countShown = key; el.querySelector('b').textContent = key > 0 ? key : '0'; el.querySelector('span').textContent = key > 0 ? 'left' : 'sold out'; }
+    const op = s.active ? clamp(Math.min(1, s.appear) * s.logoFade * (0.35 + 0.65 * s.dim), 0, 1) : 0;
+    if (op < 0.01) { if (el.style.opacity !== '0') el.style.opacity = '0'; continue; }
+    labelPos.copy(s.logo.position); labelPos.y += s.logo.scale.y * 0.62 + 0.08; labelPos.project(camera);
+    const x = (labelPos.x + 1) / 2 * innerWidth, y = (1 - labelPos.y) / 2 * innerHeight;
+    el.style.opacity = op.toFixed(3);
+    el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
+  }
 
   if (state.hovered) {
-    labelPos.copy(state.hovered.logo.position); labelPos.y += 0.38; labelPos.project(camera);
+    labelPos.copy(state.hovered.logo.position); labelPos.y += state.hovered.logo.scale.y * 0.62 + 0.5; // clear of the counter labelPos.project(camera);
     const hl = $('hoverLabel');
     hl.style.left = ((labelPos.x + 1) / 2 * innerWidth) + 'px';
     hl.style.top = ((1 - labelPos.y) / 2 * innerHeight) + 'px';
@@ -1112,6 +1153,7 @@ async function boot() {
     ]);
   } catch (e) { /* fall back to system fonts */ }
   state.count = SAVED.count;
+  cardEl.classList.toggle('theme-dark', cardTheme() === 'dark');
   await Promise.all(COUPONS.map(loadImg));
   // if the fonts were still loading when the cards were drawn, redraw them once they arrive
   const fontsReady = () => document.fonts.check('900 20px "Barlow Condensed"') && document.fonts.check('700 20px "DM Sans"');

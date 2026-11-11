@@ -45,3 +45,11 @@
 .btn-claim:hover:not([disabled]) { box-shadow: var(--shadow-lift); }
 .btn-ghost { flex: 1; background: transparent; color: var(--ink); border-color: color-mix(in srgb, var(--ink) 48%, transparent); }
 .btn-ghost:hover { border-color: var(--ink); }
+
+/* Dark card stock (design kit Dark theme). Put .theme-dark on the element that holds the faces. */
+.theme-dark {
+  --paper: #1a1a1a; --paper-raised: #24211f; --ink: #f5f2e9; --ink-soft: #f0ede7;
+  --paper-muted: #c9c5be; --paper-line: rgba(255, 255, 255, 0.21); --brand-ink-paper: #ff4937;
+}
+.theme-dark .face { box-shadow: var(--shadow-modal), inset 0 0 0 1px var(--line-strong); }
+.theme-dark .clogo { filter: drop-shadow(0 calc(var(--u) * 2) calc(var(--u) * 3) rgba(0, 0, 0, 0.45)); }

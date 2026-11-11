@@ -90,6 +90,8 @@ input[type=text], input[type=number], select, textarea {
 textarea { resize: vertical; min-height: 72px; }
 input[type=color] { width: 100%; height: 39px; padding: 2px; border-radius: 3px; border: 1px solid var(--line-strong); background: var(--night); }
 .dim { opacity: 0.45; }
+.seg2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.seg2 .sbtn[aria-pressed="true"] { background: var(--ember); border-color: var(--ember); color: var(--on-brand); }
 .btns { display: flex; flex-wrap: wrap; gap: 8px; }
 .sbtn {
   appearance: none; cursor: pointer; border-radius: 2px; padding: 12px; font: 800 12px/1 var(--font-body); letter-spacing: 0.045em; text-transform: uppercase;
@@ -159,6 +161,15 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
       <input type="range" id="countRange" min="1" max="10" step="1" value="10">
       <div class="ticks" aria-hidden="true"><span>1</span><span>5</span><span>10</span></div>
       <p class="note">The deck shows cards 1 to this number. Cards past it stay saved but off the table.</p>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><span class="lbl" id="themeLbl">Card style</span><span class="lbl" id="themeOut"></span></div>
+      <div class="seg2" role="group" aria-labelledby="themeLbl">
+        <button type="button" class="sbtn" data-theme="paper">Paper · light</button>
+        <button type="button" class="sbtn" data-theme="dark">Dark</button>
+      </div>
+      <p class="note">The design kit's two themes for the coupon stock. Applies to every card, on the table and when opened.</p>
     </section>
 
     <section class="sec">
@@ -281,7 +292,7 @@ function toast(msg) {
 function logoCanvas(c) { return c._img ? D.drawUploadedLogo(c._img) : D.drawLogo(c); }
 function renderArt(c) {
   c._logoURL = logoCanvas(c).toDataURL();
-  c._faceURL = D.drawFace(c, D.serialOf(c)).toDataURL('image/jpeg', 0.88);
+  c._faceURL = D.drawFace(c, D.serialOf(c), false, deck.theme).toDataURL('image/jpeg', 0.88);
 }
 
 /* ---------- Picker ---------- */
@@ -425,7 +436,16 @@ D.subscribe(d => {
   Promise.all(deck.coupons.map(D.loadImg)).then(renderAll);
 });
 
+function renderTheme() {
+  $('pcard').classList.toggle('theme-dark', deck.theme === 'dark');
+  document.querySelectorAll('.seg2 [data-theme]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.theme === deck.theme)));
+  $('themeOut').textContent = deck.theme === 'dark' ? 'Dark' : 'Paper';
+}
+document.querySelectorAll('.seg2 [data-theme]').forEach(b => b.addEventListener('click', () => {
+  deck.theme = b.dataset.theme; renderAll(); persist(true);
+}));
 function renderAll() {
+  renderTheme();
   deck.coupons.forEach(renderArt);
   $('countRange').value = deck.count; $('countOut').textContent = deck.count;
   renderPicker(); fillForm(); renderPreview();

@@ -83,6 +83,16 @@ function sanitize(c) {
   if (typeof c.logoImg !== 'string' || !c.logoImg.startsWith('data:image/')) c.logoImg = null;
   return c;
 }
+/* Card stock in the design kit's two themes: Paper (light) and Dark. */
+const THEMES = {
+  paper: { stock: '#f5f2e9', ink: '#0b0b0b', muted: '#48433d', brandInk: '#a54635', grain: '60,50,40', grainA: 1,
+    perf: 'rgba(17,16,14,0.4)', notch: '#0b0b0b', edge: '#ebe7df', edgeB: '#d9d4ca', back: '#bdb5a8' },
+  dark: { stock: '#1a1a1a', ink: '#f5f2e9', muted: '#c9c5be', brandInk: '#ff4937', grain: '255,255,255', grainA: 0.55,
+    perf: 'rgba(255,255,255,0.32)', notch: '#0b0b0b', edge: '#2c2925', edgeB: '#3a3631', back: '#121110' },
+};
+const themeOf = t => (t === 'dark' ? 'dark' : 'paper');
+/* How many card layers a stack shows: its share left, in 1 to 6 layers (sold out: 1). */
+function stackSize(c) { return c.remaining <= 0 ? 1 : 1 + Math.ceil((c.remaining / c.total) * 5); }
 function editable(c) { const o = {}; EDIT_KEYS.forEach(k => { o[k] = c[k]; }); return o; }
 function serialOf(c) { return `No. ${c.id}-${String(c.total).padStart(4, '0')}`; }
 function loadImg(c) {
@@ -96,15 +106,16 @@ let channel = null;
 try { channel = new BroadcastChannel(KEY); } catch (e) { channel = null; }
 const sample = () => JSON.parse(JSON.stringify(SAMPLE));
 function normalize(d) {
-  const coupons = sample(); let count = coupons.length;
+  const coupons = sample(); let count = coupons.length, theme = 'paper';
   if (d && typeof d === 'object') {
+    theme = themeOf(d.theme);
     if (Array.isArray(d.coupons)) d.coupons.slice(0, coupons.length).forEach((o, i) => {
       if (o && typeof o === 'object') EDIT_KEYS.forEach(k => { if (k in o) coupons[i][k] = o[k]; });
     });
     if (d.count) count = clamp(Math.round(+d.count) || coupons.length, 1, coupons.length);
   }
   coupons.forEach(sanitize);
-  return { count, coupons };
+  return { count, theme, coupons };
 }
 function load() {
   let d = null;
@@ -113,7 +124,7 @@ function load() {
 }
 /* Returns true when the deck was stored; false when this browser blocks storage. */
 function save(deck) {
-  const payload = { count: deck.count, coupons: deck.coupons.map(editable), savedAt: new Date().toISOString() };
+  const payload = { count: deck.count, theme: themeOf(deck.theme), coupons: deck.coupons.map(editable), savedAt: new Date().toISOString() };
   let stored = true;
   try { localStorage.setItem(KEY, JSON.stringify(payload)); } catch (e) { stored = false; }
   try { if (channel) channel.postMessage(payload); } catch (e) { /* closed channel */ }
@@ -173,13 +184,14 @@ function wrapLines(ctx, text, maxW, maxLines) {
 }
 /* withPreview: the table version of the card, which also prints the promotion type, a short
    description of the offer and how many are left, sized to read at table distance. */
-function drawFace(c, serial, withPreview) {
+function drawFace(c, serial, withPreview, themeName) {
+  const th = THEMES[themeOf(themeName)];
   const W = 600, H = 960, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
-  ctx.fillStyle = '#f5f2e9'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = th.stock; ctx.fillRect(0, 0, W, H);
   // paper grain
   const rng = mulberry32(hashStr(c.id));
-  for (let i = 0; i < 2600; i++) { ctx.fillStyle = `rgba(60,50,40,${0.02 + rng() * 0.04})`; ctx.fillRect(rng() * W, rng() * H, 1.4, 1.4); }
+  for (let i = 0; i < 2600; i++) { ctx.fillStyle = `rgba(${th.grain},${(0.02 + rng() * 0.04) * th.grainA})`; ctx.fillRect(rng() * W, rng() * H, 1.4, 1.4); }
   // guilloche rosette (security-print watermark) centered at 40%
   const gx = W / 2, gy = H * 0.4;
   ctx.strokeStyle = c.color; ctx.lineWidth = 1.1;
@@ -204,23 +216,23 @@ function drawFace(c, serial, withPreview) {
   ctx.fillText((c.brand.toUpperCase() + ' · ').repeat(12), 22, H * 0.075 + 26); ctx.globalAlpha = 1;
   // perforation + notches
   const py = H * 0.8;
-  ctx.strokeStyle = 'rgba(17,16,14,0.4)'; ctx.setLineDash([10, 9]); ctx.lineWidth = 2.4;
+  ctx.strokeStyle = th.perf; ctx.setLineDash([10, 9]); ctx.lineWidth = 2.4;
   ctx.beginPath(); ctx.moveTo(34, py); ctx.lineTo(W - 34, py); ctx.stroke(); ctx.setLineDash([]);
-  ctx.fillStyle = '#0b0b0b';
+  ctx.fillStyle = th.notch;
   ctx.beginPath(); ctx.arc(0, py, 18, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.arc(W, py, 18, 0, Math.PI * 2); ctx.fill();
   if (withPreview) {
     ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     if ('letterSpacing' in ctx) ctx.letterSpacing = '3px';
-    ctx.fillStyle = '#a54635'; ctx.font = '800 28px "DM Sans", Arial, sans-serif';
+    ctx.fillStyle = th.brandInk; ctx.font = '800 28px "DM Sans", Arial, sans-serif';
     ctx.fillText(`${c.type} offer`.toUpperCase(), W / 2, H * 0.455);
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
     // a narrow centred column, so the text stays clear where neighbouring cards overlap on phones
-    ctx.fillStyle = '#0b0b0b'; ctx.font = '800 62px "Barlow Condensed", Impact, sans-serif';
+    ctx.fillStyle = th.ink; ctx.font = '800 62px "Barlow Condensed", Impact, sans-serif';
     const lines = wrapLines(ctx, c.short.toUpperCase(), W - 190, 4);
     lines.forEach((ln, i) => ctx.fillText(ln, W / 2, H * 0.455 + 68 + i * 58));
     if ('letterSpacing' in ctx) ctx.letterSpacing = '3px';
-    ctx.fillStyle = '#48433d'; ctx.font = '700 26px "DM Sans", Arial, sans-serif';
+    ctx.fillStyle = th.muted; ctx.font = '700 26px "DM Sans", Arial, sans-serif';
     ctx.fillText(`${c.remaining} OF ${c.total} LEFT`, W / 2, H * 0.765);
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   }
@@ -254,7 +266,7 @@ function logoColor(cv) {
 }
 
 window.DeckCore = Object.freeze({
-  SAMPLE, SHAPES, TYPES, EDIT_KEYS, clamp, sanitize, editable, serialOf, loadImg,
+  SAMPLE, SHAPES, TYPES, EDIT_KEYS, THEMES, themeOf, stackSize, clamp, sanitize, editable, serialOf, loadImg,
   load, save, clear, subscribe, sample: () => normalize(null),
   mulberry32, hashStr, shapePath, drawLogo, drawFace, drawUploadedLogo, logoColor,
 });
