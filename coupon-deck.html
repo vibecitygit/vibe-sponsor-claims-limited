@@ -250,6 +250,66 @@ body {
   background: #f4f2ff; color: var(--ink); font: 600 13px/1 var(--font-body); white-space: nowrap;
 }
 
+/* ---------- Deck editor ---------- */
+.top-actions { display: flex; gap: 8px; pointer-events: auto; }
+.editor {
+  position: fixed; z-index: 35; display: flex; flex-direction: column;
+  top: calc(env(safe-area-inset-top, 0px) + 74px); bottom: 16px;
+  right: max(16px, env(safe-area-inset-right, 0px)); width: 340px;
+  background: rgba(18, 16, 40, 0.94); border: 1px solid var(--line); border-radius: 16px;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+.editor[hidden] { display: none; }
+.ed-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
+.ed-head h2 { margin: 0; font: 700 16px/1.2 var(--font-display); }
+.ed-body { flex: 1; overflow: auto; overscroll-behavior: contain; padding: 14px 16px 18px; display: grid; gap: 18px; align-content: start; }
+.ed-sec { display: grid; gap: 10px; min-width: 0; }
+.ed-sec + .ed-sec { padding-top: 16px; border-top: 1px solid var(--line); }
+.lbl { font: 600 10px/1.2 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.ed-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.ed-row output { font: 700 22px/1 var(--font-display); color: var(--ember); font-variant-numeric: tabular-nums; }
+.editor input[type=range] { width: 100%; accent-color: var(--ember); }
+.ticks { display: flex; justify-content: space-between; font: 10px/1 var(--font-mono); color: var(--muted); padding: 0 2px; }
+.picker { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.pick { aspect-ratio: 1; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,0.04); padding: 6px; cursor: pointer; display: grid; place-items: center; }
+.pick img { width: 100%; height: 100%; object-fit: contain; }
+.pick.off { opacity: 0.35; }
+.pick.on { border-color: var(--ember); background: rgba(242,184,128,0.12); box-shadow: 0 0 0 1px var(--ember) inset; }
+.ed-target { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center; }
+.ed-target img { width: 56px; height: 56px; object-fit: contain; }
+.ed-target strong { display: block; font: 700 15px/1.2 var(--font-display); }
+.ed-target span { font-size: 12px; color: var(--muted); }
+.field { display: grid; gap: 5px; min-width: 0; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.editor input[type=text], .editor input[type=number], .editor select, .editor textarea {
+  width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
+  background: rgba(255,255,255,0.06); color: #f4f2ff; font: 14px/1.35 var(--font-body);
+}
+.editor textarea { resize: vertical; min-height: 64px; }
+.editor input:focus-visible, .editor select:focus-visible, .editor textarea:focus-visible { outline: 2px solid var(--ember); outline-offset: 1px; }
+.editor input[type=color] { width: 100%; height: 36px; padding: 2px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255,255,255,0.06); }
+.dim { opacity: 0.45; }
+.ed-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.sbtn {
+  appearance: none; cursor: pointer; border-radius: 999px; padding: 8px 14px; font: 600 13px/1 var(--font-body);
+  background: rgba(255,255,255,0.08); color: #f4f2ff; border: 1px solid var(--line);
+}
+.sbtn:hover { border-color: rgba(255,255,255,0.3); }
+.sbtn.primary { background: var(--ember); color: var(--ink); border-color: transparent; }
+.sbtn[disabled] { opacity: 0.45; cursor: default; }
+.file-btn { position: relative; overflow: hidden; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.file-btn:focus-within { outline: 2px solid var(--ember); outline-offset: 2px; }
+.ed-note { margin: 0; font-size: 12px; line-height: 1.45; color: var(--muted); }
+details summary { cursor: pointer; font-size: 13px; color: #f4f2ff; }
+#edJson { font: 12px/1.4 var(--font-mono); min-height: 140px; margin-top: 8px; }
+@media (max-width: 719px) {
+  .editor { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 56vh; border-radius: 18px 18px 0 0; border-bottom: 0;
+    padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .wallet-btn .wl { display: none; }
+}
+
 @media (max-width: 520px) {
   .hint { font-size: 11px; }
   .brandmark p { font-size: 10px; }
@@ -266,13 +326,93 @@ body {
     <h1>Sponsor Drops</h1>
     <p id="subline">10 limited offers</p>
   </div>
+  <div class="top-actions">
+  <button class="wallet-btn" id="editBtn" aria-expanded="false" aria-controls="editor">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+    <span class="wl">Edit deck</span>
+  </button>
   <button class="wallet-btn" id="walletBtn" aria-expanded="false" aria-controls="walletPanel">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 14.5h2"/><path d="M6 6l9-3 1.5 3"/></svg>
-    Wallet
+    <span class="wl">Wallet</span>
     <span class="linked-dot" title="Account linked"></span>
     <span class="wallet-count" id="walletCount">0</span>
   </button>
+  </div>
 </header>
+<aside class="editor" id="editor" hidden aria-label="Deck editor">
+  <div class="ed-head">
+    <h2>Deck editor</h2>
+    <button class="xbtn" id="edClose" aria-label="Close deck editor"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l10 10M12 2L2 12"/></svg></button>
+  </div>
+  <div class="ed-body">
+    <section class="ed-sec">
+      <div class="ed-row"><label class="lbl" for="countRange">Coupons in the deck</label><output id="countOut" for="countRange">10</output></div>
+      <input type="range" id="countRange" min="1" max="10" step="1" value="10" disabled>
+      <div class="ticks" aria-hidden="true"><span>1</span><span>5</span><span>10</span></div>
+    </section>
+    <section class="ed-sec">
+      <span class="lbl">Pick a card</span>
+      <div class="picker" id="picker"></div>
+      <p class="ed-note">Or click a stack on the table. Faded cards are outside the deck.</p>
+    </section>
+    <form class="ed-sec" id="edForm" autocomplete="off">
+      <div class="ed-target"><img id="edLogoPreview" alt="Current logo"><div><strong id="edTitle"></strong><span id="edState"></span></div></div>
+      <div class="ed-btns">
+        <label class="sbtn file-btn">Upload logo<input type="file" id="edLogoFile" accept="image/png,image/jpeg,image/svg+xml,image/webp"></label>
+        <button type="button" class="sbtn" id="edUseMono" hidden>Use monogram</button>
+      </div>
+      <div class="grid3" id="edMonoFields">
+        <label class="field"><span class="lbl">Monogram</span><input type="text" id="edMark" maxlength="3"></label>
+        <label class="field"><span class="lbl">Shape</span><select id="edShape">
+          <option value="circle">Circle</option><option value="pill">Pill</option><option value="diamond">Diamond</option><option value="hex">Hexagon</option><option value="squircle">Squircle</option>
+          <option value="star">Burst</option><option value="shield">Shield</option><option value="octagon">Octagon</option><option value="ring">Ring</option><option value="tri">Triangle</option></select></label>
+        <label class="field"><span class="lbl">Color</span><input type="color" id="edColor"></label>
+      </div>
+      <label class="field"><span class="lbl">Brand name</span><input type="text" id="edBrand" maxlength="24"></label>
+      <label class="field"><span class="lbl">Short description</span><input type="text" id="edShort" maxlength="64"></label>
+      <div class="grid2">
+        <label class="field"><span class="lbl">Promotion type</span><select id="edType"><option>Option</option><option>Discount</option><option>Freebie</option></select></label>
+        <label class="field"><span class="lbl">Year</span><input type="text" id="edYear" maxlength="11"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span class="lbl">Valid from</span><input type="text" id="edFrom" maxlength="5" placeholder="MM/DD"></label>
+        <label class="field"><span class="lbl">Valid to</span><input type="text" id="edTo" maxlength="5" placeholder="MM/DD"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span class="lbl">Remaining</span><input type="number" id="edRemaining" min="0" max="9999" inputmode="numeric"></label>
+        <label class="field"><span class="lbl">Total issued</span><input type="number" id="edTotal" min="1" max="9999" inputmode="numeric"></label>
+      </div>
+      <div class="field">
+        <div class="ed-row"><label class="lbl" for="edBpm">Logo beat (BPM)</label><span class="lbl" id="edBpmOut">90</span></div>
+        <input type="range" id="edBpm" min="40" max="180" step="1">
+      </div>
+      <div class="grid2">
+        <label class="field"><span class="lbl">Where</span><input type="text" id="edWhere" maxlength="40"></label>
+        <label class="field"><span class="lbl">Limit</span><input type="text" id="edLimit" maxlength="30"></label>
+      </div>
+      <label class="field"><span class="lbl">Full description (back of card)</span><textarea id="edLong" maxlength="420" rows="3"></textarea></label>
+      <label class="field"><span class="lbl">Terms, one per line</span><textarea id="edTerms" rows="4"></textarea></label>
+      <div class="ed-btns">
+        <button type="button" class="sbtn primary" id="edPreview">Preview coupon</button>
+        <button type="button" class="sbtn" id="edReset">Reset this card</button>
+      </div>
+    </form>
+    <section class="ed-sec">
+      <span class="lbl">Deck data</span>
+      <div class="ed-btns">
+        <button type="button" class="sbtn" id="edCopy">Copy deck JSON</button>
+        <button type="button" class="sbtn" id="edResetAll">Reset all</button>
+      </div>
+      <details id="jsonBox">
+        <summary>Paste or edit JSON</summary>
+        <textarea id="edJson" spellcheck="false" aria-label="Deck JSON"></textarea>
+        <div class="ed-btns" style="margin-top:8px"><button type="button" class="sbtn primary" id="edImport">Load JSON</button></div>
+      </details>
+      <p class="ed-note">An array of up to 10 coupons. Its length sets the deck size. Edits are saved in this browser only.</p>
+    </section>
+  </div>
+</aside>
+
 
 <div class="wallet-panel" id="walletPanel" hidden>
   <h2>Your wallet</h2>
@@ -402,13 +542,15 @@ const COUPONS = [
     terms: ['Minimum spend $50 after other discounts.', 'Excludes alcohol, tobacco and gift cards.', 'One coupon per household per week.', 'In-store only.'] },
 ];
 
+const DEFAULTS = JSON.parse(JSON.stringify(COUPONS));
+
 /* ================= Helpers ================= */
 const $ = (id) => document.getElementById(id);
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const PULSE_AMP = reduced ? 0.015 : 0.045;
+const PULSE_AMP = reduced ? 0 : 0.012;
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 function mix(hexA, hexB, t) { const a = new THREE.Color(hexA), b = new THREE.Color(hexB); return a.lerp(b, t); }
@@ -530,15 +672,31 @@ const QX90 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0),
 const AX_Y = new THREE.Vector3(0, 1, 0);
 
 const stacks = [];
-const hitMeshes = [];
 const hitMat = new THREE.MeshBasicMaterial({ visible: false });
 
+const SHAPES = ['circle', 'pill', 'diamond', 'hex', 'squircle', 'star', 'shield', 'octagon', 'ring', 'tri'];
+const TYPES = ['Option', 'Discount', 'Freebie'];
+function stackSize(c) { return c.remaining <= 0 ? 1 : clamp(Math.round(c.remaining / 4), 2, 15); }
+function drawUploadedLogo(img) {
+  const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S; const ctx = cv.getContext('2d');
+  const k = Math.min(224 / img.width, 224 / img.height), w = img.width * k, h = img.height * k;
+  ctx.drawImage(img, (S - w) / 2, (S - h) / 2, w, h); return cv;
+}
+function makeArt(c) {
+  c.serial = `No. ${c.id}-${String(c.total).padStart(4, '0')}`;
+  c.logoCanvas = c._img ? drawUploadedLogo(c._img) : drawLogo(c); c.logoURL = c.logoCanvas.toDataURL();
+  c.faceCanvas = drawFace(c, c.serial); c.faceURL = c.faceCanvas.toDataURL('image/jpeg', 0.9);
+}
+function refreshStackArt(s) {
+  makeArt(s.c);
+  s.faceMat.map.image = s.c.faceCanvas; s.faceMat.map.needsUpdate = true;
+  s.logo.material.map.dispose(); s.logo.material.map = new THREE.CanvasTexture(s.c.logoCanvas); s.logo.material.needsUpdate = true;
+  s.edgeABase.copy(mix('#d9d2c6', s.c.color, 0.45)); s.ripple.material.color.set(s.c.color);
+}
 function buildStacks() {
   COUPONS.forEach((c, i) => {
-    c.serial = `No. ${c.id}-${String(c.total).padStart(4, '0')}`;
-    c.logoCanvas = drawLogo(c); c.logoURL = c.logoCanvas.toDataURL();
-    const face = drawFace(c, c.serial); c.faceURL = face.toDataURL('image/jpeg', 0.9);
-    const faceTex = new THREE.CanvasTexture(face); faceTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    makeArt(c);
+    const faceTex = new THREE.CanvasTexture(c.faceCanvas); faceTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
     const faceMat = new THREE.MeshBasicMaterial({ map: faceTex });
     const edgeA = new THREE.MeshBasicMaterial({ color: mix('#d9d2c6', c.color, 0.45) });
     const edgeB = new THREE.MeshBasicMaterial({ color: new THREE.Color('#cfc8bb') });
@@ -547,8 +705,8 @@ function buildStacks() {
     const matsB = [edgeB, edgeB, faceMat, backMat, edgeB, edgeB];
 
     const s = { c, i, x: 0, z: 0, rot: 0, base: i * 0.004, cards: [], matsA, matsB, faceMat, edgeA, edgeB, edgeABase: edgeA.color.clone(), edgeBBase: edgeB.color.clone(),
-      appear: 0, logoFade: 1, dim: 1, hover: 0, hoverV: 0, hop: 0, spin: 0, phase: rand(0, 1), topY: 0 };
-    const n = clamp(Math.round(c.remaining / 4), 2, 15);
+      active: i < state.count, appear: 0, logoFade: 1, dim: 1, hover: 0, hoverV: 0, hop: 0, phase: rand(0, 1), topY: 0 };
+    const n = stackSize(c);
     for (let l = 0; l < n; l++) addCard(s);
     s.topY = s.base + n * STEP;
 
@@ -559,69 +717,135 @@ function buildStacks() {
     const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.25, 1.85), new THREE.MeshBasicMaterial({ map: shTex, transparent: true, depthWrite: false, opacity: 0 }));
     shadow.rotation.order = 'YXZ'; shadow.position.y = 0.001; scene.add(shadow); s.shadow = shadow;
 
-    const hit = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.9, 1.8), hitMat); hit.userData.stack = s; scene.add(hit); s.hit = hit; hitMeshes.push(hit);
+    const hit = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.9, 1.8), hitMat); hit.userData.stack = s; scene.add(hit); s.hit = hit;
     stacks.push(s);
   });
 }
 function addCard(s) {
   const l = s.cards.length;
   const m = new THREE.Mesh(cardGeo, l % 2 ? s.matsB : s.matsA);
-  m.userData = { jx: rand(-0.025, 0.025), jz: rand(-0.03, 0.03), ry: rand(-0.06, 0.06) };
+  m.userData = { jx: rand(-0.025, 0.025), jz: rand(-0.03, 0.03), ry: rand(-0.06, 0.06), free: false };
+  m.visible = s.active;
   scene.add(m); s.cards.push(m); return m;
 }
 function layerPose(s, l, card) {
   const u = card.userData;
   return { pos: new THREE.Vector3(s.x + u.jx, s.base + l * STEP + T / 2, s.z + u.jz), quat: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, s.rot + u.ry, 0)) };
 }
+/* Grow or shrink a stack to match its remaining quantity. */
+function syncCards(s) {
+  const n = stackSize(s.c), live = s.active && state.dealt;
+  while (s.cards.length < n) {
+    const m = addCard(s), l = s.cards.length - 1, p = layerPose(s, l, m);
+    m.position.copy(p.pos); m.quaternion.copy(p.quat);
+    if (live) { m.userData.free = true; m.position.y += 1.1; gsap.to(m.position, { y: p.pos.y, duration: 0.5, delay: (l % 6) * 0.04, ease: 'bounce.out', onComplete: () => { m.userData.free = false; } }); }
+  }
+  while (s.cards.length > n) {
+    const m = s.cards.pop();
+    if (live) { m.userData.free = true; gsap.to(m.position, { y: m.position.y + 1.1, duration: 0.35, ease: 'power2.in' }); gsap.to(m.scale, { x: 0.01, z: 0.01, duration: 0.35, ease: 'power2.in', onComplete: () => scene.remove(m) }); }
+    else scene.remove(m);
+  }
+}
 
 /* ---------- Layout & camera fit ---------- */
 const camRig = { target: new THREE.Vector3(), dir: new THREE.Vector3(), dist: 12, par: new THREE.Vector2(), parT: new THREE.Vector2() };
 let portrait = false;
-function layout() {
+/* Fanned grid: one row up to 5, two rows above that, each row on an arc around a shared pivot in front of the deck. */
+function arrangement(n) {
+  const rows = n <= 5 ? [n] : [Math.ceil(n / 2), Math.floor(n / 2)];
+  const gap = portrait ? 2.25 : 2.45, rBack = portrait ? 7.5 : 11.5, chord = portrait ? 0.84 : 1.34;
+  const out = [];
+  rows.forEach((cnt, row) => {
+    const two = rows.length === 2, R = two && row === 1 ? rBack - gap : rBack;
+    const zc = two ? (row === 0 ? -gap / 2 : gap / 2) : 0, pivotZ = zc + R;
+    for (let col = 0; col < cnt; col++) { const a = (col - (cnt - 1) / 2) * (chord / R); out.push({ x: Math.sin(a) * R, z: pivotZ - Math.cos(a) * R, rot: -a }); }
+  });
+  return out;
+}
+function layout(animate) {
   const w = innerWidth, h = innerHeight;
-  renderer.setSize(w, h, false); camera.aspect = w / h;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.clearViewOffset();
   portrait = w / h < 0.85;
-  // two rows of five, fanned on concentric arcs around one pivot in front of the deck
-  const gap = portrait ? 2.25 : 2.45;
-  const rBack = portrait ? 7.5 : 11.5, rFront = rBack - gap;
-  const chord = portrait ? 0.84 : 1.34;
-  const pivotZ = gap / 2 + rFront;
-  stacks.forEach((s, i) => {
-    const row = Math.floor(i / 5), col = i % 5, R = row === 0 ? rBack : rFront;
-    const a = (col - 2) * (chord / R);
-    s.x = Math.sin(a) * R; s.z = pivotZ - Math.cos(a) * R; s.rot = -a;
-    s.hit.position.set(s.x, 0.8, s.z); s.hit.rotation.y = s.rot;
-    s.shadow.position.set(s.x + 0.07, 0.001, s.z + 0.12); s.shadow.rotation.set(-Math.PI / 2, s.rot, 0);
-    if (state.dealt) s.cards.forEach((card, l) => { if (card !== fly.card) { const p = layerPose(s, l, card); card.position.copy(p.pos); card.quaternion.copy(p.quat); } });
+  const act = stacks.filter(s => s.active), slots = arrangement(act.length);
+  act.forEach((s, k) => {
+    const p = slots[k];
+    if (animate && !s.enter) gsap.to(s, { x: p.x, z: p.z, rot: p.rot, duration: 0.9, ease: 'power3.inOut' });
+    else { gsap.killTweensOf(s, 'x,z,rot'); s.x = p.x; s.z = p.z; s.rot = p.rot; }
   });
   camera.fov = portrait ? 30 : 26;
   const elev = THREE.MathUtils.degToRad(portrait ? 60 : 52);
   camRig.dir.set(0, Math.sin(elev), Math.cos(elev));
-  camRig.target.set(0, 0.25, portrait ? 0.35 : 0.25);
+  camRig.target.set(0, 0.25, act.length > 5 ? (portrait ? 0.35 : 0.25) : 0.1);
   // grow distance until every stack corner + logo fits
   const pts = [];
-  stacks.forEach(s => { const cs = Math.cos(s.rot), sn = Math.sin(s.rot); for (const dx of [-0.58, 0.58]) for (const dz of [-0.85, 0.85]) { const x = s.x + dx * cs + dz * sn, z = s.z - dx * sn + dz * cs; pts.push(new THREE.Vector3(x, 0, z)); pts.push(new THREE.Vector3(x, 1.25, z)); } });
+  slots.forEach(s => { const cs = Math.cos(s.rot), sn = Math.sin(s.rot); for (const dx of [-0.58, 0.58]) for (const dz of [-0.85, 0.85]) { const x = s.x + dx * cs + dz * sn, z = s.z - dx * sn + dz * cs; pts.push(new THREE.Vector3(x, 0, z)); pts.push(new THREE.Vector3(x, 1.25, z)); } });
   const yTop = portrait ? 0.7 : 0.74, yBot = -0.86, xLim = 0.93;
-  let d = 4;
+  let d = portrait ? 13 : 11; // floor keeps a small deck from zooming in too far
   for (; d < 60; d += 0.2) {
     camera.position.copy(camRig.target).addScaledVector(camRig.dir, d); camera.lookAt(camRig.target); camera.updateProjectionMatrix(); camera.updateMatrixWorld();
     if (pts.every(p => { const v = p.clone().project(camera); return Math.abs(v.x) < xLim && v.y < yTop && v.y > yBot; })) break;
   }
-  camRig.dist = d;
+  if (animate) gsap.to(camRig, { dist: d, duration: 0.9, ease: 'power3.inOut' }); else camRig.dist = d;
   sizeCardDOM();
 }
 
+/* ---------- Deck size: deal stacks in from the horizon, or send them back ---------- */
+function dealStack(s, delay) {
+  gsap.killTweensOf(s, 'appear');
+  s.appear = 0; s.logoFade = 1;
+  s.cards.forEach((card, l) => {
+    gsap.killTweensOf([card.position, card.rotation]);
+    card.visible = true; card.userData.free = true;
+    card.position.set(rand(-16, 16), rand(0.4, 2), -46 - rand(0, 6)); card.rotation.set(0, rand(-3, 3), Math.PI);
+    const p = layerPose(s, l, card), t0 = delay + l * 0.045;
+    gsap.to(card.position, { x: p.pos.x, z: p.pos.z, duration: 1.1, delay: t0, ease: 'power3.out' });
+    gsap.to(card.position, { keyframes: [{ y: p.pos.y + 1.2, duration: 0.5, ease: 'sine.out' }, { y: p.pos.y, duration: 0.6, ease: 'power2.in' }], delay: t0 });
+    gsap.to(card.rotation, { y: s.rot + card.userData.ry, z: 0, duration: 1.1, delay: t0, ease: 'power3.out', onComplete: () => { card.userData.free = false; } });
+  });
+  gsap.to(s, { appear: 1, duration: 0.9, ease: 'elastic.out(1, 0.45)', delay: delay + s.cards.length * 0.045 + 1.0 });
+}
+function retireStack(s) {
+  gsap.killTweensOf(s, 'appear');
+  gsap.to(s, { appear: 0, duration: 0.3 });
+  const n = s.cards.length;
+  s.cards.forEach((card, l) => {
+    gsap.killTweensOf([card.position, card.rotation]);
+    card.userData.free = true;
+    const t0 = (n - 1 - l) * 0.03;
+    gsap.to(card.position, { x: card.position.x * 1.5 + rand(-3, 3), y: card.position.y + 1.4, z: -48, duration: 1.0, delay: t0, ease: 'power2.in', onComplete: () => { if (!s.active) card.visible = false; } });
+    gsap.to(card.rotation, { z: Math.PI, duration: 1.0, delay: t0 });
+  });
+}
+function setCount(n) {
+  n = clamp(Math.round(n), 1, COUPONS.length);
+  if (n === state.count || !state.dealt) return;
+  state.count = n;
+  const entering = [];
+  stacks.forEach((s, i) => {
+    const want = i < n;
+    if (want && !s.active) { s.active = true; s.enter = true; entering.push(s); }
+    else if (!want && s.active) { s.active = false; if (state.hovered === s) setHover(null); retireStack(s); }
+  });
+  layout(true);
+  entering.forEach((s, k) => { s.enter = false; dealStack(s, 0.25 + k * 0.1); });
+  if (state.editing) { renderPicker(); fillEditor(); }
+  updateSubline(); buildSrNav(); save();
+}
+function updateSubline() { const n = state.count; $('subline').textContent = `${n} limited offer${n === 1 ? '' : 's'}`; }
+
 /* ================= State ================= */
-const state = { dealt: false, ready: false, busy: false, sel: null, view: 'deck', linked: false, wallet: [], removeOnClose: false, hovered: null, W: 320, H: 512 };
+const state = { dealt: false, ready: false, busy: false, sel: null, view: 'deck', linked: false, wallet: [], removeOnClose: false, hovered: null, W: 320, H: 512,
+  count: COUPONS.length, editing: false, editTarget: null, shiftX: 0, shiftY: 0, zoom: 1 };
 const fly = { card: null, s: null, layer: 0, p: 0, mat: null };
 
 /* ---------- Intro: deal from the horizon, riffle into stacks ---------- */
 function intro() {
+  const act = stacks.filter(s => s.active);
+  stacks.forEach(s => s.cards.forEach(c => { c.userData.free = true; c.visible = s.active; }));
   const tl = gsap.timeline();
-  let k = 0;
-  const maxL = Math.max(...stacks.map(s => s.cards.length));
-  const dealEnd = [];
-  for (let l = 0; l < maxL; l++) for (const s of stacks) {
+  let k = 0, dealEnd = 0;
+  const maxL = Math.max(...act.map(s => s.cards.length));
+  for (let l = 0; l < maxL; l++) for (const s of act) {
     const card = s.cards[l]; if (!card) continue;
     const side = l % 2 ? 1 : -1, hi = Math.floor(l / 2);
     const land = { x: s.x + side * 0.34 * Math.cos(s.rot), y: s.base + hi * STEP + T / 2, z: s.z - side * 0.34 * Math.sin(s.rot) };
@@ -632,10 +856,10 @@ function intro() {
       .to(card.position, { y: land.y + 1.3 + rand(0, 0.9), duration: 0.6, ease: 'sine.out' }, t0)
       .to(card.position, { y: land.y, duration: 0.7, ease: 'power2.in' }, t0 + 0.6)
       .to(card.rotation, { y: s.rot + card.userData.ry + side * 0.2, z: 0, duration: 1.3, ease: 'power3.out' }, t0);
-    dealEnd[s.i] = t0 + 1.3;
+    dealEnd = Math.max(dealEnd, t0 + 1.3);
   }
-  const riffleStart = Math.max(...dealEnd) + 0.1;
-  stacks.forEach((s, si) => {
+  const riffleStart = dealEnd + 0.1;
+  act.forEach((s, si) => {
     const T0 = riffleStart + si * 0.085;
     s.cards.forEach((card, l) => {
       const p = layerPose(s, l, card);
@@ -648,25 +872,10 @@ function intro() {
     tl.to(s, { appear: 1, duration: 0.9, ease: 'elastic.out(1, 0.45)' }, done);
   });
   tl.add(() => {
-    state.dealt = true; state.ready = true;
+    state.dealt = true; state.ready = true; $('countRange').disabled = false;
     $('hint').textContent = portrait ? 'Tap a stack to open its offer · taller stacks have more left' : 'Click a stack to open its offer · taller stacks have more left';
   }, '-=0.6');
-}
-
-/* ---------- Ambient attention-seeking hops ---------- */
-function scheduleHop() {
-  if (reduced) return;
-  gsap.delayedCall(rand(1.4, 2.6), () => {
-    if (state.ready && state.view === 'deck' && !state.busy) {
-      const pool = stacks.filter(s => s !== state.hovered && s.c.remaining > 0);
-      const s = pool[Math.floor(Math.random() * pool.length)];
-      if (s) {
-        gsap.timeline().to(s, { hop: 0.42, duration: 0.26, ease: 'power2.out' }).to(s, { hop: 0, duration: 0.5, ease: 'bounce.out' });
-        gsap.fromTo(s, { spin: 0 }, { spin: Math.PI * 2 * (Math.random() < 0.5 ? 1 : -1), duration: 0.7, ease: 'power2.inOut' });
-      }
-    }
-    scheduleHop();
-  });
+  tl.add(() => { act.forEach(s => s.cards.forEach(c => { c.userData.free = false; })); });
 }
 
 /* ---------- Picking ---------- */
@@ -675,7 +884,7 @@ let downAt = null;
 function pick(e) {
   ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(ndc, camera);
-  const hit = ray.intersectObjects(hitMeshes, false)[0];
+  const hit = ray.intersectObjects(stacks.filter(s => s.active).map(s => s.hit), false)[0];
   return hit ? hit.object.userData.stack : null;
 }
 canvas.addEventListener('pointermove', e => {
@@ -687,14 +896,14 @@ canvas.addEventListener('pointerleave', () => setHover(null));
 canvas.addEventListener('pointerdown', e => { downAt = { x: e.clientX, y: e.clientY }; });
 canvas.addEventListener('pointerup', e => {
   if (!downAt) return; const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y); downAt = null;
-  if (moved > 8) return; const s = pick(e); if (s) select(s);
+  if (moved > 8) return; const s = pick(e); if (!s) return; if (state.editing) pickForEdit(s); else select(s);
 });
 function setHover(s) {
   if (state.hovered === s) return;
   state.hovered = s; canvas.classList.toggle('pointer', !!s);
   $('hoverLabel').classList.toggle('on', !!s);
   if (s) {
-    $('hoverLabel').querySelector('strong').textContent = s.c.brand;
+    $('hoverLabel').querySelector('strong').textContent = state.editing ? `Edit ${s.c.brand}` : s.c.brand;
     $('hoverLabel').querySelector('span').textContent = `${s.c.type} · ${s.c.remaining} of ${s.c.total} left`;
   }
 }
@@ -769,6 +978,7 @@ function resetDOM() {
 /* ================= Select → fly → present ================= */
 function select(s) {
   if (!state.ready || state.busy || state.view !== 'deck') return;
+  if (state.editing) toggleEditor(false);
   state.busy = true; state.sel = s; state.view = 'flying'; setHover(null);
   $('hint').style.opacity = 0;
   resetDOM(); fillDOM(s); sizeCardDOM(); gsap.set(cardEl, { width: state.W, height: state.H });
@@ -1039,7 +1249,7 @@ $('doneBtn').addEventListener('click', closeCoupon);
 backdrop.addEventListener('click', closeCoupon);
 stage.addEventListener('click', e => { if (e.target === stage) closeCoupon(); });
 addEventListener('keydown', e => {
-  if (e.key === 'Escape') { if (!$('walletPanel').hidden) toggleWallet(false); else closeCoupon(); }
+  if (e.key === 'Escape') { if (!$('walletPanel').hidden) toggleWallet(false); else if (state.editing) toggleEditor(false); else closeCoupon(); }
 });
 function toggleWallet(force) {
   const p = $('walletPanel'); const open = force ?? p.hidden;
@@ -1050,16 +1260,183 @@ $('walletBtn').addEventListener('click', e => { e.stopPropagation(); toggleWalle
 document.addEventListener('pointerdown', e => { const p = $('walletPanel'); if (!p.hidden && !p.contains(e.target) && !$('walletBtn').contains(e.target)) toggleWallet(false); });
 
 function buildSrNav() {
-  const nav = $('srNav');
-  stacks.forEach(s => {
+  const nav = $('srNav'); nav.innerHTML = '';
+  stacks.filter(s => s.active).forEach(s => {
     const b = document.createElement('button');
     b.textContent = `Open ${s.c.brand}: ${s.c.short} ${s.c.remaining} of ${s.c.total} remaining.`;
     b.addEventListener('focus', () => { if (state.view === 'deck') setHover(s); });
     b.addEventListener('blur', () => setHover(null));
-    b.addEventListener('click', () => select(s));
+    b.addEventListener('click', () => state.editing ? pickForEdit(s) : select(s));
     nav.appendChild(b);
   });
 }
+
+/* ================= Deck data: persistence, editor, JSON ================= */
+const STORE_KEY = 'sponsor-drops-deck-v1';
+const EDIT_KEYS = ['brand', 'mark', 'shape', 'color', 'bpm', 'type', 'short', 'from', 'to', 'year', 'remaining', 'total', 'where', 'limit', 'long', 'terms', 'logoImg'];
+const LIMITS = { brand: 24, mark: 3, short: 64, from: 5, to: 5, year: 11, where: 40, limit: 30, long: 420 };
+function sanitize(c) {
+  for (const k of Object.keys(LIMITS)) c[k] = String(c[k] ?? '').slice(0, LIMITS[k]);
+  if (!c.brand.trim()) c.brand = 'Untitled sponsor';
+  if (!c.mark.trim()) c.mark = c.brand.slice(0, 2);
+  c.total = clamp(Math.round(+c.total || 1), 1, 9999);
+  c.remaining = clamp(Math.round(+c.remaining || 0), 0, c.total);
+  c.bpm = clamp(Math.round(+c.bpm || 90), 40, 180);
+  if (!SHAPES.includes(c.shape)) c.shape = 'circle';
+  if (!/^#[0-9a-f]{6}$/i.test(c.color || '')) c.color = '#888888';
+  if (!TYPES.includes(c.type)) c.type = 'Discount';
+  if (!Array.isArray(c.terms)) c.terms = String(c.terms || '').split('\n');
+  c.terms = c.terms.map(t => String(t).trim().slice(0, 160)).filter(Boolean).slice(0, 8);
+  if (typeof c.logoImg !== 'string' || !c.logoImg.startsWith('data:image/')) c.logoImg = null;
+  return c;
+}
+function editable(c) { const o = {}; EDIT_KEYS.forEach(k => { o[k] = c[k]; }); return o; }
+function loadImg(c) {
+  if (!c.logoImg) { c._img = null; return Promise.resolve(); }
+  return new Promise(res => { const im = new Image(); im.onload = () => { c._img = im; res(); }; im.onerror = () => { c.logoImg = null; c._img = null; res(); }; im.src = c.logoImg; });
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ count: state.count, coupons: COUPONS.map(editable) })); }
+  catch (e) { /* storage full or blocked: the deck still works for this visit */ }
+}
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY); if (!raw) return;
+    const d = JSON.parse(raw);
+    if (Array.isArray(d.coupons)) d.coupons.slice(0, COUPONS.length).forEach((o, i) => { EDIT_KEYS.forEach(k => { if (k in o) COUPONS[i][k] = o[k]; }); sanitize(COUPONS[i]); });
+    if (d.count) state.count = clamp(+d.count, 1, COUPONS.length);
+  } catch (e) { /* ignore bad or blocked storage */ }
+}
+
+const editor = $('editor');
+const F = id => $(id);
+let applyTimer = null;
+function renderPicker() {
+  const box = $('picker'); box.innerHTML = '';
+  stacks.forEach(s => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'pick' + (s === state.editTarget ? ' on' : '') + (s.active ? '' : ' off');
+    b.setAttribute('aria-pressed', String(s === state.editTarget));
+    b.title = s.active ? s.c.brand : `${s.c.brand} (not in deck)`;
+    b.innerHTML = '<img alt="">'; b.querySelector('img').src = s.c.logoURL;
+    b.setAttribute('aria-label', b.title);
+    b.addEventListener('click', () => pickForEdit(s));
+    box.appendChild(b);
+  });
+}
+function fillEditor() {
+  const s = state.editTarget; if (!s) return; const c = s.c;
+  $('edTitle').textContent = c.brand;
+  $('edState').textContent = s.active ? `Card ${s.i + 1} · in the deck` : `Card ${s.i + 1} · not in the deck (raise the slider to ${s.i + 1})`;
+  $('edLogoPreview').src = c.logoURL;
+  F('edBrand').value = c.brand; F('edMark').value = c.mark; F('edShape').value = c.shape; F('edColor').value = c.color;
+  F('edType').value = c.type; F('edShort').value = c.short; F('edFrom').value = c.from; F('edTo').value = c.to; F('edYear').value = c.year;
+  F('edRemaining').value = c.remaining; F('edTotal').value = c.total; F('edBpm').value = c.bpm; $('edBpmOut').textContent = c.bpm;
+  F('edWhere').value = c.where; F('edLimit').value = c.limit; F('edLong').value = c.long; F('edTerms').value = c.terms.join('\n');
+  $('edMonoFields').classList.toggle('dim', !!c.logoImg);
+  $('edUseMono').hidden = !c.logoImg;
+  $('edPreview').disabled = !s.active;
+}
+function readEditor() {
+  const c = state.editTarget.c;
+  Object.assign(c, {
+    brand: F('edBrand').value, mark: F('edMark').value, shape: F('edShape').value, color: F('edColor').value,
+    type: F('edType').value, short: F('edShort').value, from: F('edFrom').value, to: F('edTo').value, year: F('edYear').value,
+    remaining: F('edRemaining').value, total: F('edTotal').value, bpm: F('edBpm').value,
+    where: F('edWhere').value, limit: F('edLimit').value, long: F('edLong').value, terms: F('edTerms').value.split('\n'),
+  });
+  sanitize(c);
+  $('edBpmOut').textContent = c.bpm;
+}
+function applyEdit(s, refill) {
+  refreshStackArt(s); syncCards(s);
+  if (refill) fillEditor(); else { $('edLogoPreview').src = s.c.logoURL; $('edTitle').textContent = s.c.brand; }
+  const img = $('picker').children[s.i]?.querySelector('img'); if (img) img.src = s.c.logoURL;
+  buildSrNav(); save();
+}
+function pickForEdit(s) {
+  state.editTarget = s; renderPicker(); fillEditor();
+  if (s.active) gsap.timeline().to(s, { hop: 0.18, duration: 0.18, ease: 'power2.out' }).to(s, { hop: 0, duration: 0.4, ease: 'bounce.out' });
+}
+function updateShift(open, dur) {
+  // phones: pull the camera back and recentre the deck in the strip between the header and the sheet
+  let shiftY = 0, zoom = 1;
+  if (portrait && open) {
+    const sheet = editor.getBoundingClientRect().height, head = 76, vis = Math.max(120, innerHeight - sheet - head);
+    zoom = clamp(0.72 * innerHeight / vis, 1, 2.6); shiftY = innerHeight / 2 - (head + vis / 2);
+  }
+  gsap.to(state, { shiftX: open && !portrait ? (editor.offsetWidth + 16) / 2 : 0, shiftY, zoom, duration: dur, ease: 'power3.inOut' });
+}
+function toggleEditor(force) {
+  const open = force ?? editor.hidden;
+  if (open && (state.view !== 'deck' || state.busy)) return;
+  editor.hidden = !open; state.editing = open;
+  $('editBtn').setAttribute('aria-expanded', String(open));
+  if (open) {
+    toggleWallet(false);
+    if (!state.editTarget) state.editTarget = stacks.find(s => s.active) || stacks[0];
+    renderPicker(); fillEditor();
+    gsap.fromTo(editor, { opacity: 0, x: portrait ? 0 : 24, y: portrait ? 40 : 0 }, { opacity: 1, x: 0, y: 0, duration: 0.35, ease: 'power3.out' });
+  }
+  updateShift(open, 0.6);
+  $('hint').textContent = open ? 'Click a stack to pick it for editing' : (portrait ? 'Tap a stack to open its offer · taller stacks have more left' : 'Click a stack to open its offer · taller stacks have more left');
+  $('hint').style.opacity = open && portrait ? 0 : 1;
+}
+
+$('editBtn').addEventListener('click', () => toggleEditor());
+$('edClose').addEventListener('click', () => toggleEditor(false));
+$('countRange').addEventListener('input', e => { $('countOut').textContent = e.target.value; setCount(+e.target.value); });
+$('edForm').addEventListener('submit', e => e.preventDefault());
+$('edForm').addEventListener('input', e => {
+  if (!state.editTarget || e.target.type === 'file') return;
+  readEditor();
+  clearTimeout(applyTimer);
+  applyTimer = setTimeout(() => applyEdit(state.editTarget, false), e.target.type === 'color' || e.target.tagName === 'SELECT' ? 0 : 160);
+});
+$('edForm').addEventListener('change', e => { if (e.target.type === 'number' && state.editTarget) fillEditor(); });
+$('edLogoFile').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0]; e.target.value = '';
+  if (!file || !state.editTarget) return;
+  if (!file.type.startsWith('image/')) { toast('Choose an image file (PNG, JPG, SVG or WebP)'); return; }
+  const s = state.editTarget, r = new FileReader();
+  r.onload = () => {
+    const im = new Image();
+    im.onload = () => {
+      const cv = drawUploadedLogo(im); s.c.logoImg = cv.toDataURL('image/png');
+      loadImg(s.c).then(() => { applyEdit(s, true); toast('Logo replaced'); });
+    };
+    im.onerror = () => toast('That image could not be read');
+    im.src = r.result;
+  };
+  r.readAsDataURL(file);
+});
+$('edUseMono').addEventListener('click', () => { const s = state.editTarget; s.c.logoImg = null; s.c._img = null; applyEdit(s, true); });
+$('edPreview').addEventListener('click', () => { const s = state.editTarget; if (!s || !s.active) return; toggleEditor(false); gsap.delayedCall(0.35, () => select(s)); });
+$('edReset').addEventListener('click', () => {
+  const s = state.editTarget; Object.assign(s.c, JSON.parse(JSON.stringify(DEFAULTS[s.i]))); s.c.logoImg = null; s.c._img = null; s.c.claimed = false;
+  applyEdit(s, true); toast(`${s.c.brand} reset`);
+});
+$('edResetAll').addEventListener('click', () => {
+  stacks.forEach(s => { Object.assign(s.c, JSON.parse(JSON.stringify(DEFAULTS[s.i]))); s.c.logoImg = null; s.c._img = null; s.c.claimed = false; refreshStackArt(s); syncCards(s); });
+  $('countRange').value = COUPONS.length; $('countOut').textContent = COUPONS.length; setCount(COUPONS.length);
+  renderPicker(); fillEditor(); buildSrNav(); save(); toast('Deck reset to the sample offers');
+});
+$('edCopy').addEventListener('click', () => {
+  const json = JSON.stringify(COUPONS.slice(0, state.count).map(c => { const o = editable(c); if (!o.logoImg) delete o.logoImg; return o; }), null, 2);
+  const ta = $('edJson'); ta.value = json; $('jsonBox').open = true;
+  navigator.clipboard?.writeText(json).then(() => toast('Deck JSON copied'), () => { ta.focus(); ta.select(); toast('Select and copy the JSON below'); }) ?? (ta.focus(), ta.select());
+});
+$('edImport').addEventListener('click', () => {
+  let arr;
+  try { arr = JSON.parse($('edJson').value); } catch (e) { toast('That JSON could not be parsed. Check for a missing comma or bracket.'); return; }
+  if (!Array.isArray(arr) || !arr.length) { toast('Paste an array of 1 to 10 coupon objects'); return; }
+  arr = arr.slice(0, COUPONS.length);
+  Promise.all(arr.map((o, i) => { const c = COUPONS[i]; EDIT_KEYS.forEach(k => { if (o && k in o) c[k] = o[k]; }); sanitize(c); return loadImg(c); })).then(() => {
+    arr.forEach((o, i) => { refreshStackArt(stacks[i]); syncCards(stacks[i]); });
+    $('countRange').value = arr.length; $('countOut').textContent = arr.length; setCount(arr.length);
+    renderPicker(); fillEditor(); buildSrNav(); save(); toast(`Loaded ${arr.length} coupon${arr.length === 1 ? '' : 's'}`);
+  });
+});
 
 /* ================= Render loop ================= */
 const clock = new THREE.Clock();
@@ -1070,18 +1447,27 @@ function frame() {
   // parallax (frozen while a coupon is up so the hand-off lines up)
   const live = state.view === 'deck' && !state.busy && !reduced;
   camRig.par.lerp(live ? camRig.parT : new THREE.Vector2(), live ? 0.04 : 0.12);
-  camera.position.copy(camRig.target).addScaledVector(camRig.dir, camRig.dist);
+  const camDist = camRig.dist * state.zoom;
+  camera.position.copy(camRig.target).addScaledVector(camRig.dir, camDist);
+  scene.fog.near = camDist + 4; scene.fog.far = camDist + 40;
   camRight.set(1, 0, 0);
   camera.position.addScaledVector(camRight, camRig.par.x * 0.8).addScaledVector(camUp, -camRig.par.y * 0.4);
   camera.lookAt(camRig.target); camera.updateMatrixWorld();
+  if (state.shiftX > 0.5 || state.shiftY > 0.5) camera.setViewOffset(innerWidth, innerHeight, state.shiftX, state.shiftY, innerWidth, innerHeight);
+  else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   sky.position.copy(camera.position);
 
   for (const s of stacks) {
     const bps = s.c.bpm / 60, beat = (t * bps + s.phase) % 1;
     let pulse = Math.exp(-beat * 5);
     if (s.c.dub) pulse += 0.5 * Math.exp(-(((beat - 0.24) + 1) % 1) * 9);
-    const rip = (t * bps * 0.5 + s.phase) % 1;
-    s.hoverV = lerp(s.hoverV, state.hovered === s ? 1 : 0, 0.15);
+    const rip = (t * bps * 0.25 + s.phase) % 1;
+    const lit = state.hovered === s || (state.editing && state.editTarget === s);
+    s.hoverV = lerp(s.hoverV, lit ? 1 : 0, 0.15);
+    // settled cards follow their stack (lets the fan re-flow smoothly)
+    for (let l = 0; l < s.cards.length; l++) { const card = s.cards[l]; if (card.userData.free || card === fly.card) continue; const p = layerPose(s, l, card); card.position.copy(p.pos); card.quaternion.copy(p.quat); }
+    s.hit.position.set(s.x, 0.8, s.z); s.hit.rotation.y = s.rot;
+    s.shadow.position.set(s.x + 0.07, 0.001, s.z + 0.12); s.shadow.rotation.set(-Math.PI / 2, s.rot, 0);
     s.topY = lerp(s.topY, s.base + s.cards.length * STEP, 0.08);
     const bob = Math.sin(t * 0.8 + s.phase * 6.28) * 0.035;
     const sold = s.c.remaining <= 0 ? 0.45 : 1;
@@ -1089,11 +1475,11 @@ function frame() {
     s.logo.scale.set(sc, sc, 1);
     s.logo.position.set(s.x, s.topY + 0.62 + bob + s.hop + 0.12 * s.hoverV, s.z);
     const vis = clamp(s.logoFade * s.dim * sold, 0, 1);
-    s.logo.material.opacity = vis * (0.88 + 0.12 * s.hoverV);
+    s.logo.material.opacity = vis;
     s.logo.material.rotation = Math.sin(t * 0.6 + s.phase * 5) * 0.025;
     s.ripple.position.copy(s.logo.position);
-    const rs = sc * (1.05 + 0.75 * rip); s.ripple.scale.set(rs, rs, 1);
-    s.ripple.material.opacity = (1 - rip) * (1 - rip) * (0.32 + 0.3 * s.hoverV) * vis * Math.min(1, s.appear);
+    const rs = sc * (1.04 + 0.4 * rip); s.ripple.scale.set(rs, rs, 1);
+    s.ripple.material.opacity = reduced ? 0 : (1 - rip) * (1 - rip) * (1 - rip) * (0.08 + 0.14 * s.hoverV) * vis * Math.min(1, s.appear);
     s.shadow.material.opacity = 0.42 * Math.min(1, s.appear * 2) * (0.6 + 0.4 * s.dim);
     const shade = s.dim;
     s.faceMat.color.setScalar(shade); s.edgeA.color.copy(s.edgeABase).multiplyScalar(shade); s.edgeB.color.copy(s.edgeBBase).multiplyScalar(shade);
@@ -1118,11 +1504,15 @@ async function boot() {
       new Promise(r => setTimeout(r, 2500)),
     ]);
   } catch (e) { /* fall back to system fonts */ }
+  loadSaved();
+  await Promise.all(COUPONS.map(loadImg));
   buildStacks();
   buildSrNav();
+  updateSubline();
+  $('countRange').value = state.count; $('countOut').textContent = state.count;
   layout();
-  stacks.forEach(s => s.cards.forEach(c => c.position.set(0, -50, -200)));
-  addEventListener('resize', () => { layout(); });
+  stacks.forEach(s => s.cards.forEach(c => { c.userData.free = true; c.position.set(0, -50, -200); }));
+  addEventListener('resize', () => { layout(); updateShift(state.editing, 0); });
   requestAnimationFrame(frame);
   intro();
 }
