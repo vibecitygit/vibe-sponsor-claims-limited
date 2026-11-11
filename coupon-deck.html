@@ -441,6 +441,15 @@ const camRig = { target: new THREE.Vector3(), dir: new THREE.Vector3(), dist: 12
 let portrait = false;
 /* Fanned grid: one row up to 5, two rows above that, each row on an arc around a shared pivot in front of the deck. */
 function arrangement(n) {
+  // phones: a straight grid of at most 3 columns, rows top to bottom, a short last row centred
+  if (portrait) {
+    const cols = Math.min(3, n), rowsN = Math.ceil(n / cols), sx = 1.16, sz = 1.95, out = [];
+    for (let i = 0; i < n; i++) {
+      const r = Math.floor(i / cols), inRow = r === rowsN - 1 ? n - r * cols : cols, col = i - r * cols;
+      out.push({ x: (col - (inRow - 1) / 2) * sx, z: (r - (rowsN - 1) / 2) * sz, rot: 0 });
+    }
+    return out;
+  }
   const rows = n <= 5 ? [n] : [Math.ceil(n / 2), Math.floor(n / 2)];
   const gap = portrait ? 2.25 : 2.45, rBack = portrait ? 7.5 : 11.5, chord = portrait ? 0.84 : 1.34;
   const out = [];
@@ -535,7 +544,8 @@ function intro() {
   const act = stacks.filter(s => s.active);
   stacks.forEach(s => s.cards.forEach(c => { c.userData.free = true; c.visible = false; }));
   let end = 0;
-  act.forEach((s, k) => { end = Math.max(end, slideIn(s, 0.15 + k * 0.07)); });
+  const step = portrait ? 0.09 : 0.07; // phones cascade row by row down the grid
+  act.forEach((s, k) => { end = Math.max(end, slideIn(s, 0.15 + k * step)); });
   gsap.delayedCall(Math.max(0, end - 0.4), () => {
     state.dealt = true; state.ready = true;
     $('hint').textContent = portrait ? 'Tap a stack to open its offer · taller stacks have more left' : 'Click a stack to open its offer · taller stacks have more left';
