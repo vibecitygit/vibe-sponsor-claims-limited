@@ -1084,7 +1084,7 @@ const labelPos = new THREE.Vector3();
 function frame() {
   const t = clock.getElapsedTime();
   // parallax (frozen while a coupon is up so the hand-off lines up)
-  const live = state.view === 'deck' && !state.busy && !reduced && !EMBED;
+  const live = false; // no deck drift with the mouse; the camera stays put
   camRig.par.lerp(live ? camRig.parT : new THREE.Vector2(), live ? 0.04 : 0.12);
   const camDist = camRig.dist * state.zoom;
   camera.position.copy(camRig.target).addScaledVector(camRig.dir, camDist);
