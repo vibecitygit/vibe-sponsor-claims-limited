@@ -1,6 +1,8 @@
 # Sponsor Drops → tickets.vibecity.art: handoff plan
 
-Target repo: `vibecitygit/vibe-city-checkout-payments`, `main` at `a69172b` (Nov 12, 2026, the latest Sites publish).
+Target repo: `vibecitygit/vibe-city-checkout-payments`, `main` at `cd41f7f` (Nov 12, 2026, the latest Sites publish).
+First surveyed at `a69172b`. The four later commits change only the Event view (the hero sponsor rail was removed, the artist lineup header simplified), Vibe TV and `tickets-v2.css`. None of the files this plan depends on changed: `previews/page-shell/`, `offer-browser.js`, `experience*.js`, `worker/`, `scripts/`, `package.json`, `AGENTS.md`, `assets/vendor/`, `drizzle/`.
+`main` moves often through Sites publishes. Re-check it before each phase: `git diff --stat <commit in this file>..origin/main -- previews/page-shell offer-browser.js experience.js package.json AGENTS.md`.
 Source: this repo, `claude/coupon-claim-interface-cb9xst`.
 
 ## Summary
