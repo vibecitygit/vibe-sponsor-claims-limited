@@ -255,6 +255,7 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
       </div>
       <label class="field"><span class="lbl">Full description (back of the coupon)</span><textarea id="long" maxlength="420" rows="3"></textarea></label>
       <label class="field"><span class="lbl">Terms, one per line</span><textarea id="terms" rows="4"></textarea></label>
+      <label class="check" data-ctx="wall"><input type="checkbox" id="featured">Featured badge (event partners and ₱5,000 sponsors). Featured sponsors take turns in the top spot.</label>
       <div class="btns"><button type="button" class="sbtn" id="resetCard">Reset this card</button></div>
     </form>
 
@@ -363,7 +364,7 @@ const FIELDS = ['brand', 'mark', 'shape', 'color', 'type', 'short', 'from', 'to'
 function fillForm() {
   const c = deck.coupons[cur];
   FIELDS.forEach(k => { $(k).value = c[k]; });
-  $('terms').value = c.terms.join('\n');
+  $('terms').value = c.terms.join('\n'); $('featured').checked = !!c.featured;
   $('bpmOut').textContent = c.bpm;
   $('tLogo').src = c._logoURL; $('tName').textContent = c.brand;
   $('tState').textContent = cur < deck.count ? `Card ${cur + 1} · on the table` : `Card ${cur + 1} · off the table (raise the deck size to ${cur + 1})`;
@@ -375,6 +376,7 @@ function readForm() {
   const c = deck.coupons[cur];
   FIELDS.forEach(k => { c[k] = $(k).value; });
   c.terms = $('terms').value.split('\n');
+  c.featured = $('featured').checked;
   D.sanitize(c);
   $('bpmOut').textContent = c.bpm;
 }

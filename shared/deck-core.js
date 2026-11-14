@@ -10,17 +10,17 @@ const SIM = 'Simulated example for this prototype. Not a real offer and cannot b
 /* Sponsor names, roles, sites and logos are from tickets.vibecity.art (Vibe Check: After Hours).
    Every offer below is a simulated example written for this prototype. */
 const SAMPLE = [
-  { id: 'CVR', brand: 'Casa Verde Ramos', role: 'Venue partner', site: 'https://www.casaverde.ph/', logoSrc: 'shared/sponsors/casa-verde.png',
+  { id: 'CVR', brand: 'Casa Verde Ramos', role: 'Venue partner', featured: true, site: 'https://www.casaverde.ph/', logoSrc: 'shared/sponsors/casa-verde.png',
     mark: 'CV', shape: 'circle', color: '#037732', bpm: 72, type: 'Freebie', short: 'A free dessert with any main course.', from: '11/19', to: '12/19', year: '2026',
     remaining: 96, total: 150, where: '69 Lim Tian Teng St., Cebu City', limit: '1 per ticket',
     long: 'Come back after the show. Order any main course at Casa Verde and a dessert from the regular menu is included.',
     terms: ['One dessert with one main course, dine-in only.', 'Show your ticket QR to your server before ordering.', 'Not valid with other promos.', SIM] },
-  { id: 'FRI', brand: 'Freedom Island Light Rum', role: 'Event partner', site: 'https://www.ginebrasanmiguel.com/', logoSrc: 'shared/sponsors/freedom-island.png',
+  { id: 'FRI', brand: 'Freedom Island Light Rum', role: 'Event partner', featured: true, site: 'https://www.ginebrasanmiguel.com/', logoSrc: 'shared/sponsors/freedom-island.png',
     mark: 'FI', shape: 'pill', color: '#cc511d', bpm: 96, type: 'Freebie', short: 'One welcome cocktail at the event bar.', from: '11/19', to: '11/20', year: '2026',
     remaining: 127, total: 150, where: 'Event bar, Casa Verde Ramos', limit: '1 per ticket, 18+',
     long: 'Start the night with a Freedom Island Light Rum cocktail on the house. Pick it up at the event bar any time before midnight.',
     terms: ['One cocktail per ticket, on the night of the event only.', 'For guests 18 and over. Valid ID may be asked for.', 'Drink responsibly.', SIM] },
-  { id: 'DWT', brand: 'Dawata Wellness Resort and Cafe', role: 'Featured sponsor', site: 'https://www.dawatawellness.com/', logoSrc: 'shared/sponsors/dawata.png',
+  { id: 'DWT', brand: 'Dawata Wellness Resort and Cafe', role: 'Featured sponsor', featured: true, site: 'https://www.dawatawellness.com/', logoSrc: 'shared/sponsors/dawata.png',
     mark: 'DW', shape: 'squircle', color: '#5f7f5a', bpm: 60, type: 'Discount', short: '15% off a day pass or your café bill.', from: '11/20', to: '12/19', year: '2026',
     remaining: 41, total: 60, where: 'Dawata Wellness Resort and Cafe', limit: '1 per ticket',
     long: 'Slow down the morning after. Take 15% off a wellness day pass or the bill at the café, whichever you choose on the day.',
@@ -59,10 +59,11 @@ function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt
 const SHAPES = ['circle', 'pill', 'diamond', 'hex', 'squircle', 'star', 'shield', 'octagon', 'ring', 'tri'];
 const TYPES = ['Option', 'Discount', 'Freebie'];
 
-const EDIT_KEYS = ['brand', 'mark', 'shape', 'color', 'bpm', 'type', 'short', 'from', 'to', 'year', 'remaining', 'total', 'where', 'limit', 'long', 'terms', 'logoImg'];
+const EDIT_KEYS = ['brand', 'mark', 'shape', 'color', 'bpm', 'type', 'short', 'from', 'to', 'year', 'remaining', 'total', 'where', 'limit', 'long', 'terms', 'logoImg', 'featured'];
 const LIMITS = { brand: 40, mark: 3, short: 64, from: 5, to: 5, year: 11, where: 40, limit: 30, long: 420 };
 function sanitize(c) {
   for (const k of Object.keys(LIMITS)) c[k] = String(c[k] ?? '').slice(0, LIMITS[k]);
+  c.featured = c.featured === true; // partners and top-tier sponsors carry a Featured badge
   if (!c.brand.trim()) c.brand = 'Untitled sponsor';
   if (!c.mark.trim()) c.mark = c.brand.slice(0, 2);
   c.total = clamp(Math.round(+c.total || 1), 1, 9999);

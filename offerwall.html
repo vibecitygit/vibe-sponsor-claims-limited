@@ -101,6 +101,7 @@ a { color: inherit; }
 .stubrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .tag.claimed { background: transparent; color: var(--brand-ink); box-shadow: inset 0 0 0 1px var(--brand-ink); }
 .between { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.between > .mono { white-space: nowrap; flex: none; }
 .rule { border-top: 1px solid var(--line); }
 .kv { display: flex; justify-content: space-between; gap: 12px; }
 .kv span:last-child { color: var(--ink); text-align: right; }
@@ -163,6 +164,14 @@ a { color: inherit; }
 .combo { display: grid; gap: 13px; }
 .combo > .feature { min-height: 380px; border-color: var(--brand); box-shadow: inset 0 4px 0 0 var(--brand); }
 .tag.flag { background: var(--ink); color: var(--bg); }
+.gtags { justify-content: flex-end; }
+/* an offer in its last week: a slow, slight glow around the card (plus its orange Expiring stub) */
+@keyframes expGlow { 0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 55%, transparent), 0 0 14px 0 color-mix(in srgb, var(--brand) 16%, transparent); }
+  50% { box-shadow: 0 0 0 1px var(--brand), 0 0 26px 3px color-mix(in srgb, var(--brand) 34%, transparent); } }
+.expiring { border-color: var(--brand) !important; animation: expGlow 2.6s ease-in-out infinite; }
+.combo > .feature.expiring { animation: expGlow 2.6s ease-in-out infinite; }
+.row.expiring { position: relative; z-index: 1; }
+@media (prefers-reduced-motion: reduce) { .expiring, .combo > .feature.expiring { animation: none; box-shadow: 0 0 0 1px var(--brand), 0 0 18px 0 color-mix(in srgb, var(--brand) 24%, transparent); } }
 .wall[data-cards="white"] .tag.flag { background: #0b0b0b; color: #ffffff; }
 .spot { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 13px; align-items: start; }
 .feature { background: var(--card); border: 1px solid var(--border); color: var(--ink); display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); min-height: 440px; }
@@ -205,7 +214,7 @@ dialog[open] { display: flex; flex-direction: column; }
 .x { appearance: none; background: none; border: 0; cursor: pointer; color: var(--muted); font: 400 22px/1 "DM Sans", Arial, sans-serif; width: 44px; height: 44px; }
 .x:hover { color: var(--ink); }
 .dnav { display: flex; align-items: center; gap: 2px; flex: none; }
-dialog { z-index: 1000; will-change: transform; touch-action: pan-y; }
+dialog { z-index: 1000; will-change: transform; touch-action: none; }
 .dhead { touch-action: none; cursor: grab; }
 .dbody { will-change: transform, opacity; }
 .swipehint { margin: 0; text-align: center; padding: 0 0 12px; display: none; }
@@ -298,7 +307,7 @@ html.preview .stagewrap { border-top: 0; padding: 16px 16px 24px; }
       <div class="dnav"><button class="x" id="dPrev" aria-label="Previous offer">←</button><span class="mono" id="dPos" aria-live="polite"></span><button class="x" id="dNext" aria-label="Next offer">→</button><button class="x" id="dClose" aria-label="Close offer">×</button></div>
     </div>
     <div class="dbody" id="dBody"></div>
-    <p class="cap swipehint">Swipe left or right for more offers · pull the title bar down to close</p>
+    <p class="cap swipehint">Swipe left or right for more offers · swipe up or down to close</p>
   </dialog>
 </div>
 
@@ -318,7 +327,7 @@ let rotation = 0;
 try { rotation = (parseInt(localStorage.getItem('sponsor-drops-featured-turn') || '-1', 10) + 1) || 0; localStorage.setItem('sponsor-drops-featured-turn', String(rotation)); }
 catch (e) { rotation = Math.floor(Math.random() * 1000); }
 let featured = null; // offer index; null until the first render picks this load's turn
-function turnPick(list) { const live = list.filter(o => o.c.remaining > 0); const pool = live.length ? live : list; return pool[rotation % pool.length].i; }
+function turnPick(list) { const live = list.filter(o => o.c.remaining > 0), feat = live.filter(o => o.c.featured); const pool = feat.length ? feat : live.length ? live : list; return pool[rotation % pool.length].i; }
 
 /* per-viewer claimed state (a convenience, not the record) */
 const CLAIM_KEY = 'sponsor-drops-claims-v1';
@@ -368,6 +377,13 @@ function endDate(c) {
   return new Date(y + (tm < fm ? 1 : 0), tm - 1, td, 23, 59, 59);
 }
 function daysLeft(c) { return Math.ceil((endDate(c) - Date.now()) / 86400000); }
+const isExpiring = c => { const d = daysLeft(c); return d >= 0 && d <= 7 && c.remaining > 0; };
+function tagRow(c, label) {
+  const row = h('span', 'stubrow');
+  if (c.featured) add(row, h('span', 'tag flag', 'Featured'));
+  return add(row, h('span', claims[c.id] ? 'tag claimed' : 'tag', label || tagText(c)), expiryStub(c));
+}
+const offerCls = (c, base) => base + (isExpiring(c) ? ' expiring' : '');
 function expiryStub(c) {
   const d = daysLeft(c), soon = d >= 0 && d <= 7, ended = d < 0;
   const text = ended ? 'Ended ' + c.to : soon ? (d <= 1 ? 'Ends today' : `Expiring · ${d} days`) : 'Ends ' + c.to;
@@ -386,9 +402,9 @@ function renderCascade(skip) {
   const wrap = h('div', 'cascade');
   const list = offers().filter(o => o.i !== skip);
   list.forEach(({ c, i }) => {
-    const card = h('article', 'card offer', null, { 'data-oid': c.id });
+    const card = h('article', offerCls(c, 'card offer'), null, { 'data-oid': c.id });
     const tile = logoTile(c); tile.style.height = TILE_H[i % TILE_H.length] + 'px';
-    const r1 = add(h('div', 'between'), add(h('span', 'stubrow'), h('span', claims[c.id] ? 'tag claimed' : 'tag', tagText(c)), expiryStub(c)), h('span', 'mono', leftText(c)));
+    const r1 = add(h('div', 'between'), tagRow(c), h('span', 'mono', leftText(c)));
     const r2 = add(h('div', 'between'), h('p', 'label typ', c.role || c.where), h('span', 'mono', 'SLOT ' + slotNo(i)));
     const perk = h('p', 'cap'); add(perk, h('span', 'star', '✳ ', { 'aria-hidden': 'true' }), document.createTextNode(c.limit));
     add(card, tile, r1, r2, h('h3', 'disp', c.brand), h('p', 'sum', c.short), perk, h('div', 'rule'),
@@ -441,11 +457,11 @@ function renderLedger() {
   const list = offers(); if (!list.length) return null;
   const wrap = h('div', 'ledger');
   list.forEach(({ c, i }) => {
-    const row = h('article', 'row', null, { 'data-open': 'false', 'data-oid': c.id });
+    const row = h('article', offerCls(c, 'row'), null, { 'data-open': 'false', 'data-oid': c.id });
     const head = h('button', 'rowhead', null, { type: 'button', 'aria-expanded': 'false', 'aria-controls': 'rb' + i });
     const mid = add(h('span'), h('h3', 'disp', c.brand), h('p', 'sum', c.short));
     add(head, h('span', 'mono', slotNo(i)), logoTile(c), mid,
-      h('span', 'label c-type', tagText(c)), add(h('span', 'c-valid'), expiryStub(c)), h('span', 'mono c-left', leftText(c)), h('span', 'plus', '+', { 'aria-hidden': 'true' }));
+      add(h('span', 'c-type stubrow'), c.featured ? h('span', 'tag flag', 'Featured') : null, h('span', 'label', tagText(c))), add(h('span', 'c-valid'), expiryStub(c)), h('span', 'mono c-left', leftText(c)), h('span', 'plus', '+', { 'aria-hidden': 'true' }));
     const body = h('div', 'rowbody', null, { id: 'rb' + i });
     const inner = h('div', 'rowbody-in');
     const fill = () => {
@@ -477,10 +493,8 @@ function slide(el, open) {
 
 /* ---------- C. Spotlight ---------- */
 function featurePanel(c, i, flagged) {
-  const feat = h('article', 'feature', null, flagged ? { 'data-oid': c.id } : null), body = h('div', 'body');
-  const tags = h('span', 'stubrow');
-  if (flagged) add(tags, h('span', 'tag flag', 'Featured'));
-  add(tags, h('span', claims[c.id] ? 'tag claimed' : 'tag', tagText(c)), expiryStub(c));
+  const feat = h('article', offerCls(c, 'feature'), null, flagged ? { 'data-oid': c.id } : null), body = h('div', 'body');
+  const tags = tagRow(c);
   add(body, add(h('div', 'between'), tags, h('span', 'mono', 'SLOT ' + slotNo(i) + ' · ' + leftText(c))),
     h('p', 'label typ', c.role || c.where), h('h3', 'disp', c.brand), h('p', null, c.short), h('p', null, c.long), h('div', 'rule'),
     add(h('div', 'kv cap'), h('span', null, 'Where'), h('span', null, c.where)), add(h('div', 'kv cap'), h('span', null, 'Valid'), h('span', null, valid(c))),
@@ -490,7 +504,7 @@ function featurePanel(c, i, flagged) {
 /* ---------- Featured + Cascade: this load's featured sponsor on top, everyone else in the wall ---------- */
 function renderFeatured() {
   const list = offers();
-  if (!list.length) return renderCascade();
+  if (!list.length || filter !== 'all') return renderCascade(); // filtered views drop the featured panel and show the plain 2–3 column wall
   if (!list.some(o => o.i === featured)) featured = turnPick(list);
   const f = list.find(o => o.i === featured), wrap = h('div', 'combo');
   add(wrap, featurePanel(f.c, f.i, true));
@@ -505,13 +519,13 @@ function renderSpotlight() {
   const paint = (animate) => {
     const { c, i } = list.find(o => o.i === featured);
     feat.replaceChildren(...featurePanel(c, i, false).childNodes);
-    feat.querySelector('.stubrow').prepend(h('span', 'tag flag', 'Featured'));
     rail.querySelectorAll('.rail-item').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.i === featured)));
     if (animate && !reduced) gsap.fromTo(feat.children, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.24, stagger: 0.03, ease: 'power2.out' });
   };
   list.forEach(({ c, i }) => {
     const b = h('button', 'rail-item', null, { type: 'button', 'data-i': i, 'aria-pressed': 'false', 'data-oid': c.id });
-    add(b, logoTile(c), add(h('span'), h('strong', null, c.brand), h('span', 's', c.short)), h('span', 'mono', slotNo(i)));
+    add(b, logoTile(c), add(h('span'), h('strong', null, c.brand), h('span', 's', c.short)), c.featured ? h('span', 'tag flag', 'Featured') : h('span', 'mono', slotNo(i)));
+    if (isExpiring(c)) b.classList.add('expiring');
     b.addEventListener('click', () => { if (featured === i) return; featured = i; paint(true); });
     add(rail, b);
   });
@@ -527,8 +541,8 @@ function renderGuide() {
   list.sort((a, b) => key(a.c) - key(b.c));
   const wrap = h('div', 'guide');
   list.forEach(({ c, i }) => {
-    const card = h('article', 'card offer gcard', null, { 'data-oid': c.id });
-    add(card, add(h('div', 'brandrow'), logoTile(c), h('span', 'brandname', c.brand), h('span', claims[c.id] ? 'tag claimed' : 'tag', claims[c.id] ? 'Saved' : tagText(c))),
+    const card = h('article', offerCls(c, 'card offer gcard'), null, { 'data-oid': c.id });
+    add(card, add(h('div', 'brandrow'), logoTile(c), h('span', 'brandname', c.brand), add(h('span', 'stubrow gtags'), c.featured ? h('span', 'tag flag', 'Featured') : null, h('span', claims[c.id] ? 'tag claimed' : 'tag', claims[c.id] ? 'Saved' : tagText(c)))),
       h('h3', 'disp', c.short.replace(/\.$/, '')),
       add(h('div', 'facts'),
         add(h('div', 'kv cap'), h('span', null, 'Use by'), expiryStub(c)),
@@ -553,9 +567,10 @@ function fillDetail(i) {
   $('dPos').textContent = `${dAt + 1} / ${dList.length}`;
   $('dPrev').disabled = $('dNext').disabled = dList.length < 2;
   const body = $('dBody'); body.replaceChildren(); body.scrollTop = 0;
+  requestAnimationFrame(() => { body.style.touchAction = body.scrollHeight > body.clientHeight + 1 ? 'pan-y' : 'none'; });
   const main = h('div', 'dmain');
   add(main, logoTile(c, 'dlogo'),
-    add(h('div', 'between'), add(h('span', 'stubrow'), h('span', claims[c.id] ? 'tag claimed' : 'tag', tagText(c)), expiryStub(c)), h('span', 'mono', leftText(c))),
+    add(h('div', 'between'), tagRow(c), h('span', 'mono', leftText(c))),
     h('h1', 'disp', c.brand), h('p', null, c.short), h('p', null, c.long), h('div', 'rule'), h('span', 'cap', 'How to claim'), termsList(c));
   add(main, add(h('div', 'dfoot'), claimArea(c, () => { fillDetail(i); render(false); })));
   add(body, main, sidePanel(c));
@@ -613,18 +628,21 @@ let sw = null;
 dlg.addEventListener('pointerdown', e => {
   if (dBusy || e.target.closest('button, a, input, select, textarea')) return;
   if (e.pointerType === 'mouse' && e.button !== 0) return;
-  sw = { x: e.clientX, y: e.clientY, axis: null, id: e.pointerId, head: !!e.target.closest('.dhead') };
+  const body = $('dBody');
+  sw = { x: e.clientX, y: e.clientY, axis: null, id: e.pointerId, head: !!e.target.closest('.dhead'), scrolls: body.scrollHeight > body.clientHeight + 1, top: body.scrollTop <= 0, bottom: body.scrollTop + body.clientHeight >= body.scrollHeight - 1 };
 });
 dlg.addEventListener('pointermove', e => {
   if (!sw || e.pointerId !== sw.id) return;
   const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
   if (!sw.axis) {
     if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-    sw.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : (dy > 0 && sw.head ? 'y' : 'none'); // pull down from the header to close; the body scrolls normally
+    // vertical drags move the sheet, unless the content itself still has room to scroll that way
+    const canDragY = sw.head || !sw.scrolls || e.pointerType === 'mouse' || (dy > 0 ? sw.top : sw.bottom);
+    sw.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : (canDragY ? 'y' : 'none');
     if (sw.axis !== 'none') { try { dlg.setPointerCapture(sw.id); } catch (err) { /* not capturable */ } }
   }
   if (sw.axis === 'x') { gsap.set(dlg, { x: dx * 0.9, rotation: dx * 0.01, opacity: 1 - Math.min(0.4, Math.abs(dx) / 600) }); e.preventDefault(); }
-  else if (sw.axis === 'y') gsap.set(dlg, { y: Math.max(0, dy), opacity: 1 - Math.min(0.5, Math.max(0, dy) / 500) });
+  else if (sw.axis === 'y') { gsap.set(dlg, { y: dy, opacity: 1 - Math.min(0.6, Math.abs(dy) / (dlg.offsetHeight * 0.4) * 0.5) }); e.preventDefault(); } // follows the finger 1:1, up or down
 });
 function endSwipe(e) {
   if (!sw || e.pointerId !== sw.id) return;
@@ -636,8 +654,8 @@ function endSwipe(e) {
       dAt = (dAt + dir + dList.length) % dList.length; fillDetail(dList[dAt]);
       gsap.fromTo(dlg, { x: dir * innerWidth * 0.35, rotation: 0, opacity: 0 }, { x: 0, opacity: 1, duration: 0.3, ease: 'power3.out', clearProps: 'transform', onComplete: () => { dBusy = false; } });
     } });
-  } else if (axis === 'y' && dy > 110) {
-    gsap.to(dlg, { y: innerHeight * 0.4, opacity: 0, duration: 0.2, ease: 'power2.in', onComplete: () => { dlg.close(); gsap.set(dlg, { clearProps: 'all' }); } });
+  } else if (axis === 'y' && Math.abs(dy) > dlg.offsetHeight * 0.4) { // past 40% of the card's height, in either direction: close
+    gsap.to(dlg, { y: Math.sign(dy) * innerHeight * 0.7, opacity: 0, duration: 0.22, ease: 'power2.in', onComplete: () => { dlg.close(); gsap.set([dlg, dlg.querySelector('.dhead'), $('dBody')], { clearProps: 'all' }); } });
   } else if (axis === 'x' || axis === 'y') gsap.to(dlg, { x: 0, y: 0, rotation: 0, opacity: 1, duration: 0.3, ease: 'power3.out', clearProps: 'transform' });
 }
 dlg.addEventListener('pointerup', endSwipe); dlg.addEventListener('pointercancel', endSwipe);
@@ -652,8 +670,8 @@ const LAYOUTS = { featured: ['Featured + Cascade', renderFeatured, 'The offers w
 /* Morph between states with the View Transitions API where it exists; each offer keeps one
    transition name, so its card glides to its new place when the filter, layout or theme changes. */
 let first = true;
-function render(animate = true) {
-  if (animate && !first && !reduced && document.startViewTransition) { document.startViewTransition(() => paint(false)); return; }
+function render(animate = true, enter = false) {
+  if (animate && !enter && !first && !reduced && document.startViewTransition) { document.startViewTransition(() => paint(false)); return; }
   paint(animate); first = false;
 }
 function nameItems(view) {
@@ -677,7 +695,7 @@ function paint(animate) {
   if (!defs.some(d => d[0] === filter)) filter = 'all';
   defs.forEach(([id, label]) => {
     const b = h('button', 'chip label', label, { type: 'button', 'aria-pressed': String(filter === id) });
-    b.addEventListener('click', () => { filter = id; openRow = null; render(); }); add(chips, b);
+    b.addEventListener('click', () => { filter = id; openRow = null; render(true, true); }); add(chips, b);
   });
   const shown = offers().length;
   const cnt = h('span', 'count', `${shown} offer${shown === 1 ? '' : 's'}`); $('secTitle').appendChild(cnt);
@@ -687,7 +705,11 @@ function paint(animate) {
   syncOptions();
   if (animate && !reduced && view) {
     const items = view.matches('.spot') ? [view.firstChild, ...view.lastChild.children] : view.matches('.combo') ? [view.firstChild, ...(view.children[1] ? view.children[1].children : [])] : [...view.children];
-    gsap.fromTo(items, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.3, stagger: 0.028, ease: 'power3.out', clearProps: 'transform,opacity' });
+    // entrance: each card wipes up from its bottom edge and settles, one after another; its logo lands a beat later
+    gsap.fromTo(items, { opacity: 0, y: 34, scale: 0.965, clipPath: 'inset(0% 0% 100% 0%)' },
+      { opacity: 1, y: 0, scale: 1, clipPath: 'inset(0% 0% 0% 0%)', duration: 0.7, stagger: 0.06, ease: 'expo.out', clearProps: 'transform,opacity,clipPath' });
+    const logos = items.map(el => el.querySelector && el.querySelector('.tile img')).filter(Boolean);
+    gsap.fromTo(logos, { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.5, delay: 0.18, stagger: 0.06, ease: 'back.out(1.6)', clearProps: 'transform,opacity' });
   }
 }
 
@@ -697,7 +719,7 @@ const OPTS = [['segLayout', 'layout', Object.keys(LAYOUTS).map(k => [k, LAYOUTS[
 function buildOptions() {
   OPTS.forEach(([id, key, vals]) => vals.forEach(([v, label]) => {
     const b = h('button', null, label, { type: 'button' }); b._v = v;
-    b.addEventListener('click', () => { deck.wall[key] = v; D.save(deck); render(); });
+    b.addEventListener('click', () => { deck.wall[key] = v; D.save(deck); render(true, key === 'layout'); });
     add($(id), b);
   }));
 }
