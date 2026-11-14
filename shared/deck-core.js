@@ -27,7 +27,7 @@ const SAMPLE = [
     long: 'Slow down the morning after. Take 15% off a wellness day pass or the bill at the café, whichever you choose on the day.',
     terms: ['Choose the day pass or the café bill; not both.', 'Book day passes at least one day ahead.', 'Show your ticket QR when you pay.', SIM] },
   { id: 'AIR', brand: 'Air Condo', role: 'Sponsor', tier: 'b', style: 'voucher', site: 'https://irealtee.com/developers/cebu-rite-homes-development-and-realty-corp', logoSrc: 'shared/sponsors/air-condo.png',
-    mark: 'AC', shape: 'hex', color: '#ff521a', bpm: 110, type: 'Freebie', short: 'Coffee for two when you book a viewing.', from: '11/20', to: '12/19', year: '2026',
+    mark: 'AC', shape: 'hex', color: '#ff521a', bpm: 110, type: 'Freebie', short: 'Coffee for two when you book a viewing.', from: '11/20', to: '11/27', year: '2026',
     remaining: 18, total: 30, where: 'Air Condo showroom, Cebu City', limit: '1 per household',
     long: 'Curious about the building? Book a showroom viewing with your ticket and coffee for two is on Air Condo.',
     terms: ['Viewing by appointment.', 'One redemption per household.', 'No purchase needed.', SIM] },
@@ -37,7 +37,7 @@ const SAMPLE = [
     long: 'Take 10% off any single item from Know The Culture. Use it at the event stall, in store, or online with your claim code.',
     terms: ['One item per ticket at regular price.', 'Online: enter your claim code at checkout.', 'Excludes collaborations and sale items.', SIM] },
   { id: 'PET', brand: 'Pets Society Veterinary and Wellness', role: 'Sponsor', tier: 'b', style: 'stub', site: 'https://www.petssociety.ph/', logoSrc: 'shared/sponsors/pets-society.png',
-    mark: 'PS', shape: 'shield', color: '#2f8a5e', bpm: 84, type: 'Freebie', short: 'A free wellness check for one pet.', from: '11/20', to: '12/19', year: '2026',
+    mark: 'PS', shape: 'shield', color: '#2f8a5e', bpm: 84, type: 'Freebie', short: 'A free wellness check for one pet.', from: '11/20', to: '11/23', year: '2026',
     remaining: 9, total: 25, where: 'Pets Society clinic, Cebu City', limit: '1 pet per ticket',
     long: 'Bring your dog or cat in for a basic wellness check with the Pets Society team. Vaccines, tests and treatment are quoted separately.',
     terms: ['By appointment, on weekdays.', 'Covers one basic wellness check for one pet.', 'Vaccines, tests and medicine are not included.', SIM] },
@@ -161,8 +161,9 @@ function normalize(d) {
   const coupons = sample(); let count = coupons.length, theme = 'paper';
   if (d && typeof d === 'object') {
     theme = themeOf(d.theme);
+    // data saved before rev 2 takes the sample end dates once (they now vary, to show the expiry colours)
     if (Array.isArray(d.coupons)) d.coupons.slice(0, coupons.length).forEach((o, i) => {
-      if (o && typeof o === 'object') EDIT_KEYS.forEach(k => { if (k in o) coupons[i][k] = o[k]; });
+      if (o && typeof o === 'object') EDIT_KEYS.forEach(k => { if (k in o && !(k === 'to' && d.rev !== 2 && o.id === undefined && o.brand === coupons[i].brand)) coupons[i][k] = o[k]; });
     });
     if (d.count) count = clamp(Math.round(+d.count) || coupons.length, 1, coupons.length);
   }
@@ -176,7 +177,7 @@ function load() {
 }
 /* Returns true when the deck was stored; false when this browser blocks storage. */
 function save(deck) {
-  const payload = { count: deck.count, theme: themeOf(deck.theme), wall: wallOf(deck.wall), coupons: deck.coupons.map(editable), savedAt: new Date().toISOString() };
+  const payload = { rev: 2, count: deck.count, theme: themeOf(deck.theme), wall: wallOf(deck.wall), coupons: deck.coupons.map(editable), savedAt: new Date().toISOString() };
   let stored = true;
   try { localStorage.setItem(KEY, JSON.stringify(payload)); } catch (e) { stored = false; }
   try { if (channel) channel.postMessage(payload); } catch (e) { /* closed channel */ }
