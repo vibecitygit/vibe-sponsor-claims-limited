@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Voucher Wall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+/* Layout: a 3-column grid of offers printed as four kinds of paper: stub, voucher, ticket and a
+   magazine cut-out. The sponsor's package decides which kinds they can use and how much room
+   the offer takes (stub 1×1, voucher 1×2, ticket 2×1, magazine 2×2). Paper stays paper-coloured
+   on both page themes; only the page around it changes. */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: #0b0b0b; font: 400 14px/1.4 "DM Sans", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+[hidden] { display: none !important; }
+.vw {
+  --bg: #0b0b0b; --panel: #1a1a1a; --border: #444444; --line: rgba(255,255,255,.21); --fg: #f5f2e9; --muted: #c9c5be;
+  --brand: #ff4937; --brand-ink: #ff4937; --on-brand: #0b0b0b;
+  --paper: #f5f2e9; --paper-2: #ebe7df; --ink: #0b0b0b; --ink-soft: #2a2622; --ink-muted: #48433d; --rule: rgba(17,16,14,.28); --paper-brand: #a54635;
+  --shadow: 0 10px 30px rgba(0,0,0,.45);
+  --display: "Barlow Condensed", Impact, "Arial Narrow", sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+  --ease: cubic-bezier(.23, 1, .32, 1); --gutter: clamp(20px, 5.4vw, 83px);
+  color-scheme: dark; min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); color: var(--fg);
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.vw[data-theme="light"] { --bg: #ffffff; --panel: #f5f2e9; --border: rgba(17,16,14,.3); --line: rgba(17,16,14,.16); --fg: #0b0b0b; --muted: #48433d; --brand-ink: #a54635;
+  --paper: #fbfaf6; --shadow: 0 10px 28px rgba(17,16,14,.16); color-scheme: light; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 3px; }
+.label { font: 700 12px/1.25 "DM Sans", Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+.cap { font: 400 10px/1.4 "DM Sans", Arial, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.mono { font: 400 11px/1.4 var(--mono); font-variant-numeric: tabular-nums; }
+.disp { font-family: var(--display); font-weight: 900; text-transform: uppercase; line-height: .98; margin: 0; }
+
+.top { min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; border-bottom: 1px solid var(--line); padding: 8px var(--gutter); }
+.wordmark { font: 800 26px/1 var(--display); letter-spacing: -.025em; text-transform: uppercase; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.tabs a { text-decoration: none; color: var(--muted); padding: 8px 0; }
+.tabs a:hover { color: var(--fg); }
+.tabs a[aria-current="page"] { color: var(--brand-ink); box-shadow: inset 0 -2px 0 var(--brand-ink); }
+.intro { display: grid; gap: 14px; padding: clamp(28px, 4.4vw, 56px) var(--gutter) 24px; }
+.intro .label { color: var(--brand-ink); margin: 0; }
+.intro h1 { font-size: clamp(44px, 6.6vw, 92px); }
+.intro h1 em { font-style: normal; color: var(--brand-ink); }
+.intro p { margin: 0; max-width: 620px; color: var(--muted); }
+.intro p.lead { font-size: 16px; color: var(--fg); }
+
+/* package legend */
+.legend { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; margin: 0 var(--gutter); background: var(--border); border: 1px solid var(--border); }
+.legend div { background: var(--panel); padding: 12px 14px; display: grid; gap: 4px; align-content: start; }
+.legend strong { font: 800 18px/1 var(--display); text-transform: uppercase; }
+.legend span { color: var(--muted); }
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding: 20px var(--gutter) 0; }
+.seg { display: inline-flex; flex-wrap: wrap; }
+.seg button { appearance: none; cursor: pointer; font: 700 11px/1 "DM Sans", Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; padding: 9px 12px; min-height: 36px; border: 1px solid var(--border); background: transparent; color: var(--muted); margin-left: -1px; }
+.seg button:first-child { margin-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); position: relative; }
+.seg button:active, .piece:active { transform: scale(.985); }
+.opt { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--muted); }
+
+/* ---------- The grid ---------- */
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 210px; grid-auto-flow: dense; gap: 22px; padding: 26px var(--gutter) 72px; flex: 1; align-content: start; }
+.cell { min-width: 0; display: flex; }
+.cell.s-voucher { grid-row: span 2; }
+.cell.s-ticket { grid-column: span 2; }
+.cell.s-magazine { grid-column: span 2; grid-row: span 2; }
+.piece { appearance: none; border: 0; padding: 0; margin: 0; font: inherit; text-align: left; cursor: pointer; color: var(--ink); width: 100%; position: relative; display: flex;
+  filter: drop-shadow(0 8px 18px rgba(0,0,0,.38)); transition: transform .28s var(--ease), filter .28s var(--ease); }
+.vw[data-theme="light"] .piece { filter: drop-shadow(0 6px 14px rgba(17,16,14,.18)); }
+.piece:hover { transform: translateY(-4px) rotate(var(--tilt, 0deg)); filter: drop-shadow(0 16px 26px rgba(0,0,0,.5)); }
+.vw[data-theme="light"] .piece:hover { filter: drop-shadow(0 14px 22px rgba(17,16,14,.26)); }
+.paper { background: var(--paper); color: var(--ink); width: 100%; position: relative; display: flex; min-width: 0; }
+.logo { display: grid; place-items: center; overflow: hidden; flex: none; position: relative; }
+.logo img { position: absolute; top: 12%; left: 12%; width: 76%; height: 76%; object-fit: contain; }
+.logo.plate-dark { background: #0b0b0b; }
+.tierchip { font: 700 9px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.badge { align-self: flex-start; background: var(--ink); color: var(--paper); font: 700 10px/1.4 "DM Sans", Arial, sans-serif; letter-spacing: .1em; text-transform: uppercase; padding: 4px 8px; }
+.type { color: var(--paper-brand); }
+.ends { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; color: var(--ink-muted); }
+.ends svg { width: 11px; height: 11px; flex: none; }
+.ends.soon { background: var(--brand); color: var(--on-brand); padding: 3px 7px; font-weight: 700; }
+.claimed-mark { color: var(--paper-brand); font-weight: 700; }
+.alloc { display: grid; gap: 4px; }
+.alloc .meter { height: 4px; background: var(--rule); }
+.alloc .meter i { display: block; height: 100%; background: var(--brand); }
+.go { display: inline-flex; align-items: center; gap: 8px; font: 800 12px/1 "DM Sans", Arial, sans-serif; letter-spacing: .09em; text-transform: uppercase; }
+.go .arr { transition: transform .25s var(--ease); }
+.piece:hover .go .arr { transform: translate(2px, -2px); }
+@keyframes expGlow { 0%, 100% { filter: drop-shadow(0 0 6px rgba(255,73,55,.35)) drop-shadow(0 8px 18px rgba(0,0,0,.38)); } 50% { filter: drop-shadow(0 0 16px rgba(255,73,55,.7)) drop-shadow(0 8px 18px rgba(0,0,0,.38)); } }
+.piece.expiring { animation: expGlow 2.6s ease-in-out infinite; }
+
+/* --- Stub: a small tear-off with a perforated end --- */
+.stub .paper { padding: 0; --n: 9px;
+  -webkit-mask: radial-gradient(circle var(--n) at 0 50%, #0000 97%, #000) 0 0 / 51% 100% no-repeat, radial-gradient(circle var(--n) at 100% 50%, #0000 97%, #000) 100% 0 / 51% 100% no-repeat;
+          mask: radial-gradient(circle var(--n) at 0 50%, #0000 97%, #000) 0 0 / 51% 100% no-repeat, radial-gradient(circle var(--n) at 100% 50%, #0000 97%, #000) 100% 0 / 51% 100% no-repeat; }
+.stub .tear { width: 54px; flex: none; border-right: 2px dashed var(--rule); display: grid; place-items: center; background: var(--paper-2); }
+.stub .tear span { writing-mode: vertical-rl; transform: rotate(180deg); font: 700 10px/1 var(--mono); letter-spacing: .14em; color: var(--ink-muted); }
+.stub .body { flex: 1; min-width: 0; padding: 14px 18px 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.stub .head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.stub .logo { width: 46px; height: 34px; }
+.stub .brand { font: 700 11px/1.2 "DM Sans", Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stub h3 { font-size: 25px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.stub .foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* --- Voucher: a tall cut-out coupon with a dashed cut line and a code strip --- */
+.voucher .paper { flex-direction: column; padding: 12px; }
+.voucher .cut { flex: 1; border: 2px dashed var(--rule); padding: 16px 16px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0; position: relative; }
+.voucher .cutlabel { position: absolute; top: -8px; left: 14px; background: var(--paper); padding: 0 6px; color: var(--ink-muted); }
+.voucher .logo { height: 96px; width: 100%; }
+.voucher h3 { font-size: 34px; text-wrap: balance; }
+.voucher p { margin: 0; color: var(--ink-soft); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.voucher .bars { height: 30px; margin-top: auto; background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 5px, var(--ink) 5px 6px, transparent 6px 10px, var(--ink) 10px 13px, transparent 13px 15px); opacity: .85; }
+.voucher .foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* --- Ticket: wide, with a tear-off stub on the right and notches at the perforation --- */
+.ticket .paper { --n: 11px; --stubw: 132px;
+  -webkit-mask: radial-gradient(circle var(--n) at calc(100% - var(--stubw)) 0, #0000 97%, #000) 0 0 / 100% 51% no-repeat, radial-gradient(circle var(--n) at calc(100% - var(--stubw)) 100%, #0000 97%, #000) 0 100% / 100% 51% no-repeat;
+          mask: radial-gradient(circle var(--n) at calc(100% - var(--stubw)) 0, #0000 97%, #000) 0 0 / 100% 51% no-repeat, radial-gradient(circle var(--n) at calc(100% - var(--stubw)) 100%, #0000 97%, #000) 0 100% / 100% 51% no-repeat; }
+.ticket .band { width: 10px; flex: none; background: var(--brand); }
+.ticket .art { width: 30%; flex: none; position: relative; overflow: hidden; background: var(--paper-2); }
+.ticket .art .logo { position: absolute; inset: 0; }
+.ticket .main { flex: 1; min-width: 0; padding: 16px 20px; display: flex; flex-direction: column; gap: 7px; }
+.ticket .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ticket h3 { font-size: 34px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ticket .brand { font: 700 12px/1.2 "DM Sans", Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.ticket .foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ticket .tear { width: var(--stubw); flex: none; border-left: 2px dashed var(--rule); padding: 14px 14px; display: flex; flex-direction: column; gap: 8px; justify-content: space-between; background: var(--paper-2); }
+.ticket .tear strong { font: 900 40px/0.9 var(--display); }
+.ticket .tear .code { font: 700 10px/1.3 var(--mono); letter-spacing: .12em; color: var(--ink-muted); word-break: break-all; }
+
+/* --- Magazine cut-out: a torn page with a taped photo and a ransom-note headline --- */
+.magazine { --tilt: -0.6deg; }
+.magazine .paper { flex-direction: column; padding: 22px 24px 20px; gap: 12px; transform: rotate(-1.1deg);
+  clip-path: polygon(0 2.2%, 4% 0.6%, 9% 2%, 15% 0.4%, 22% 1.8%, 30% 0.3%, 38% 1.6%, 47% 0.2%, 56% 1.5%, 65% 0.3%, 74% 1.7%, 83% 0.4%, 91% 1.6%, 100% 0.5%, 99.3% 12%, 100% 26%, 99.2% 41%, 100% 57%, 99.4% 72%, 100% 88%, 99.5% 100%, 90% 98.6%, 80% 99.8%, 69% 98.5%, 58% 99.7%, 47% 98.4%, 36% 99.6%, 25% 98.5%, 14% 99.7%, 5% 98.6%, 0.6% 99.6%, 0 86%, 0.8% 70%, 0 54%, 0.7% 38%, 0 22%, 0.6% 10%);
+  transition: transform .35s var(--ease); background-image: repeating-linear-gradient(0deg, rgba(17,16,14,.035) 0 1px, transparent 1px 26px); }
+.magazine:hover .paper { transform: rotate(0deg); }
+.magazine .mast { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 3px solid var(--ink); padding-bottom: 8px; }
+.magazine .mast strong { font: 900 20px/1 var(--display); letter-spacing: .02em; text-transform: uppercase; }
+.magazine .spread { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 20px; }
+.magazine .photo { position: relative; background: var(--paper-2); transform: rotate(1.6deg); box-shadow: 0 6px 16px rgba(17,16,14,.3); border: 6px solid #fff; min-height: 0; overflow: hidden; }
+.magazine .photo .ph { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.07); transition: opacity .8s ease, transform 5.2s cubic-bezier(.2, .6, .2, 1); }
+.magazine .photo .ph.on { opacity: 1; transform: scale(1); }
+.magazine .photo .logo { position: absolute; inset: 0; }
+.magazine .tape { position: absolute; width: 74px; height: 22px; background: rgba(255, 233, 150, .78); box-shadow: 0 1px 3px rgba(17,16,14,.2); z-index: 3; }
+.magazine .tape.t1 { top: 58px; left: 12px; transform: rotate(-32deg); }
+.magazine .tape.t2 { top: 54px; left: calc(50% - 40px); transform: rotate(24deg); }
+.magazine .copy { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.magazine h3 { font-size: 0; display: flex; flex-wrap: wrap; gap: 6px 5px; align-items: center; }
+.magazine h3 span { font: 900 clamp(26px, 2.6vw, 40px)/1 var(--display); text-transform: uppercase; padding: 3px 8px 2px; background: var(--ink); color: var(--paper); display: inline-block; }
+.magazine h3 span:nth-child(3n+2) { background: var(--brand); color: var(--on-brand); transform: rotate(-2deg); }
+.magazine h3 span:nth-child(3n) { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(17,16,14,.25); transform: rotate(1.5deg); font-family: Georgia, "Times New Roman", serif; font-weight: 700; text-transform: none; }
+.magazine h3 span:nth-child(4n+1) { transform: rotate(1deg); }
+.magazine .brandline { display: flex; align-items: center; gap: 10px; }
+.magazine .brandline .logo { width: 62px; height: 42px; }
+.magazine p { margin: 0; color: var(--ink-soft); font-size: 15px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.magazine .foot { margin-top: auto; display: flex; align-items: end; justify-content: space-between; gap: 14px; }
+.magazine .foot .alloc { min-width: 150px; }
+.magazine .stamp { border: 2px solid var(--paper-brand); color: var(--paper-brand); padding: 5px 10px; transform: rotate(-6deg); font: 900 18px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+
+/* ---------- Detail dialog ---------- */
+dialog { position: fixed; inset: 0; margin: auto; width: min(720px, calc(100vw - 24px)); height: fit-content; max-height: calc(100vh - 24px); padding: 0; border: 0; background: var(--paper); color: var(--ink); box-shadow: 0 24px 90px rgba(0,0,0,.5); overflow: hidden; z-index: 1000; }
+dialog::backdrop { background: rgba(0,0,0,.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+dialog[open] { display: flex; flex-direction: column; }
+.dhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 12px 12px 24px; border-bottom: 2px dashed var(--rule); }
+.dhead p { margin: 0; font: 800 20px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; }
+.x { appearance: none; background: none; border: 0; cursor: pointer; color: var(--ink-muted); font: 400 22px/1 "DM Sans", Arial, sans-serif; width: 44px; height: 44px; }
+.dbody { overflow: auto; min-height: 0; padding: 22px 24px 24px; display: grid; gap: 14px; }
+.dbody h2 { font-size: 40px; }
+.dbody p { margin: 0; color: var(--ink-soft); }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.facts div { background: var(--paper-2); padding: 10px 12px; min-width: 0; }
+.facts dt { color: var(--ink-muted); } .facts dd { margin: 3px 0 0; font-weight: 600; }
+.terms { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--ink-soft); }
+.cta { appearance: none; cursor: pointer; border: 1px solid var(--brand); background: var(--brand); color: var(--on-brand); font: 800 14px/1 "DM Sans", Arial, sans-serif; letter-spacing: .09em; text-transform: uppercase; padding: 15px 20px; display: inline-flex; gap: 28px; align-items: center; justify-content: space-between; min-height: 46px; }
+.cta[disabled] { background: transparent; color: var(--ink-muted); border-color: var(--rule); cursor: default; }
+.claimbox { border: 2px dashed var(--rule); padding: 14px 16px; display: grid; gap: 5px; }
+.claimbox strong { font: 900 30px/1 var(--display); text-transform: uppercase; }
+.claimbox code { font: 700 14px/1.2 var(--mono); letter-spacing: .14em; }
+.foot-note { border-top: 1px solid var(--line); padding: 18px var(--gutter); color: var(--muted); }
+.foot-note p { margin: 0; }
+
+html.preview .top, html.preview .intro, html.preview .legend, html.preview .bar, html.preview .foot-note { display: none; }
+html.preview .grid { padding: 16px; gap: 14px; }
+
+@media (max-width: 1060px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .legend { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) {
+  .grid { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; gap: 18px; }
+  .cell.s-voucher, .cell.s-ticket, .cell.s-magazine { grid-column: auto; grid-row: auto; }
+  .cell.s-stub .piece { min-height: 180px; } .cell.s-voucher .piece { min-height: 400px; } .cell.s-magazine .piece { min-height: 520px; }
+  .ticket .paper { flex-wrap: wrap; --stubw: 0px; -webkit-mask: none; mask: none; }
+  .ticket .art { width: 34%; min-height: 130px; } .ticket .main { flex-basis: 60%; }
+  .ticket .tear { width: 100%; flex-direction: row; align-items: center; border-left: 0; border-top: 2px dashed var(--rule); }
+  .magazine .spread { grid-template-columns: minmax(0, 1fr); } .magazine .photo { min-height: 190px; }
+  .facts { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .piece, .magazine .paper, .go .arr { transition: none; } .piece.expiring { animation: none; filter: drop-shadow(0 0 12px rgba(255,73,55,.6)); } .magazine .photo .ph { transition: opacity .01s; transform: none; } }
+</style>
+</head>
+<body>
+<div class="vw" id="vw" data-theme="dark">
+  <header class="top">
+    <div class="wordmark">Vibe City</div>
+    <nav class="tabs label" aria-label="Prototype pages">
+      <a href="index.html">Card deck</a><a href="offerwall.html">Offer wall</a><a href="vouchers.html" aria-current="page">Voucher wall</a><a href="editor.html#voucher">Editor</a><a href="preview.html">Site preview</a>
+    </nav>
+  </header>
+  <section class="intro">
+    <p class="label">02 — Partner offers · Vibe Check: After Hours</p>
+    <h1 class="disp">Cut out. Tear off. <em>Claim.</em></h1>
+    <p class="lead">Every sponsor's offer is printed as a ticket, a voucher, a stub or a magazine cut-out. The package decides which.</p>
+    <p class="cap">Sponsors and logos are from tickets.vibecity.art. The offers and the packages are simulated examples for this prototype and can't be redeemed.</p>
+  </section>
+  <div class="legend cap" id="legend" aria-label="What each sponsor package includes"></div>
+  <div class="bar">
+    <div class="opt cap"><span>Show</span><div class="seg" id="segTier" role="group" aria-label="Filter by package"></div></div>
+    <div class="opt cap"><span>Theme</span><div class="seg" id="segTheme" role="group" aria-label="Theme"></div></div>
+  </div>
+  <main class="grid" id="grid" aria-live="polite"></main>
+  <footer class="foot-note cap"><p>Prototype. Change each sponsor's package, style and claim allocation in the Editor tab.</p></footer>
+
+  <dialog id="detail" aria-labelledby="dTitle">
+    <div class="dhead"><p id="dTitle"></p><button class="x" id="dClose" aria-label="Close offer">×</button></div>
+    <div class="dbody" id="dBody"></div>
+  </dialog>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="shared/deck-core.js"></script>
+<script>
+(() => {
+'use strict';
+const D = window.DeckCore, $ = id => document.getElementById(id);
+if (location.hash === '#preview') document.documentElement.classList.add('preview');
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches || typeof gsap === 'undefined';
+let deck = D.load(), tierFilter = 'all';
+const CLAIM_KEY = 'sponsor-drops-claims-v1';
+let claims = {};
+try { claims = JSON.parse(localStorage.getItem(CLAIM_KEY) || '{}') || {}; } catch (e) { claims = {}; }
+
+function h(tag, cls, text, attrs) { const el = document.createElement(tag); if (cls) el.className = cls; if (text != null) el.textContent = text; if (attrs) for (const k in attrs) el.setAttribute(k, attrs[k]); return el; }
+const add = (p, ...kids) => { kids.forEach(k => k && p.appendChild(k)); return p; };
+const typeLabel = t => (t === 'Option' ? 'Choice' : t);
+const headline = c => c.short.replace(/\.$/, '');
+function endDate(c) { const y = parseInt(c.year, 10) || new Date().getFullYear(), fm = +c.from.slice(0, 2) || 1, tm = +c.to.slice(0, 2) || 12, td = +c.to.slice(3) || 28; return new Date(y + (tm < fm ? 1 : 0), tm - 1, td, 23, 59, 59); }
+const daysLeft = c => Math.ceil((endDate(c) - Date.now()) / 86400000);
+const expiring = c => { const d = daysLeft(c); return d >= 0 && d <= 7; };
+function ends(c) {
+  const d = daysLeft(c), soon = expiring(c), el = h('span', 'ends cap' + (soon ? ' soon' : ''));
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('aria-hidden', 'true');
+  svg.innerHTML = '<circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.6V8l2.3 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>';
+  return add(el, svg, h('span', null, d < 0 ? 'Ended ' + c.to : soon ? (d <= 1 ? 'Ends today' : `Expiring · ${d} days`) : 'Ends ' + c.to));
+}
+function logo(c) { const plate = D.plateFor(c, 'light'); const el = h('span', 'logo' + (plate ? ' plate-' + plate : '')); return add(el, h('img', null, null, { src: c._logo, alt: `${c.brand} logo` })); }
+const badge = c => (c.featured && D.TIERS[c.tier].badge ? h('span', 'badge', 'Featured') : null);
+const tierChip = c => h('span', 'tierchip', D.TIERS[c.tier].name);
+const go = c => add(h('span', 'go'), h('span', null, claims[c.id] ? 'Claimed · show code' : 'Claim'), h('span', 'arr', '↗', { 'aria-hidden': 'true' }));
+/* Partners can allocate a limited number of claims; everyone else is open to every ticket. */
+function alloc(c) {
+  if (!c.limited) return h('span', 'cap', 'Open to every ticket · ' + c.limit);
+  const el = h('span', 'alloc'), m = h('span', 'meter'), i = h('i'); i.style.width = Math.max(2, c.remaining / c.total * 100) + '%';
+  return add(el, h('span', 'mono', c.remaining > 0 ? `${c.remaining} of ${c.total} left` : 'All claimed'), add(m, i));
+}
+const photos = c => (c.photos || []).slice(0, D.TIERS[c.tier].photos);
+
+/* ---------- The four styles ---------- */
+const STYLES = {
+  stub(c, i) {
+    const body = h('span', 'body');
+    add(body, add(h('span', 'head'), logo(c), h('span', 'brand', c.brand)), h('h3', 'disp', headline(c)), add(h('span', 'foot'), ends(c), go(c)));
+    return add(h('span', 'paper'), add(h('span', 'tear'), h('span', null, `${c.id} · ${String(i + 1).padStart(2, '0')}`)), body);
+  },
+  voucher(c) {
+    const cut = h('span', 'cut');
+    add(cut, h('span', 'cutlabel cap', 'Cut here'), logo(c), add(h('span', 'foot'), h('span', 'label type', typeLabel(c.type)), badge(c) || tierChip(c)),
+      h('h3', 'disp', headline(c)), h('p', null, c.long), h('span', 'bars', null, { 'aria-hidden': 'true' }), add(h('span', 'foot'), ends(c), go(c)));
+    return add(h('span', 'paper'), cut);
+  },
+  ticket(c, i) {
+    const art = h('span', 'art'), ph = photos(c);
+    if (ph.length) add(art, h('img', null, null, { src: ph[0], alt: `${c.brand} photo`, style: 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover' })); else add(art, logo(c));
+    const main = h('span', 'main');
+    add(main, add(h('span', 'row'), badge(c), h('span', 'label type', typeLabel(c.type)), ends(c)), h('span', 'brand', c.brand), h('h3', 'disp', headline(c)),
+      add(h('span', 'foot'), alloc(c), go(c)));
+    const tear = h('span', 'tear');
+    add(tear, h('span', 'cap', 'Admit offer'), h('strong', null, String(i + 1).padStart(2, '0')), h('span', 'code', `${c.id}-${String(c.total).padStart(4, '0')}`), tierChip(c));
+    return add(h('span', 'paper'), h('span', 'band'), art, main, tear);
+  },
+  magazine(c, i) {
+    const paper = h('span', 'paper'), spread = h('span', 'spread'), photo = h('span', 'photo'), ph = photos(c);
+    if (ph.length) { ph.forEach((src, k) => add(photo, h('img', 'ph' + (k === 0 ? ' on' : ''), null, { src, alt: k === 0 ? `${c.brand} photo` : '' }))); if (ph.length > 1) cars.push({ el: photo, n: ph.length, at: 0 }); }
+    else add(photo, logo(c));
+    const h3 = h('h3', null, null, { 'aria-label': headline(c) }); headline(c).split(' ').forEach(w => add(h3, h('span', null, w, { 'aria-hidden': 'true' })));
+    const copy = h('span', 'copy');
+    add(copy, add(h('span', 'brandline'), logo(c), badge(c), h('span', 'label type', typeLabel(c.type))), h3, h('p', null, c.long),
+      add(h('span', 'foot'), alloc(c), claims[c.id] ? h('span', 'stamp', 'Claimed') : go(c)));
+    add(paper, add(h('span', 'mast'), h('strong', null, c.brand), add(h('span', null, null, { style: 'display:flex;gap:10px;align-items:center' }), ends(c), h('span', 'mono', `No. ${String(i + 1).padStart(2, '0')}`))),
+      h('span', 'tape t1', null, { 'aria-hidden': 'true' }), h('span', 'tape t2', null, { 'aria-hidden': 'true' }), add(spread, photo, copy));
+    return paper;
+  },
+};
+let cars = [];
+function render(animate) {
+  const grid = $('grid'); grid.replaceChildren(); cars = [];
+  $('vw').dataset.theme = deck.wall.theme; document.body.style.background = deck.wall.theme === 'light' ? '#ffffff' : '#0b0b0b';
+  // bigger pieces first, so the grid packs without holes
+  const order = { magazine: 0, ticket: 1, voucher: 2, stub: 3 };
+  const list = deck.coupons.slice(0, deck.count).map((c, i) => ({ c, i })).filter(o => tierFilter === 'all' || o.c.tier === tierFilter)
+    .sort((a, b) => order[a.c.style] - order[b.c.style] || a.i - b.i);
+  list.forEach(({ c, i }) => {
+    const cell = h('div', 'cell s-' + c.style);
+    const piece = h('button', `piece ${c.style}${expiring(c) && c.remaining > 0 ? ' expiring' : ''}`, null, { type: 'button', 'aria-label': `${c.brand}: ${headline(c)}. ${D.TIERS[c.tier].name}, ${D.STYLES[c.style]}.` });
+    piece.style.setProperty('--tilt', (c.style === 'stub' ? (i % 2 ? 0.8 : -0.8) : c.style === 'voucher' ? 0.5 : c.style === 'ticket' ? -0.4 : -0.6) + 'deg');
+    add(piece, STYLES[c.style](c, i));
+    piece.addEventListener('click', () => openDetail(i, piece));
+    add(grid, add(cell, piece));
+  });
+  if (!list.length) add(grid, h('p', 'cap', 'No sponsors in this package yet.'));
+  syncBars();
+  if (animate && !reduced) {
+    // each piece drops onto the wall like paper being pinned up: a small fall, a slight spin, then it settles
+    gsap.fromTo(grid.querySelectorAll('.piece'), { opacity: 0, y: -26, rotation: () => gsap.utils.random(-5, 5), scale: 1.05 },
+      { opacity: 1, y: 0, rotation: 0, scale: 1, duration: 0.6, stagger: 0.07, ease: 'back.out(1.5)', clearProps: 'transform,opacity' });
+  }
+}
+/* magazine photos change on a shared beat, one piece at a time */
+let beat = 0;
+setInterval(() => { if (document.hidden || reduced || !cars.length || $('detail').open) return; const car = cars[beat++ % cars.length]; if (!car.el.isConnected) return; car.at = (car.at + 1) % car.n; car.el.querySelectorAll('.ph').forEach((im, k) => im.classList.toggle('on', k === car.at)); }, 2600);
+
+/* ---------- Legend and filters ---------- */
+function buildChrome() {
+  const lg = $('legend');
+  ['partner', 'a', 'b', 'c'].forEach(k => { const t = D.TIERS[k];
+    add(lg, add(h('div'), h('strong', null, t.name), h('span', null, t.styles.map(s => D.STYLES[s]).join(' · ')),
+      h('span', null, `${t.photos ? 'Up to ' + t.photos + ' photo' + (t.photos > 1 ? 's' : '') : 'Logo only'}${t.badge ? ' · Featured badge' : ''}${t.limited ? ' · Limited claims' : ''}`))); });
+  [['all', 'All'], ['partner', 'Partners'], ['a', 'A'], ['b', 'B'], ['c', 'C']].forEach(([v, label]) => { const b = h('button', null, label, { type: 'button' }); b._v = v; b.addEventListener('click', () => { tierFilter = v; render(true); }); add($('segTier'), b); });
+  [['dark', 'Dark'], ['light', 'White']].forEach(([v, label]) => { const b = h('button', null, label, { type: 'button' }); b._v = v; b.addEventListener('click', () => { deck.wall.theme = v; D.save(deck); render(false); }); add($('segTheme'), b); });
+}
+function syncBars() { [...$('segTier').children].forEach(b => b.setAttribute('aria-pressed', String(b._v === tierFilter))); [...$('segTheme').children].forEach(b => b.setAttribute('aria-pressed', String(b._v === deck.wall.theme))); }
+
+/* ---------- Detail ---------- */
+const dlg = $('detail');
+function openDetail(i, from) {
+  const c = deck.coupons[i];
+  $('dTitle').textContent = `${D.STYLES[c.style]} · ${c.brand}`;
+  const fill = () => {
+    const body = $('dBody'); body.replaceChildren();
+    const facts = h('dl', 'facts'); [['Where', c.where], ['Valid', `${c.from} – ${c.to} · ${c.year}`], [c.limited ? 'Allocation' : 'Limit', c.limited ? `${c.remaining} of ${c.total} left` : c.limit]].forEach(([k, v]) => add(facts, add(h('div'), h('dt', 'cap', k), h('dd', null, v))));
+    const terms = h('ol', 'terms'); c.terms.forEach(t => add(terms, h('li', null, t)));
+    let action;
+    if (claims[c.id]) action = add(h('div', 'claimbox'), h('span', 'cap', 'Claimed on this device'), h('strong', null, 'Present to claim.'), h('code', null, claims[c.id]));
+    else { action = h('button', 'cta', null, { type: 'button' }); add(action, h('span', null, c.limited && c.remaining <= 0 ? 'All claimed' : 'Claim offer'), h('span', null, '↗', { 'aria-hidden': 'true' }));
+      if (c.limited && c.remaining <= 0) action.disabled = true;
+      action.addEventListener('click', () => { claims[c.id] = `${c.id}-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`; try { localStorage.setItem(CLAIM_KEY, JSON.stringify(claims)); } catch (e) { /* blocked */ } fill(); render(false); }); }
+    add(body, add(h('div', null, null, { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }), badge(c), h('span', 'label type', typeLabel(c.type)), ends(c), tierChip(c)),
+      h('h2', 'disp', headline(c)), h('p', null, c.long), facts, h('span', 'cap', 'How to claim'), terms, action);
+  };
+  fill();
+  if (!dlg.open) dlg.showModal();
+  if (reduced) return;
+  const to = dlg.getBoundingClientRect(), fr = from && from.isConnected ? from.getBoundingClientRect() : null;
+  if (fr) gsap.fromTo(dlg, { x: fr.left - to.left, y: fr.top - to.top, scaleX: fr.width / to.width, scaleY: fr.height / to.height, transformOrigin: '0 0' }, { x: 0, y: 0, scaleX: 1, scaleY: 1, duration: 0.45, ease: 'expo.out', clearProps: 'transform' });
+  gsap.fromTo([dlg.querySelector('.dhead'), $('dBody')], { opacity: 0 }, { opacity: 1, duration: 0.28, delay: 0.12 });
+}
+$('dClose').addEventListener('click', () => dlg.close());
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+
+function prepare() { return Promise.all(deck.coupons.map(D.loadImg)).then(() => deck.coupons.forEach(c => { c._logo = (c._img ? D.drawUploadedLogo(c._img) : D.drawLogo(c)).toDataURL(); })); }
+D.subscribe(d => { deck = d; prepare().then(() => render(false)); });
+(async () => {
+  try { await Promise.race([document.fonts.load('900 60px "Barlow Condensed"'), new Promise(r => setTimeout(r, 2000))]); } catch (e) { /* fallback fonts */ }
+  buildChrome(); await prepare(); render(true);
+})();
+})();
+</script>
+</body>
+</html>

@@ -105,7 +105,8 @@ input[type=color] { width: 100%; height: 39px; padding: 2px; border-radius: 3px;
 .ctxbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; max-width: 1180px; margin: 0 auto; padding-block: 18px 0;
   padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
 .ctxbar .note { flex: 1; min-width: 200px; }
-.ctxseg { width: min(360px, 100%); }
+.ctxseg { width: min(520px, 100%); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.stylegrid button[disabled] { opacity: .38; cursor: not-allowed; }
 .check { display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer; }
 .check input { width: 16px; height: 16px; accent-color: var(--ember); }
 .optgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -177,7 +178,7 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
   <div class="top-actions">
     <span class="status" id="status" role="status" aria-live="polite"><i aria-hidden="true"></i><span>Loaded</span></span>
     <nav class="tabs" aria-label="Prototype pages">
-      <a href="index.html">Card deck</a><a href="offerwall.html">Offer wall</a><a href="editor.html" aria-current="page">Editor</a><a href="preview.html">Site preview</a>
+      <a href="index.html">Card deck</a><a href="offerwall.html">Offer wall</a><a href="vouchers.html">Voucher wall</a><a href="editor.html" aria-current="page">Editor</a><a href="preview.html">Site preview</a>
     </nav>
   </div>
 </header>
@@ -186,6 +187,7 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
   <div class="seg2 ctxseg" role="group" aria-labelledby="ctxLbl">
     <button type="button" class="sbtn" data-ctx-pick="deck">Card deck</button>
     <button type="button" class="sbtn" data-ctx-pick="wall">Offer wall</button>
+    <button type="button" class="sbtn" data-ctx-pick="voucher">Voucher wall</button>
   </div>
   <p class="note" id="ctxNote"></p>
   <a class="pill primary" id="ctxView" href="index.html">View deck ↗</a>
@@ -263,12 +265,21 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
       </div>
       <label class="field"><span class="lbl">Full description (back of the coupon)</span><textarea id="long" maxlength="420" rows="3"></textarea></label>
       <label class="field"><span class="lbl">Terms, one per line</span><textarea id="terms" rows="4"></textarea></label>
-      <div class="field" data-ctx="wall">
-        <div class="sec-head"><span class="lbl" id="phLbl">Photos (offer wall)</span><span class="lbl" id="phCount">0 / 5</span></div>
+      <div class="field" data-ctx="voucher">
+        <div class="g2">
+          <label class="field"><span class="lbl">Sponsor package</span><select id="tier"><option value="partner">Partner</option><option value="a">Package A</option><option value="b">Package B</option><option value="c">Package C</option></select></label>
+          <div class="field"><span class="lbl">Package includes</span><p class="note" id="tierNote"></p></div>
+        </div>
+        <span class="lbl" id="styleLbl">Voucher style</span>
+        <div class="optgrid stylegrid" id="styleGrid" role="group" aria-labelledby="styleLbl"></div>
+        <label class="check"><input type="checkbox" id="limited"><span id="limitedLbl">Limited claims: show an allocated amount (uses Remaining and Total issued)</span></label>
+      </div>
+      <div class="field" data-ctx="wall voucher">
+        <div class="sec-head"><span class="lbl" id="phLbl">Photos</span><span class="lbl" id="phCount">0 / 5</span></div>
         <div class="photos" id="photos" role="group" aria-labelledby="phLbl"></div>
         <p class="note">Up to 5 per offer. With no photos the card shows the logo. Photos are resized before saving.</p>
       </div>
-      <label class="check" data-ctx="wall"><input type="checkbox" id="featured">Featured badge (event partners and ₱5,000 sponsors). Featured sponsors take turns in the top spot.</label>
+      <label class="check" data-ctx="wall voucher"><input type="checkbox" id="featured">Featured badge (event partners and ₱5,000 sponsors). Featured sponsors take turns in the top spot.</label>
       <div class="btns"><button type="button" class="sbtn" id="resetCard">Reset this card</button></div>
     </form>
 
@@ -288,7 +299,7 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
   </div>
 
   <aside class="preview" aria-label="Live preview">
-    <div class="wallprev" data-ctx="wall">
+    <div class="wallprev" data-ctx="wall voucher">
       <div class="preview-head"><span class="lbl">Preview · offer wall</span><span class="lbl" id="wPrevInfo"></span></div>
       <iframe id="wallFrame" title="Offer wall preview" loading="lazy"></iframe>
     </div>
@@ -377,7 +388,7 @@ const FIELDS = ['brand', 'mark', 'shape', 'color', 'type', 'short', 'from', 'to'
 function fillForm() {
   const c = deck.coupons[cur];
   FIELDS.forEach(k => { $(k).value = c[k]; });
-  $('terms').value = c.terms.join('\n'); $('featured').checked = !!c.featured; renderPhotos();
+  $('terms').value = c.terms.join('\n'); $('featured').checked = !!c.featured; renderPhotos(); renderPackage();
   $('bpmOut').textContent = c.bpm;
   $('tLogo').src = c._logoURL; $('tName').textContent = c.brand;
   $('tState').textContent = cur < deck.count ? `Card ${cur + 1} · on the table` : `Card ${cur + 1} · off the table (raise the deck size to ${cur + 1})`;
@@ -385,6 +396,25 @@ function fillForm() {
   $('useMono').hidden = !c.logoImg;
   $('useMono').textContent = c.logoSrc ? 'Use sponsor logo' : 'Use monogram';
 }
+/* ---------- Sponsor package and voucher style (voucher wall) ---------- */
+function renderPackage() {
+  const c = deck.coupons[cur], t = D.TIERS[c.tier];
+  $('tier').value = c.tier;
+  $('tierNote').textContent = `${t.styles.map(s => D.STYLES[s]).join(', ')} · ${t.photos ? 'up to ' + t.photos + ' photo' + (t.photos > 1 ? 's' : '') : 'no photos'}${t.badge ? ' · Featured badge' : ''}${t.limited ? ' · limited claims' : ''}`;
+  const grid = $('styleGrid'); grid.replaceChildren();
+  Object.keys(D.STYLES).forEach(k => {
+    const ok = t.styles.includes(k), b = document.createElement('button'); b.type = 'button'; b.disabled = !ok;
+    b.setAttribute('aria-pressed', String(c.style === k)); b.innerHTML = '<strong></strong><span></span>';
+    b.querySelector('strong').textContent = D.STYLES[k];
+    b.querySelector('span').textContent = ok ? { stub: 'Small tear-off stub.', voucher: 'Tall cut-out coupon.', ticket: 'Wide ticket with a stub.', magazine: 'Large collage feature.' }[k] : 'Not in ' + t.name + '. Partner' + (k === 'ticket' ? ' or Package A' : k === 'voucher' ? ', A or B' : '') + ' only.';
+    b.addEventListener('click', () => { c.style = k; renderPackage(); persist(true); });
+    grid.appendChild(b);
+  });
+  $('limited').checked = !!c.limited; $('limited').disabled = !t.limited;
+  $('limitedLbl').textContent = t.limited ? 'Limited claims: show an allocated amount (uses Remaining and Total issued)' : 'Limited claims are a Partner option';
+}
+$('tier').addEventListener('change', e => { const c = deck.coupons[cur]; c.tier = e.target.value; D.sanitize(c); renderPackage(); persist(true); });
+$('limited').addEventListener('change', e => { const c = deck.coupons[cur]; c.limited = e.target.checked; D.sanitize(c); renderPackage(); persist(true); });
 /* ---------- Photos (up to 5 per offer) ---------- */
 function renderPhotos() {
   const c = deck.coupons[cur], box = $('photos'); box.replaceChildren();
@@ -542,20 +572,22 @@ document.querySelectorAll('.seg2 [data-theme]').forEach(b => b.addEventListener(
   deck.theme = b.dataset.theme; renderAll(); persist(true);
 }));
 /* ---------- Editing context: the same offers, shown as a card deck or an offer wall ---------- */
-const CTX = { deck: { note: 'Offers as 3D coupon stacks. Settings below apply to the deck.', view: ['index.html', 'View deck ↗'], count: 'Coupons in the deck' },
+const CTX = { voucher: { note: 'Offers as tickets, vouchers, stubs and magazine cut-outs. What each sponsor can use depends on their package.', view: ['vouchers.html', 'View voucher wall ↗'], count: 'Offers on the wall' }, deck: { note: 'Offers as 3D coupon stacks. Settings below apply to the deck.', view: ['index.html', 'View deck ↗'], count: 'Coupons in the deck' },
   wall: { note: 'Offers as a browsable wall. Settings below apply to the wall.', view: ['offerwall.html', 'View offer wall ↗'], count: 'Offers on the wall' } };
-let ctx = location.hash === '#wall' ? 'wall' : 'deck';
-try { if (!location.hash) ctx = localStorage.getItem('sponsor-drops-editor-ctx') === 'wall' ? 'wall' : 'deck'; } catch (e) { /* blocked */ }
+let ctx = ['wall', 'voucher'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'deck';
+try { if (!location.hash) { const saved = localStorage.getItem('sponsor-drops-editor-ctx'); ctx = ['wall', 'voucher'].includes(saved) ? saved : 'deck'; } } catch (e) { /* blocked */ }
 function setCtx(next) {
   ctx = next;
   try { localStorage.setItem('sponsor-drops-editor-ctx', ctx); } catch (e) { /* blocked */ }
-  document.querySelectorAll('[data-ctx]').forEach(el => { el.hidden = el.dataset.ctx !== ctx; });
+  document.querySelectorAll('[data-ctx]').forEach(el => { el.hidden = !el.dataset.ctx.split(' ').includes(ctx); });
   document.querySelectorAll('[data-ctx-pick]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ctxPick === ctx)));
-  document.querySelector('.work').classList.toggle('ctx-wall', ctx === 'wall');
+  document.querySelector('.work').classList.toggle('ctx-wall', ctx !== 'deck');
   $('ctxNote').textContent = CTX[ctx].note;
   $('ctxView').href = CTX[ctx].view[0]; $('ctxView').textContent = CTX[ctx].view[1];
   document.querySelector('label[for="countRange"]').textContent = CTX[ctx].count;
-  if (ctx === 'wall' && !$('wallFrame').src) $('wallFrame').src = 'offerwall.html#preview';
+  const want = ctx === 'voucher' ? 'vouchers.html#preview' : ctx === 'wall' ? 'offerwall.html#preview' : null;
+  if (want && $('wallFrame').dataset.page !== want) { $('wallFrame').dataset.page = want; $('wallFrame').src = want; }
+  renderWallControls(); renderPackage();
 }
 document.querySelectorAll('[data-ctx-pick]').forEach(b => b.addEventListener('click', () => setCtx(b.dataset.ctxPick)));
 
@@ -573,7 +605,7 @@ function renderWallControls() {
   const w = deck.wall;
   [['wLayout', 'layout'], ['wTheme', 'theme'], ['wCards', 'cards']].forEach(([id, key]) => [...$(id).children].forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === w[key]))));
   $('wSlots').checked = w.openSlots;
-  $('wPrevInfo').textContent = `${WALL_OPTS.layout.find(l => l[0] === w.layout)[1]} · ${w.theme === 'light' ? 'White' : 'Dark'}`;
+  $('wPrevInfo').textContent = ctx === 'voucher' ? `Voucher wall · ${w.theme === 'light' ? 'White' : 'Dark'}` : `${WALL_OPTS.layout.find(l => l[0] === w.layout)[1]} · ${w.theme === 'light' ? 'White' : 'Dark'}`;
 }
 function renderAll() {
   renderTheme(); renderWallControls();

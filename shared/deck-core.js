@@ -10,43 +10,43 @@ const SIM = 'Simulated example for this prototype. Not a real offer and cannot b
 /* Sponsor names, roles, sites and logos are from tickets.vibecity.art (Vibe Check: After Hours).
    Every offer below is a simulated example written for this prototype. */
 const SAMPLE = [
-  { id: 'CVR', brand: 'Casa Verde Ramos', role: 'Venue partner', featured: true, site: 'https://www.casaverde.ph/', logoSrc: 'shared/sponsors/casa-verde.png',
+  { id: 'CVR', brand: 'Casa Verde Ramos', role: 'Venue partner', featured: true, tier: 'partner', style: 'magazine', limited: true, site: 'https://www.casaverde.ph/', logoSrc: 'shared/sponsors/casa-verde.png',
     photos: ['shared/photos/casa-verde-1.jpg', 'shared/photos/casa-verde-2.jpg', 'shared/photos/casa-verde-3.jpg'],
     mark: 'CV', shape: 'circle', color: '#037732', bpm: 72, type: 'Freebie', short: 'A free dessert with any main course.', from: '11/19', to: '12/19', year: '2026',
     remaining: 96, total: 150, where: '69 Lim Tian Teng St., Cebu City', limit: '1 per ticket',
     long: 'Come back after the show. Order any main course at Casa Verde and a dessert from the regular menu is included.',
     terms: ['One dessert with one main course, dine-in only.', 'Show your ticket QR to your server before ordering.', 'Not valid with other promos.', SIM] },
-  { id: 'FRI', brand: 'Freedom Island Light Rum', role: 'Event partner', featured: true, site: 'https://www.ginebrasanmiguel.com/', logoSrc: 'shared/sponsors/freedom-island.png',
+  { id: 'FRI', brand: 'Freedom Island Light Rum', role: 'Event partner', featured: true, tier: 'partner', style: 'ticket', limited: true, site: 'https://www.ginebrasanmiguel.com/', logoSrc: 'shared/sponsors/freedom-island.png',
     mark: 'FI', shape: 'pill', color: '#cc511d', bpm: 96, type: 'Freebie', short: 'One welcome cocktail at the event bar.', from: '11/19', to: '11/20', year: '2026',
     remaining: 127, total: 150, where: 'Event bar, Casa Verde Ramos', limit: '1 per ticket, 18+',
     long: 'Start the night with a Freedom Island Light Rum cocktail on the house. Pick it up at the event bar any time before midnight.',
     terms: ['One cocktail per ticket, on the night of the event only.', 'For guests 18 and over. Valid ID may be asked for.', 'Drink responsibly.', SIM] },
-  { id: 'DWT', brand: 'Dawata Wellness Resort and Cafe', role: 'Featured sponsor', featured: true, site: 'https://www.dawatawellness.com/', logoSrc: 'shared/sponsors/dawata.png',
+  { id: 'DWT', brand: 'Dawata Wellness Resort and Cafe', role: 'Featured sponsor', featured: true, tier: 'a', style: 'ticket', site: 'https://www.dawatawellness.com/', logoSrc: 'shared/sponsors/dawata.png',
     mark: 'DW', shape: 'squircle', color: '#5f7f5a', bpm: 60, type: 'Discount', short: '15% off a day pass or your café bill.', from: '11/20', to: '12/19', year: '2026',
     remaining: 41, total: 60, where: 'Dawata Wellness Resort and Cafe', limit: '1 per ticket',
     long: 'Slow down the morning after. Take 15% off a wellness day pass or the bill at the café, whichever you choose on the day.',
     terms: ['Choose the day pass or the café bill; not both.', 'Book day passes at least one day ahead.', 'Show your ticket QR when you pay.', SIM] },
-  { id: 'AIR', brand: 'Air Condo', role: 'Sponsor', site: 'https://irealtee.com/developers/cebu-rite-homes-development-and-realty-corp', logoSrc: 'shared/sponsors/air-condo.png',
+  { id: 'AIR', brand: 'Air Condo', role: 'Sponsor', tier: 'b', style: 'voucher', site: 'https://irealtee.com/developers/cebu-rite-homes-development-and-realty-corp', logoSrc: 'shared/sponsors/air-condo.png',
     mark: 'AC', shape: 'hex', color: '#ff521a', bpm: 110, type: 'Freebie', short: 'Coffee for two when you book a viewing.', from: '11/20', to: '12/19', year: '2026',
     remaining: 18, total: 30, where: 'Air Condo showroom, Cebu City', limit: '1 per household',
     long: 'Curious about the building? Book a showroom viewing with your ticket and coffee for two is on Air Condo.',
     terms: ['Viewing by appointment.', 'One redemption per household.', 'No purchase needed.', SIM] },
-  { id: 'KTC', brand: 'Know The Culture', role: 'Sponsor', site: 'https://knowtheculture.ph', logoSrc: 'shared/sponsors/know-the-culture.png',
+  { id: 'KTC', brand: 'Know The Culture', role: 'Sponsor', tier: 'b', style: 'voucher', site: 'https://knowtheculture.ph', logoSrc: 'shared/sponsors/know-the-culture.png',
     mark: 'KTC', shape: 'diamond', color: '#6b6b6b', bpm: 128, type: 'Discount', short: '10% off one item, in store or online.', from: '11/19', to: '12/19', year: '2026',
     remaining: 52, total: 100, where: 'knowtheculture.ph', limit: '1 per ticket',
     long: 'Take 10% off any single item from Know The Culture. Use it at the event stall, in store, or online with your claim code.',
     terms: ['One item per ticket at regular price.', 'Online: enter your claim code at checkout.', 'Excludes collaborations and sale items.', SIM] },
-  { id: 'PET', brand: 'Pets Society Veterinary and Wellness', role: 'Sponsor', site: 'https://www.petssociety.ph/', logoSrc: 'shared/sponsors/pets-society.png',
+  { id: 'PET', brand: 'Pets Society Veterinary and Wellness', role: 'Sponsor', tier: 'b', style: 'stub', site: 'https://www.petssociety.ph/', logoSrc: 'shared/sponsors/pets-society.png',
     mark: 'PS', shape: 'shield', color: '#2f8a5e', bpm: 84, type: 'Freebie', short: 'A free wellness check for one pet.', from: '11/20', to: '12/19', year: '2026',
     remaining: 9, total: 25, where: 'Pets Society clinic, Cebu City', limit: '1 pet per ticket',
     long: 'Bring your dog or cat in for a basic wellness check with the Pets Society team. Vaccines, tests and treatment are quoted separately.',
     terms: ['By appointment, on weekdays.', 'Covers one basic wellness check for one pet.', 'Vaccines, tests and medicine are not included.', SIM] },
-  { id: 'DSZ', brand: 'DESAINZ', role: 'Supporting sponsor', site: 'https://www.instagram.com/desainz_/', logoSrc: 'shared/sponsors/desainz.png',
+  { id: 'DSZ', brand: 'DESAINZ', role: 'Supporting sponsor', tier: 'c', style: 'stub', site: 'https://www.instagram.com/desainz_/', logoSrc: 'shared/sponsors/desainz.png',
     mark: 'DZ', shape: 'octagon', color: '#8a8a8a', bpm: 104, type: 'Discount', short: '10% off one custom design order.', from: '11/19', to: '12/19', year: '2026',
     remaining: 14, total: 20, where: 'Order by Instagram message', limit: '1 per ticket',
     long: 'Planning merch, a poster or a logo? Message DESAINZ with your claim code and take 10% off one custom design order.',
     terms: ['One order per ticket.', 'Send your claim code when you ask for a quote.', 'Printing costs are quoted separately.', SIM] },
-  { id: 'NBC', brand: 'Northbound Barbershop Cebu', role: 'Supporting sponsor', site: 'https://www.instagram.com/northboundcebu', logoSrc: 'shared/sponsors/northbound.png',
+  { id: 'NBC', brand: 'Northbound Barbershop Cebu', role: 'Supporting sponsor', tier: 'c', style: 'stub', site: 'https://www.instagram.com/northboundcebu', logoSrc: 'shared/sponsors/northbound.png',
     mark: 'NB', shape: 'ring', color: '#de2b44', bpm: 90, type: 'Option', short: '₱100 off a haircut, or a free beard trim with any cut.', from: '11/19', to: '12/19', year: '2026',
     remaining: 33, total: 50, where: 'Northbound Barbershop Cebu', limit: '1 per ticket',
     long: 'Fresh for the night or tidy after it. Choose ₱100 off any haircut, or add a beard trim to your cut at no charge.',
@@ -60,12 +60,15 @@ function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt
 const SHAPES = ['circle', 'pill', 'diamond', 'hex', 'squircle', 'star', 'shield', 'octagon', 'ring', 'tri'];
 const TYPES = ['Option', 'Discount', 'Freebie'];
 
-const EDIT_KEYS = ['brand', 'mark', 'shape', 'color', 'bpm', 'type', 'short', 'from', 'to', 'year', 'remaining', 'total', 'where', 'limit', 'long', 'terms', 'logoImg', 'featured', 'photos'];
+const EDIT_KEYS = ['brand', 'mark', 'shape', 'color', 'bpm', 'type', 'short', 'from', 'to', 'year', 'remaining', 'total', 'where', 'limit', 'long', 'terms', 'logoImg', 'featured', 'photos', 'tier', 'style', 'limited'];
 const LIMITS = { brand: 40, mark: 3, short: 64, from: 5, to: 5, year: 11, where: 40, limit: 30, long: 420 };
 function sanitize(c) {
   for (const k of Object.keys(LIMITS)) c[k] = String(c[k] ?? '').slice(0, LIMITS[k]);
   // up to 5 photos: uploaded images (data URLs) or files shipped under shared/photos/
   c.photos = (Array.isArray(c.photos) ? c.photos : []).filter(p => typeof p === 'string' && (/^data:image\/(jpeg|png|webp);base64,/.test(p) || /^shared\/photos\/[\w.-]+$/.test(p))).slice(0, 5);
+  c.tier = TIERS[c.tier] ? c.tier : 'c';
+  c.style = TIERS[c.tier].styles.includes(c.style) ? c.style : TIERS[c.tier].styles[0]; // a style outside the package falls back to its best one
+  c.limited = TIERS[c.tier].limited && c.limited === true;
   c.featured = c.featured === true; // partners and top-tier sponsors carry a Featured badge
   if (!c.brand.trim()) c.brand = 'Untitled sponsor';
   if (!c.mark.trim()) c.mark = c.brand.slice(0, 2);
@@ -133,6 +136,15 @@ const KEY = 'sponsor-drops-deck-v2';
 let channel = null;
 try { channel = new BroadcastChannel(KEY); } catch (e) { channel = null; }
 const sample = () => JSON.parse(JSON.stringify(SAMPLE));
+/* Sponsor packages for the voucher wall. Each package unlocks voucher styles, photos and extras;
+   partners get everything, plus the option of an allocated number of limited claims. */
+const STYLES = { stub: 'Stub', voucher: 'Voucher', ticket: 'Ticket', magazine: 'Magazine cut-out' };
+const TIERS = {
+  partner: { name: 'Partner', styles: ['magazine', 'ticket', 'voucher', 'stub'], photos: 5, limited: true, badge: true },
+  a: { name: 'Package A', styles: ['ticket', 'voucher', 'stub'], photos: 3, limited: false, badge: true },
+  b: { name: 'Package B', styles: ['voucher', 'stub'], photos: 1, limited: false, badge: false },
+  c: { name: 'Package C', styles: ['stub'], photos: 0, limited: false, badge: false },
+};
 /* Offer wall display settings, shared by the wall page and the editor. */
 const WALL_LAYOUTS = ['featured', 'cascade', 'ledger', 'spotlight', 'guide'];
 function wallOf(w) {
@@ -306,7 +318,7 @@ function logoColor(cv) {
 }
 
 window.DeckCore = Object.freeze({
-  SAMPLE, SHAPES, TYPES, EDIT_KEYS, WALL_LAYOUTS, wallOf, THEMES, themeOf, stackSize, clamp, sanitize, editable, serialOf, loadImg,
+  SAMPLE, SHAPES, TYPES, EDIT_KEYS, TIERS, STYLES, WALL_LAYOUTS, wallOf, THEMES, themeOf, stackSize, clamp, sanitize, editable, serialOf, loadImg,
   load, save, clear, subscribe, plateFor, logoCanvasFor, toneOf, sample: () => normalize(null),
   mulberry32, hashStr, shapePath, drawLogo, drawFace, drawUploadedLogo, logoColor,
 });

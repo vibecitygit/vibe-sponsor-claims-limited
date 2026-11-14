@@ -632,7 +632,7 @@ function updateSubline() { const n = state.count; $('subline').textContent = `${
 
 /* ================= State ================= */
 const state = { dealt: false, ready: false, busy: false, sel: null, view: 'deck', linked: false, wallet: [], removeOnClose: false, hovered: null, W: 320, H: 512,
-  count: COUPONS.length, shiftX: 0, shiftY: 0, zoom: 1 };
+  count: COUPONS.length, shiftX: 0, shiftY: 0, zoom: 1, counters: 1 };
 const fly = { card: null, s: null, layer: 0, p: 0, mat: null, lift: 0 };
 
 /* ---------- Intro: deal from the horizon, riffle into stacks ---------- */
@@ -776,7 +776,9 @@ function select(s) {
   gsap.to(s, { logoFade: 0, duration: 0.45, ease: 'power2.out' });
   gsap.fromTo(s, { hop: 0 }, { hop: 0.3, duration: 0.45, ease: 'power2.out' });
   stacks.forEach(o => { if (o !== s) gsap.to(o, { dim: 0.32, duration: 0.7 }); });
-  gsap.to(fly, { p: 1, duration: 1.0, ease: 'power2.inOut', delay: 0.05, onComplete: revealFront });
+  // counters fade out first, then the card lifts, so nothing floats over the rising card
+  gsap.to(state, { counters: 0, duration: 0.24, ease: 'power1.out', overwrite: true });
+  gsap.to(fly, { p: 1, duration: 1.0, ease: 'power2.inOut', delay: 0.28, onComplete: revealFront });
 }
 
 const _v = new THREE.Vector3(), _q = new THREE.Quaternion();
@@ -863,6 +865,7 @@ function endSelection() {
   gsap.to(s, { logoFade: 1, duration: 0.6 });
   gsap.fromTo(s, { appear: 0.3 }, { appear: 1, duration: 0.9, ease: 'elastic.out(1, 0.45)' });
   stacks.forEach(o => gsap.to(o, { dim: 1, duration: 0.6 }));
+  gsap.to(state, { counters: 1, duration: 0.5, delay: 0.2, overwrite: true });
   state.sel = null; state.view = 'deck'; state.busy = false; state.removeOnClose = false;
   backdrop.classList.remove('open'); stage.classList.remove('open');
   $('hint').style.opacity = 1;
@@ -1145,7 +1148,7 @@ function frame() {
     const el = s.countEl;
     const key = s.c.remaining;
     if (s.countShown !== key) { s.countShown = key; el.querySelector('b').textContent = key > 0 ? key : '0'; el.querySelector('span').textContent = key > 0 ? 'left' : 'sold out'; }
-    const op = s.active ? clamp(Math.min(1, s.appear) * s.logoFade * (0.35 + 0.65 * s.dim), 0, 1) : 0;
+    const op = s.active ? clamp(Math.min(1, s.appear) * s.logoFade * (0.35 + 0.65 * s.dim), 0, 1) * state.counters : 0;
     if (op < 0.01) { if (el.style.opacity !== '0') el.style.opacity = '0'; continue; }
     labelPos.copy(s.logo.position); labelPos.y += s.logo.scale.y * 0.62 + 0.08; labelPos.project(camera);
     const x = (labelPos.x + 1) / 2 * innerWidth, y = (1 - labelPos.y) / 2 * innerHeight;

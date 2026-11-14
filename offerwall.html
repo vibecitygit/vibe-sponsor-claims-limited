@@ -162,6 +162,23 @@ a { color: inherit; }
 
 /* ---------- C. Spotlight (one featured offer, the rest in a rail) ---------- */
 .combo { display: grid; gap: 13px; }
+/* Featured + Cascade: a 3-column grid, sized by package. Partner cards run two columns wide with the
+   picture beside the text; Package A is a full card with a tall picture; B is a standard card; C is compact. */
+.cascade.tiered { column-count: initial; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: dense; gap: 13px; align-items: stretch; }
+.cascade.tiered > * { margin: 0; }
+.tiered .t-partner { grid-column: span 2; display: grid; grid-template-columns: minmax(0, 44%) minmax(0, 1fr); grid-template-rows: repeat(12, auto) 1fr; column-gap: 24px; row-gap: 10px; }
+.tiered .t-partner > .tile, .tiered .t-partner > .media { grid-column: 1; grid-row: 1 / span 13; height: auto !important; min-height: 250px; align-self: stretch; }
+.tiered .t-partner > :not(.tile):not(.media) { grid-column: 2; }
+.tiered .t-partner h3 { font-size: 38px; }
+.tiered .t-partner .long { color: var(--muted); }
+.tiered .t-partner > .cta { align-self: end; grid-row: 13; }
+.tiered .t-a > .tile, .tiered .t-a > .media { height: 210px !important; }
+.tiered .t-b > .tile, .tiered .t-b > .media { height: 130px !important; }
+.tiered .t-c { padding: 20px; gap: 9px; }
+.tiered .t-c > .tile, .tiered .t-c > .media { height: 72px !important; }
+.tiered .t-c h3 { font-size: 24px; }
+.tiered .t-c .rule, .tiered .t-c .kv, .tiered .t-c > p.cap { display: none; }
+@media (max-width: 720px) { .cascade.tiered { grid-template-columns: minmax(0, 1fr); } .tiered .t-partner { grid-column: auto; display: flex; } .tiered .t-partner > .tile, .tiered .t-partner > .media { height: 190px !important; min-height: 0; } }
 .combo > .feature { min-height: 380px; border-color: var(--brand); box-shadow: inset 0 4px 0 0 var(--brand); }
 .tag.flag { background: var(--ink); color: var(--bg); }
 .gtags { justify-content: flex-end; }
@@ -280,6 +297,7 @@ html.preview .stagewrap { border-top: 0; padding: 16px 16px 24px; }
     <nav class="tabs label" aria-label="Prototype pages">
       <a href="index.html">Card deck</a>
       <a href="offerwall.html" aria-current="page">Offer wall</a>
+      <a href="vouchers.html">Voucher wall</a>
       <a href="editor.html">Editor</a>
       <a href="preview.html">Site preview</a>
     </nav>
@@ -458,15 +476,16 @@ const leftText = c => (c.remaining > 0 ? `${c.remaining} left` : 'Sold out');
 /* ---------- A. Cascade ---------- */
 const TILE_H = [170, 120, 150, 130, 190, 140];
 function renderCascade(skip) {
-  const wrap = h('div', 'cascade');
+  const tiered = deck.wall.layout === 'featured'; // Featured + Cascade sizes each card by sponsor package
+  const wrap = h('div', tiered ? 'cascade tiered' : 'cascade');
   const list = offers().filter(o => o.i !== skip);
   list.forEach(({ c, i }) => {
-    const card = h('article', offerCls(c, 'card offer'), null, { 'data-oid': c.id });
+    const card = h('article', offerCls(c, 'card offer') + (tiered ? ' t-' + c.tier : ''), null, { 'data-oid': c.id });
     const tile = mediaTile(c); tile.style.height = (photosOf(c).length ? 210 : TILE_H[i % TILE_H.length]) + 'px';
     const r1 = add(h('div', 'between'), tagRow(c), h('span', 'mono', leftText(c)));
     const r2 = add(h('div', 'between'), h('p', 'label typ', c.role || c.where), h('span', 'mono', 'SLOT ' + slotNo(i)));
     const perk = h('p', 'cap'); add(perk, h('span', 'star', '✳ ', { 'aria-hidden': 'true' }), document.createTextNode(c.limit));
-    add(card, tile, r1, r2, h('h3', 'disp', c.brand), h('p', 'sum', c.short), perk, h('div', 'rule'),
+    add(card, tile, r1, r2, h('h3', 'disp', c.brand), h('p', 'sum', c.short), tiered && c.tier === 'partner' ? h('p', 'long', c.long) : null, perk, h('div', 'rule'),
       add(h('div', 'kv cap'), h('span', null, 'Valid'), h('span', null, valid(c))),
       add(h('div', 'kv cap'), h('span', null, 'Where'), h('span', null, c.where)),
       ctaBtn('View offer', () => openDetail(i, card)));
