@@ -11,6 +11,7 @@ const SIM = 'Simulated example for this prototype. Not a real offer and cannot b
    Every offer below is a simulated example written for this prototype. */
 const SAMPLE = [
   { id: 'CVR', brand: 'Casa Verde Ramos', role: 'Venue partner', featured: true, site: 'https://www.casaverde.ph/', logoSrc: 'shared/sponsors/casa-verde.png',
+    photos: ['shared/photos/casa-verde-1.jpg', 'shared/photos/casa-verde-2.jpg', 'shared/photos/casa-verde-3.jpg'],
     mark: 'CV', shape: 'circle', color: '#037732', bpm: 72, type: 'Freebie', short: 'A free dessert with any main course.', from: '11/19', to: '12/19', year: '2026',
     remaining: 96, total: 150, where: '69 Lim Tian Teng St., Cebu City', limit: '1 per ticket',
     long: 'Come back after the show. Order any main course at Casa Verde and a dessert from the regular menu is included.',
@@ -59,10 +60,12 @@ function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt
 const SHAPES = ['circle', 'pill', 'diamond', 'hex', 'squircle', 'star', 'shield', 'octagon', 'ring', 'tri'];
 const TYPES = ['Option', 'Discount', 'Freebie'];
 
-const EDIT_KEYS = ['brand', 'mark', 'shape', 'color', 'bpm', 'type', 'short', 'from', 'to', 'year', 'remaining', 'total', 'where', 'limit', 'long', 'terms', 'logoImg', 'featured'];
+const EDIT_KEYS = ['brand', 'mark', 'shape', 'color', 'bpm', 'type', 'short', 'from', 'to', 'year', 'remaining', 'total', 'where', 'limit', 'long', 'terms', 'logoImg', 'featured', 'photos'];
 const LIMITS = { brand: 40, mark: 3, short: 64, from: 5, to: 5, year: 11, where: 40, limit: 30, long: 420 };
 function sanitize(c) {
   for (const k of Object.keys(LIMITS)) c[k] = String(c[k] ?? '').slice(0, LIMITS[k]);
+  // up to 5 photos: uploaded images (data URLs) or files shipped under shared/photos/
+  c.photos = (Array.isArray(c.photos) ? c.photos : []).filter(p => typeof p === 'string' && (/^data:image\/(jpeg|png|webp);base64,/.test(p) || /^shared\/photos\/[\w.-]+$/.test(p))).slice(0, 5);
   c.featured = c.featured === true; // partners and top-tier sponsors carry a Featured badge
   if (!c.brand.trim()) c.brand = 'Untitled sponsor';
   if (!c.mark.trim()) c.mark = c.brand.slice(0, 2);

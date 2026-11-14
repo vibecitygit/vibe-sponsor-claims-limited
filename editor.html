@@ -90,6 +90,14 @@ input[type=text], input[type=number], select, textarea {
 textarea { resize: vertical; min-height: 72px; }
 input[type=color] { width: 100%; height: 39px; padding: 2px; border-radius: 3px; border: 1px solid var(--line-strong); background: var(--night); }
 .dim { opacity: 0.45; }
+.photos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.photos .ph, .photos .addph { position: relative; aspect-ratio: 4 / 3; border: 1px solid var(--line-strong); background: var(--night); overflow: hidden; }
+.photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photos .rm { position: absolute; top: 0; right: 0; width: 28px; height: 28px; appearance: none; border: 0; cursor: pointer; background: rgba(11,11,11,.75); color: #fff; font: 400 16px/1 var(--font-body); }
+.photos .addph { display: grid; place-items: center; cursor: pointer; color: var(--muted); font: 700 11px/1.2 var(--font-body); letter-spacing: .08em; text-transform: uppercase; text-align: center; border-style: dashed; }
+.photos .addph:hover { color: var(--fg); border-color: var(--fg); }
+.photos .addph input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.photos .addph:focus-within { outline: 2px solid var(--ember); outline-offset: 2px; }
 .tabs { display: flex; flex-wrap: wrap; gap: 4px 16px; font: 700 12px/1.25 var(--font-body); letter-spacing: .08em; text-transform: uppercase; }
 .tabs a { text-decoration: none; color: var(--muted); padding: 8px 0; }
 .tabs a:hover { color: var(--fg); }
@@ -255,6 +263,11 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
       </div>
       <label class="field"><span class="lbl">Full description (back of the coupon)</span><textarea id="long" maxlength="420" rows="3"></textarea></label>
       <label class="field"><span class="lbl">Terms, one per line</span><textarea id="terms" rows="4"></textarea></label>
+      <div class="field" data-ctx="wall">
+        <div class="sec-head"><span class="lbl" id="phLbl">Photos (offer wall)</span><span class="lbl" id="phCount">0 / 5</span></div>
+        <div class="photos" id="photos" role="group" aria-labelledby="phLbl"></div>
+        <p class="note">Up to 5 per offer. With no photos the card shows the logo. Photos are resized before saving.</p>
+      </div>
       <label class="check" data-ctx="wall"><input type="checkbox" id="featured">Featured badge (event partners and ₱5,000 sponsors). Featured sponsors take turns in the top spot.</label>
       <div class="btns"><button type="button" class="sbtn" id="resetCard">Reset this card</button></div>
     </form>
@@ -364,13 +377,48 @@ const FIELDS = ['brand', 'mark', 'shape', 'color', 'type', 'short', 'from', 'to'
 function fillForm() {
   const c = deck.coupons[cur];
   FIELDS.forEach(k => { $(k).value = c[k]; });
-  $('terms').value = c.terms.join('\n'); $('featured').checked = !!c.featured;
+  $('terms').value = c.terms.join('\n'); $('featured').checked = !!c.featured; renderPhotos();
   $('bpmOut').textContent = c.bpm;
   $('tLogo').src = c._logoURL; $('tName').textContent = c.brand;
   $('tState').textContent = cur < deck.count ? `Card ${cur + 1} · on the table` : `Card ${cur + 1} · off the table (raise the deck size to ${cur + 1})`;
   $('monoFields').classList.toggle('dim', !!c._img);
   $('useMono').hidden = !c.logoImg;
   $('useMono').textContent = c.logoSrc ? 'Use sponsor logo' : 'Use monogram';
+}
+/* ---------- Photos (up to 5 per offer) ---------- */
+function renderPhotos() {
+  const c = deck.coupons[cur], box = $('photos'); box.replaceChildren();
+  c.photos.forEach((src, k) => {
+    const cell = document.createElement('div'); cell.className = 'ph';
+    const im = document.createElement('img'); im.src = src; im.alt = `Photo ${k + 1}`;
+    const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'rm'; rm.textContent = '×'; rm.setAttribute('aria-label', `Remove photo ${k + 1}`);
+    rm.addEventListener('click', () => { c.photos.splice(k, 1); renderPhotos(); persist(true); });
+    cell.append(im, rm); box.appendChild(cell);
+  });
+  if (c.photos.length < 5) {
+    const lab = document.createElement('label'); lab.className = 'addph'; lab.textContent = 'Add photo';
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/webp'; inp.multiple = true; inp.setAttribute('aria-label', 'Add photos');
+    inp.addEventListener('change', () => addPhotos([...inp.files]));
+    lab.appendChild(inp); box.appendChild(lab);
+  }
+  $('phCount').textContent = `${c.photos.length} / 5`;
+}
+function addPhotos(files) {
+  const c = deck.coupons[cur], room = 5 - c.photos.length;
+  const imgs = files.filter(f => f.type.startsWith('image/')).slice(0, room);
+  if (files.length > room) toast(`Only ${room} more photo${room === 1 ? '' : 's'} fit${room === 1 ? 's' : ''}; the rest were skipped`);
+  Promise.all(imgs.map(f => new Promise(res => {
+    const r = new FileReader();
+    r.onload = () => { const im = new Image(); im.onload = () => {
+      const k = Math.min(1, 960 / Math.max(im.width, im.height)), cv = document.createElement('canvas');
+      cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k);
+      cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); res(cv.toDataURL('image/jpeg', 0.76));
+    }; im.onerror = () => res(null); im.src = r.result; };
+    r.onerror = () => res(null); r.readAsDataURL(f);
+  }))).then(urls => {
+    const ok = urls.filter(Boolean); if (!ok.length) { toast('Those files could not be read as images'); return; }
+    c.photos.push(...ok); renderPhotos(); persist(true);
+  });
 }
 function readForm() {
   const c = deck.coupons[cur];

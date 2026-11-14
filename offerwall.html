@@ -224,6 +224,25 @@ dialog { z-index: 1000; will-change: transform; touch-action: none; }
 .dmain h1 { font-size: 42px; letter-spacing: -.025em; }
 .dmain p { margin: 0; color: var(--soft); }
 .dlogo { height: 150px; }
+/* ---------- Photos: up to 5 per offer. One transition for every carousel (cross-fade with a slow
+   settle); the timing is what varies, so cards change one at a time and draw the eye in turn. ---------- */
+.media { position: relative; overflow: hidden; border-radius: 8px; background: var(--tile); isolation: isolate; }
+.media .ph { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transform: scale(1.07); transition: opacity .8s ease, transform 5.2s cubic-bezier(.2, .6, .2, 1); }
+.media .ph.on { opacity: 1; transform: scale(1); z-index: 1; }
+.media .chip-logo { position: absolute; left: 10px; bottom: 10px; z-index: 3; width: 64px; height: 44px; border-radius: 6px; background: #ffffff; box-shadow: 0 2px 10px rgba(0,0,0,.35); }
+.media .chip-logo.plate-dark { background: #0b0b0b; }
+.media .chip-logo img { position: absolute; top: 12%; left: 10%; width: 80%; height: 76%; object-fit: contain; }
+.media .dots { position: absolute; right: 10px; bottom: 12px; z-index: 3; display: flex; gap: 5px; }
+.media .dots i { width: 14px; height: 3px; background: rgba(255,255,255,.45); transition: background-color .3s, width .3s var(--ease); }
+.media .dots i.on { width: 22px; background: #ffffff; }
+.media::after { content: ""; position: absolute; inset: auto 0 0 0; height: 46%; z-index: 2; pointer-events: none; background: linear-gradient(180deg, transparent, rgba(0,0,0,.42)); }
+.media .nav { position: absolute; top: 50%; z-index: 4; width: 44px; height: 44px; margin-top: -22px; appearance: none; border: 0; cursor: pointer; background: rgba(11,11,11,.55); color: #fff; font: 400 18px/1 "DM Sans", Arial, sans-serif; }
+.media .nav.prev { left: 0; } .media .nav.next { right: 0; }
+.media .nav:hover { background: rgba(11,11,11,.8); }
+.feature .media { border-radius: 0; min-height: 240px; border-right: 1px solid var(--line); }
+.dphoto { height: 260px; }
+@media (max-width: 720px) { .feature .media { border-right: 0; border-bottom: 1px solid var(--line); min-height: 200px; } .dphoto { height: 200px; } }
+@media (prefers-reduced-motion: reduce) { .media .ph { transition: opacity .01s; transform: none; } }
 .dfoot { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding-top: 6px; margin-top: auto; }
 .dfoot .cta { width: auto; gap: 32px; }
 .claimbox { border: 1px solid var(--border); padding: 16px; display: grid; gap: 6px; background: var(--warm); }
@@ -383,6 +402,46 @@ function tagRow(c, label) {
   if (c.featured) add(row, h('span', 'tag flag', 'Featured'));
   return add(row, h('span', claims[c.id] ? 'tag claimed' : 'tag', label || tagText(c)), expiryStub(c));
 }
+const photosOf = c => (c.photos || []).slice(0, 5);
+let carousels = [], dialogCar = null;
+/* A photo carousel for an offer, or its logo tile when it has no photos. `withNav` adds arrows (dialog). */
+function mediaTile(c, cls, withNav) {
+  const ph = photosOf(c);
+  if (!ph.length) return logoTile(c, cls === 'dphoto' ? 'dlogo' : null);
+  const el = h('div', 'media' + (cls ? ' ' + cls : ''));
+  ph.forEach((src, k) => add(el, h('img', 'ph' + (k === 0 ? ' on' : ''), null, { src, alt: k === 0 ? `${c.brand} photo` : '', loading: k === 0 ? 'eager' : 'lazy', draggable: 'false' })));
+  const chip = h('span', 'chip-logo' + (D.plateFor(c, 'light') === 'dark' ? ' plate-dark' : '')); add(chip, h('img', null, null, { src: c._logo, alt: `${c.brand} logo` })); add(el, chip);
+  const car = { el, n: ph.length, at: 0, hover: false };
+  car.go = to => {
+    car.at = (to + car.n) % car.n;
+    el.querySelectorAll('.ph').forEach((im, k) => im.classList.toggle('on', k === car.at));
+    el.querySelectorAll('.dots i').forEach((d, k) => d.classList.toggle('on', k === car.at));
+  };
+  if (ph.length > 1) {
+    const dots = h('span', 'dots', null, { 'aria-hidden': 'true' }); ph.forEach((_, k) => add(dots, h('i', k === 0 ? 'on' : null))); add(el, dots);
+    el.addEventListener('pointerenter', () => { car.hover = true; }); el.addEventListener('pointerleave', () => { car.hover = false; });
+    if (withNav) {
+      const prev = h('button', 'nav prev', '←', { type: 'button', 'aria-label': 'Previous photo' }), next = h('button', 'nav next', '→', { type: 'button', 'aria-label': 'Next photo' });
+      prev.addEventListener('click', () => car.go(car.at - 1)); next.addEventListener('click', () => car.go(car.at + 1)); add(el, prev, next);
+      dialogCar = car;
+    } else carousels.push(car);
+  }
+  return el;
+}
+/* Timing: one wall carousel advances every beat, in turn, and the featured panel takes every other
+   beat. So something is always changing, but only in one place at a time. Hovered, hidden and
+   off-screen carousels wait. The open offer's own photos advance on a slower beat. */
+let beat = 0, turn = 0;
+function tick() {
+  if (document.hidden || reduced) return;
+  if (dlg.open) { if (dialogCar && !dialogCar.hover && beat % 2 === 0 && dialogCar.el.isConnected) dialogCar.go(dialogCar.at + 1); beat++; return; }
+  const live = carousels.filter(c => c.el.isConnected && !c.hover && (r => r.bottom > 0 && r.top < innerHeight)(c.el.getBoundingClientRect()));
+  if (!live.length) return;
+  const feat = live.find(c => c.el.closest('.combo > .feature, .spot > .feature')), rest = live.filter(c => c !== feat);
+  const pick = feat && (beat % 2 === 0 || !rest.length) ? feat : rest[turn++ % Math.max(1, rest.length)];
+  beat++; if (pick) pick.go(pick.at + 1);
+}
+setInterval(tick, 1700);
 const offerCls = (c, base) => base + (isExpiring(c) ? ' expiring' : '');
 function expiryStub(c) {
   const d = daysLeft(c), soon = d >= 0 && d <= 7, ended = d < 0;
@@ -403,7 +462,7 @@ function renderCascade(skip) {
   const list = offers().filter(o => o.i !== skip);
   list.forEach(({ c, i }) => {
     const card = h('article', offerCls(c, 'card offer'), null, { 'data-oid': c.id });
-    const tile = logoTile(c); tile.style.height = TILE_H[i % TILE_H.length] + 'px';
+    const tile = mediaTile(c); tile.style.height = (photosOf(c).length ? 210 : TILE_H[i % TILE_H.length]) + 'px';
     const r1 = add(h('div', 'between'), tagRow(c), h('span', 'mono', leftText(c)));
     const r2 = add(h('div', 'between'), h('p', 'label typ', c.role || c.where), h('span', 'mono', 'SLOT ' + slotNo(i)));
     const perk = h('p', 'cap'); add(perk, h('span', 'star', '✳ ', { 'aria-hidden': 'true' }), document.createTextNode(c.limit));
@@ -499,7 +558,7 @@ function featurePanel(c, i, flagged) {
     h('p', 'label typ', c.role || c.where), h('h3', 'disp', c.brand), h('p', null, c.short), h('p', null, c.long), h('div', 'rule'),
     add(h('div', 'kv cap'), h('span', null, 'Where'), h('span', null, c.where)), add(h('div', 'kv cap'), h('span', null, 'Valid'), h('span', null, valid(c))),
     ctaBtn(claims[c.id] ? 'Show claim' : 'View offer', () => openDetail(i)));
-  return add(feat, logoTile(c), body);
+  return add(feat, mediaTile(c), body);
 }
 /* ---------- Featured + Cascade: this load's featured sponsor on top, everyone else in the wall ---------- */
 function renderFeatured() {
@@ -569,7 +628,8 @@ function fillDetail(i) {
   const body = $('dBody'); body.replaceChildren(); body.scrollTop = 0;
   requestAnimationFrame(() => { body.style.touchAction = body.scrollHeight > body.clientHeight + 1 ? 'pan-y' : 'none'; });
   const main = h('div', 'dmain');
-  add(main, logoTile(c, 'dlogo'),
+  dialogCar = null;
+  add(main, mediaTile(c, 'dphoto', true),
     add(h('div', 'between'), tagRow(c), h('span', 'mono', leftText(c))),
     h('h1', 'disp', c.brand), h('p', null, c.short), h('p', null, c.long), h('div', 'rule'), h('span', 'cap', 'How to claim'), termsList(c));
   add(main, add(h('div', 'dfoot'), claimArea(c, () => { fillDetail(i); render(false); })));
@@ -679,6 +739,7 @@ function nameItems(view) {
   view.querySelectorAll('[data-oid]').forEach(el => { el.style.viewTransitionName = 'o-' + el.dataset.oid; });
 }
 function paint(animate) {
+  carousels = [];
   const w = deck.wall;
   wallEl.dataset.theme = w.theme; wallEl.dataset.cards = w.cards; wallEl.dataset.layout = w.layout;
   document.body.style.background = w.theme === 'light' ? '#ffffff' : '#0b0b0b';
