@@ -105,6 +105,17 @@ const KEY = 'sponsor-drops-deck-v1';
 let channel = null;
 try { channel = new BroadcastChannel(KEY); } catch (e) { channel = null; }
 const sample = () => JSON.parse(JSON.stringify(SAMPLE));
+/* Offer wall display settings, shared by the wall page and the editor. */
+const WALL_LAYOUTS = ['cascade', 'ledger', 'spotlight', 'guide'];
+function wallOf(w) {
+  w = w && typeof w === 'object' ? w : {};
+  return {
+    layout: WALL_LAYOUTS.includes(w.layout) ? w.layout : 'cascade',
+    theme: w.theme === 'light' ? 'light' : 'dark',
+    cards: w.cards === 'white' ? 'white' : 'theme',
+    openSlots: w.openSlots !== false,
+  };
+}
 function normalize(d) {
   const coupons = sample(); let count = coupons.length, theme = 'paper';
   if (d && typeof d === 'object') {
@@ -115,7 +126,7 @@ function normalize(d) {
     if (d.count) count = clamp(Math.round(+d.count) || coupons.length, 1, coupons.length);
   }
   coupons.forEach(sanitize);
-  return { count, theme, coupons };
+  return { count, theme, wall: wallOf(d && d.wall), coupons };
 }
 function load() {
   let d = null;
@@ -124,7 +135,7 @@ function load() {
 }
 /* Returns true when the deck was stored; false when this browser blocks storage. */
 function save(deck) {
-  const payload = { count: deck.count, theme: themeOf(deck.theme), coupons: deck.coupons.map(editable), savedAt: new Date().toISOString() };
+  const payload = { count: deck.count, theme: themeOf(deck.theme), wall: wallOf(deck.wall), coupons: deck.coupons.map(editable), savedAt: new Date().toISOString() };
   let stored = true;
   try { localStorage.setItem(KEY, JSON.stringify(payload)); } catch (e) { stored = false; }
   try { if (channel) channel.postMessage(payload); } catch (e) { /* closed channel */ }
@@ -266,7 +277,7 @@ function logoColor(cv) {
 }
 
 window.DeckCore = Object.freeze({
-  SAMPLE, SHAPES, TYPES, EDIT_KEYS, THEMES, themeOf, stackSize, clamp, sanitize, editable, serialOf, loadImg,
+  SAMPLE, SHAPES, TYPES, EDIT_KEYS, WALL_LAYOUTS, wallOf, THEMES, themeOf, stackSize, clamp, sanitize, editable, serialOf, loadImg,
   load, save, clear, subscribe, sample: () => normalize(null),
   mulberry32, hashStr, shapePath, drawLogo, drawFace, drawUploadedLogo, logoColor,
 });

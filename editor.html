@@ -90,6 +90,25 @@ input[type=text], input[type=number], select, textarea {
 textarea { resize: vertical; min-height: 72px; }
 input[type=color] { width: 100%; height: 39px; padding: 2px; border-radius: 3px; border: 1px solid var(--line-strong); background: var(--night); }
 .dim { opacity: 0.45; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px 16px; font: 700 12px/1.25 var(--font-body); letter-spacing: .08em; text-transform: uppercase; }
+.tabs a { text-decoration: none; color: var(--muted); padding: 8px 0; }
+.tabs a:hover { color: var(--fg); }
+.tabs a[aria-current="page"] { color: var(--ember); box-shadow: inset 0 -2px 0 var(--ember); }
+.ctxbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; max-width: 1180px; margin: 0 auto; padding-block: 18px 0;
+  padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+.ctxbar .note { flex: 1; min-width: 200px; }
+.ctxseg { width: min(360px, 100%); }
+.check { display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--ember); }
+.optgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.optgrid button { appearance: none; cursor: pointer; text-align: left; padding: 12px; background: var(--night); border: 1px solid var(--line-strong); color: var(--fg); display: grid; gap: 4px; }
+.optgrid button strong { font: 800 18px/1 var(--font-display); text-transform: uppercase; }
+.optgrid button span { font-size: 12px; line-height: 1.35; color: var(--muted); }
+.optgrid button[aria-pressed="true"] { border-color: var(--ember); box-shadow: inset 0 0 0 2px var(--ember); }
+.deckprev, .wallprev { display: grid; gap: 14px; justify-items: center; width: 100%; }
+#wallFrame { width: 100%; height: min(70vh, 720px); border: 1px solid var(--line-strong); background: var(--night); display: block; }
+.work.ctx-wall { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); max-width: 1440px; }
+@media (max-width: 900px) { .work.ctx-wall { grid-template-columns: minmax(0, 1fr); } #wallFrame { height: 460px; } }
 .seg2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .seg2 .sbtn[aria-pressed="true"] { background: var(--ember); border-color: var(--ember); color: var(--on-brand); }
 .btns { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -145,14 +164,24 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
 <header class="top">
   <div>
     <span class="mark">Vibe City</span>
-    <h1>Deck <em>Editor</em></h1>
+    <h1>Offer <em>Editor</em></h1>
   </div>
   <div class="top-actions">
     <span class="status" id="status" role="status" aria-live="polite"><i aria-hidden="true"></i><span>Loaded</span></span>
-    <a class="pill" href="preview.html">Site preview ↗</a>
-    <a class="pill primary" href="index.html">View deck ↗</a>
+    <nav class="tabs" aria-label="Prototype pages">
+      <a href="index.html">Card deck</a><a href="offerwall.html">Offer wall</a><a href="editor.html" aria-current="page">Editor</a><a href="preview.html">Site preview</a>
+    </nav>
   </div>
 </header>
+<div class="ctxbar">
+  <span class="lbl" id="ctxLbl">Editing</span>
+  <div class="seg2 ctxseg" role="group" aria-labelledby="ctxLbl">
+    <button type="button" class="sbtn" data-ctx-pick="deck">Card deck</button>
+    <button type="button" class="sbtn" data-ctx-pick="wall">Offer wall</button>
+  </div>
+  <p class="note" id="ctxNote"></p>
+  <a class="pill primary" id="ctxView" href="index.html">View deck ↗</a>
+</div>
 
 <main class="work">
   <div class="panel">
@@ -163,7 +192,18 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
       <p class="note">The deck shows cards 1 to this number. Cards past it stay saved but off the table.</p>
     </section>
 
-    <section class="sec">
+    <section class="sec" data-ctx="wall">
+      <h2>Wall layout</h2>
+      <div class="optgrid" id="wLayout" role="group" aria-label="Wall layout"></div>
+      <div class="g2">
+        <div class="field"><span class="lbl" id="wThemeLbl">Page theme</span><div class="seg2" id="wTheme" role="group" aria-labelledby="wThemeLbl"></div></div>
+        <div class="field"><span class="lbl" id="wCardsLbl">Card stock</span><div class="seg2" id="wCards" role="group" aria-labelledby="wCardsLbl"></div></div>
+      </div>
+      <label class="check"><input type="checkbox" id="wSlots">Show open sponsor slots and the founding partner card (Cascade layout)</label>
+      <p class="note">White brand cards keep every card neutral white, so sponsor logos sit on their own background on either page theme.</p>
+    </section>
+
+    <section class="sec" data-ctx="deck">
       <div class="sec-head"><span class="lbl" id="themeLbl">Card style</span><span class="lbl" id="themeOut"></span></div>
       <div class="seg2" role="group" aria-labelledby="themeLbl">
         <button type="button" class="sbtn" data-theme="paper">Paper · light</button>
@@ -205,7 +245,7 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
         <label class="field"><span class="lbl">Remaining</span><input type="number" id="remaining" min="0" max="9999" inputmode="numeric"></label>
         <label class="field"><span class="lbl">Total issued</span><input type="number" id="total" min="1" max="9999" inputmode="numeric"></label>
       </div>
-      <div class="field">
+      <div class="field" data-ctx="deck">
         <div class="sec-head"><label class="lbl" for="bpm">Logo beat (BPM)</label><span class="lbl" id="bpmOut">90</span></div>
         <input type="range" id="bpm" min="40" max="180" step="1">
       </div>
@@ -233,7 +273,12 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
     </section>
   </div>
 
-  <aside class="preview" aria-label="Live coupon preview">
+  <aside class="preview" aria-label="Live preview">
+    <div class="wallprev" data-ctx="wall">
+      <div class="preview-head"><span class="lbl">Preview · offer wall</span><span class="lbl" id="wPrevInfo"></span></div>
+      <iframe id="wallFrame" title="Offer wall preview" loading="lazy"></iframe>
+    </div>
+    <div class="deckprev" data-ctx="deck">
     <div class="preview-head"><span class="lbl" id="pLabel">Preview</span><span class="lbl">Front of coupon</span></div>
     <div class="remain"><b id="pRemain">0</b><span id="pTotal">of 0 remaining</span><span class="meter"><i id="pMeter"></i></span></div>
     <div class="pcard" id="pcard">
@@ -254,6 +299,7 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
           <span class="btn btn-ghost">Terms →</span>
         </div>
       </div>
+    </div>
     </div>
     <p class="note">Changes save as you type. The deck page reloads from them when it opens, and updates live in tabs that are already open.</p>
   </aside>
@@ -444,8 +490,42 @@ function renderTheme() {
 document.querySelectorAll('.seg2 [data-theme]').forEach(b => b.addEventListener('click', () => {
   deck.theme = b.dataset.theme; renderAll(); persist(true);
 }));
+/* ---------- Editing context: the same offers, shown as a card deck or an offer wall ---------- */
+const CTX = { deck: { note: 'Offers as 3D coupon stacks. Settings below apply to the deck.', view: ['index.html', 'View deck ↗'], count: 'Coupons in the deck' },
+  wall: { note: 'Offers as a browsable wall. Settings below apply to the wall.', view: ['offerwall.html', 'View offer wall ↗'], count: 'Offers on the wall' } };
+let ctx = location.hash === '#wall' ? 'wall' : 'deck';
+try { if (!location.hash) ctx = localStorage.getItem('sponsor-drops-editor-ctx') === 'wall' ? 'wall' : 'deck'; } catch (e) { /* blocked */ }
+function setCtx(next) {
+  ctx = next;
+  try { localStorage.setItem('sponsor-drops-editor-ctx', ctx); } catch (e) { /* blocked */ }
+  document.querySelectorAll('[data-ctx]').forEach(el => { el.hidden = el.dataset.ctx !== ctx; });
+  document.querySelectorAll('[data-ctx-pick]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ctxPick === ctx)));
+  document.querySelector('.work').classList.toggle('ctx-wall', ctx === 'wall');
+  $('ctxNote').textContent = CTX[ctx].note;
+  $('ctxView').href = CTX[ctx].view[0]; $('ctxView').textContent = CTX[ctx].view[1];
+  document.querySelector('label[for="countRange"]').textContent = CTX[ctx].count;
+  if (ctx === 'wall' && !$('wallFrame').src) $('wallFrame').src = 'offerwall.html#preview';
+}
+document.querySelectorAll('[data-ctx-pick]').forEach(b => b.addEventListener('click', () => setCtx(b.dataset.ctxPick)));
+
+const WALL_OPTS = {
+  layout: [['cascade', 'Cascade', 'Masonry wall from the design bundle, with open slots.'], ['ledger', 'Ledger', 'Quiet rows that open in place.'], ['spotlight', 'Spotlight', 'One featured offer, the rest in a rail.'], ['guide', 'Field guide', 'Research-led: benefit first, even grid.']],
+  theme: [['dark', 'Dark'], ['light', 'White']], cards: [['theme', 'Match theme'], ['white', 'White brand']] };
+function buildWallControls() {
+  WALL_OPTS.layout.forEach(([v, name, blurb]) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.v = v; b.innerHTML = '<strong></strong><span></span>'; b.querySelector('strong').textContent = name; b.querySelector('span').textContent = blurb;
+    b.addEventListener('click', () => { deck.wall.layout = v; renderWallControls(); persist(true); }); $('wLayout').appendChild(b); });
+  [['wTheme', 'theme'], ['wCards', 'cards']].forEach(([id, key]) => WALL_OPTS[key].forEach(([v, name]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'sbtn'; b.dataset.v = v; b.textContent = name;
+    b.addEventListener('click', () => { deck.wall[key] = v; renderWallControls(); persist(true); }); $(id).appendChild(b); }));
+  $('wSlots').addEventListener('change', e => { deck.wall.openSlots = e.target.checked; renderWallControls(); persist(true); });
+}
+function renderWallControls() {
+  const w = deck.wall;
+  [['wLayout', 'layout'], ['wTheme', 'theme'], ['wCards', 'cards']].forEach(([id, key]) => [...$(id).children].forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === w[key]))));
+  $('wSlots').checked = w.openSlots;
+  $('wPrevInfo').textContent = `${WALL_OPTS.layout.find(l => l[0] === w.layout)[1]} · ${w.theme === 'light' ? 'White' : 'Dark'}`;
+}
 function renderAll() {
-  renderTheme();
+  renderTheme(); renderWallControls();
   deck.coupons.forEach(renderArt);
   $('countRange').value = deck.count; $('countOut').textContent = deck.count;
   renderPicker(); fillForm(); renderPreview();
@@ -459,6 +539,7 @@ async function boot() {
     ]);
   } catch (e) { /* system fonts */ }
   await Promise.all(deck.coupons.map(D.loadImg));
+  buildWallControls(); setCtx(ctx);
   renderAll();
   // redraw once the fonts arrive if they were still loading
   if (!document.fonts.check('900 20px "Barlow Condensed"')) document.fonts.load('900 80px "Barlow Condensed"').then(renderAll).catch(() => {});
