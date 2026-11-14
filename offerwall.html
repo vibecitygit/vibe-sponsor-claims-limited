@@ -119,7 +119,6 @@ a { color: inherit; }
   background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 0%), color-mix(in srgb, var(--brand) 14%, transparent), transparent 70%); }
 .card.offer:hover::after, .feature:hover::after { opacity: 1; }
 .cta:active, .chip:active, .seg button:active, .rail-item:active, .rowhead:active { transform: scale(.98); }
-.sechead { position: sticky; top: 0; z-index: 5; padding: 10px 0; margin: -10px 0; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .count { color: var(--muted); margin-left: 10px; font: 400 12px/1 var(--mono); letter-spacing: 0; vertical-align: middle; }
 ::view-transition-group(*) { animation-duration: .32s; animation-timing-function: cubic-bezier(.23, 1, .32, 1); }
 ::view-transition-old(*), ::view-transition-new(*) { animation-duration: .2s; }
@@ -198,12 +197,19 @@ a { color: inherit; }
 
 /* ---------- Detail dialog (from the bundle's Offer Detail) ---------- */
 dialog { position: fixed; inset: 0; margin: auto; width: min(960px, calc(100vw - 24px)); height: fit-content; max-height: min(840px, calc(100vh - 24px)); padding: 0; border: 1px solid var(--border); border-radius: 3px; background: var(--card); color: var(--ink); box-shadow: var(--shadow); overflow: hidden; }
-dialog::backdrop { background: rgba(0,0,0,.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+@keyframes backdropIn { from { opacity: 0; } }
+dialog::backdrop { animation: backdropIn .3s ease-out; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
 dialog[open] { display: flex; flex-direction: column; }
 .dhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 28px; border-bottom: 1px solid var(--line); }
 .dhead p { margin: 0; font: 600 22px/1 var(--display); letter-spacing: .18em; text-transform: uppercase; }
 .x { appearance: none; background: none; border: 0; cursor: pointer; color: var(--muted); font: 400 22px/1 "DM Sans", Arial, sans-serif; width: 44px; height: 44px; }
 .x:hover { color: var(--ink); }
+.dnav { display: flex; align-items: center; gap: 2px; flex: none; }
+dialog { z-index: 1000; will-change: transform; touch-action: pan-y; }
+.dhead { touch-action: none; cursor: grab; }
+.dbody { will-change: transform, opacity; }
+.swipehint { margin: 0; text-align: center; padding: 0 0 12px; display: none; }
+@media (pointer: coarse) { .swipehint { display: block; } }
 .dbody { overflow: auto; min-height: 0; flex: 1; display: grid; align-items: start; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 24px; padding: 24px 28px 28px; }
 .dmain { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .dmain h1 { font-size: 42px; letter-spacing: -.025em; }
@@ -288,8 +294,11 @@ html.preview .stagewrap { border-top: 0; padding: 16px 16px 24px; }
   </footer>
 
   <dialog id="detail" aria-labelledby="dTitle">
-    <div class="dhead"><p id="dTitle"></p><button class="x" id="dClose" aria-label="Close offer">×</button></div>
+    <div class="dhead"><p id="dTitle"></p>
+      <div class="dnav"><button class="x" id="dPrev" aria-label="Previous offer">←</button><span class="mono" id="dPos" aria-live="polite"></span><button class="x" id="dNext" aria-label="Next offer">→</button><button class="x" id="dClose" aria-label="Close offer">×</button></div>
+    </div>
     <div class="dbody" id="dBody"></div>
+    <p class="cap swipehint">Swipe left or right for more offers · pull the title bar down to close</p>
   </dialog>
 </div>
 
@@ -385,7 +394,7 @@ function renderCascade(skip) {
     add(card, tile, r1, r2, h('h3', 'disp', c.brand), h('p', 'sum', c.short), perk, h('div', 'rule'),
       add(h('div', 'kv cap'), h('span', null, 'Valid'), h('span', null, valid(c))),
       add(h('div', 'kv cap'), h('span', null, 'Where'), h('span', null, c.where)),
-      ctaBtn('View offer', () => openDetail(i)));
+      ctaBtn('View offer', () => openDetail(i, card)));
     add(wrap, card);
   });
   if (deck.wall.openSlots && (filter === 'all' || filter === 'open')) OPEN.forEach((o, k) => {
@@ -535,30 +544,108 @@ function renderGuide() {
   return wrap;
 }
 
-/* ---------- Detail dialog ---------- */
+/* ---------- Detail dialog: grows out of the card you opened; swipe or arrow through offers ---------- */
 const dlg = $('detail');
-function openDetail(i) {
+let dList = [], dAt = 0, dFrom = null, dBusy = false;
+function fillDetail(i) {
   const c = deck.coupons[i];
   $('dTitle').textContent = `Partner offer · ${c.brand}`;
-  const fill = () => {
-    const body = $('dBody'); body.replaceChildren();
-    const main = h('div', 'dmain');
-    add(main, logoTile(c, 'dlogo'),
-      add(h('div', 'between'), add(h('span', 'stubrow'), h('span', claims[c.id] ? 'tag claimed' : 'tag', tagText(c)), expiryStub(c)), h('span', 'mono', leftText(c))),
-      h('h1', 'disp', c.brand), h('p', null, c.short), h('p', null, c.long), h('div', 'rule'), h('span', 'cap', 'How to claim'), termsList(c));
-    add(main, add(h('div', 'dfoot'), claimArea(c, () => { fill(); render(false); })));
-    add(body, main, sidePanel(c));
-  };
-  fill();
-  if (!dlg.open) dlg.showModal();
-  if (!reduced) gsap.fromTo(dlg, { opacity: 0, y: 10, scale: 0.985 }, { opacity: 1, y: 0, scale: 1, duration: 0.22, ease: 'power3.out' });
+  $('dPos').textContent = `${dAt + 1} / ${dList.length}`;
+  $('dPrev').disabled = $('dNext').disabled = dList.length < 2;
+  const body = $('dBody'); body.replaceChildren(); body.scrollTop = 0;
+  const main = h('div', 'dmain');
+  add(main, logoTile(c, 'dlogo'),
+    add(h('div', 'between'), add(h('span', 'stubrow'), h('span', claims[c.id] ? 'tag claimed' : 'tag', tagText(c)), expiryStub(c)), h('span', 'mono', leftText(c))),
+    h('h1', 'disp', c.brand), h('p', null, c.short), h('p', null, c.long), h('div', 'rule'), h('span', 'cap', 'How to claim'), termsList(c));
+  add(main, add(h('div', 'dfoot'), claimArea(c, () => { fillDetail(i); render(false); })));
+  add(body, main, sidePanel(c));
 }
-$('dClose').addEventListener('click', () => dlg.close());
+const cardFor = i => stage.querySelector(`[data-oid="${deck.coupons[i].id}"]`);
+function openDetail(i, fromEl) {
+  dList = offers().map(o => o.i); if (!dList.includes(i)) dList = [i];
+  dAt = dList.indexOf(i); dFrom = fromEl || cardFor(i);
+  fillDetail(i);
+  if (!dlg.open) dlg.showModal();
+  if (reduced) return;
+  gsap.killTweensOf([dlg, $('dBody')]);
+  gsap.set(dlg, { clearProps: 'transform,opacity' });
+  // FLIP: start at the card's box, settle into the dialog's own box
+  const to = dlg.getBoundingClientRect(), from = dFrom && dFrom.isConnected ? dFrom.getBoundingClientRect() : null;
+  if (from && from.width > 0) {
+    gsap.fromTo(dlg, { x: from.left - to.left, y: from.top - to.top, scaleX: from.width / to.width, scaleY: from.height / to.height, transformOrigin: '0 0', opacity: 1 },
+      { x: 0, y: 0, scaleX: 1, scaleY: 1, opacity: 1, duration: 0.5, ease: 'expo.out', clearProps: 'transform' });
+  } else gsap.fromTo(dlg, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power3.out', clearProps: 'transform' });
+  gsap.fromTo([dlg.querySelector('.dhead'), $('dBody')], { opacity: 0 }, { opacity: 1, duration: 0.3, delay: 0.14, ease: 'power1.out' });
+}
+function closeDetail() {
+  if (!dlg.open || dBusy) return;
+  const target = cardFor(dList[dAt]);
+  if (reduced || !target) { dlg.close(); return; }
+  dBusy = true;
+  const from = dlg.getBoundingClientRect(), to = target.getBoundingClientRect();
+  gsap.to([dlg.querySelector('.dhead'), $('dBody')], { opacity: 0, duration: 0.12 });
+  gsap.to(dlg, { x: to.left - from.left, y: to.top - from.top, scaleX: to.width / from.width, scaleY: to.height / from.height, transformOrigin: '0 0', opacity: 0, duration: 0.3, ease: 'power3.inOut',
+    onComplete: () => { dlg.close(); gsap.set([dlg, dlg.querySelector('.dhead'), $('dBody')], { clearProps: 'all' }); dBusy = false; } });
+}
+/* step to the next or previous offer; the content slides out one way and in from the other */
+function stepDetail(dir) {
+  if (dList.length < 2 || dBusy) return;
+  dAt = (dAt + dir + dList.length) % dList.length;
+  const body = $('dBody'), swap = () => fillDetail(dList[dAt]);
+  if (reduced) { swap(); return; }
+  dBusy = true;
+  gsap.to(body, { x: -40 * dir, opacity: 0, duration: 0.14, ease: 'power2.in', onComplete: () => {
+    swap(); gsap.fromTo(body, { x: 40 * dir, opacity: 0 }, { x: 0, opacity: 1, duration: 0.26, ease: 'power3.out', clearProps: 'transform', onComplete: () => { dBusy = false; } });
+  } });
+  gsap.set(dlg, { clearProps: 'transform' });
+}
+$('dClose').addEventListener('click', closeDetail);
+$('dPrev').addEventListener('click', () => stepDetail(-1));
+$('dNext').addEventListener('click', () => stepDetail(1));
+dlg.addEventListener('cancel', e => { e.preventDefault(); closeDetail(); });
+document.addEventListener('keydown', e => {
+  if (!dlg.open || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  if (e.key === 'ArrowRight') stepDetail(1); else if (e.key === 'ArrowLeft') stepDetail(-1);
+  else if (e.key === 'Escape') { e.preventDefault(); closeDetail(); }
+});
+/* swipe: the sheet follows the finger; past the threshold it changes offer (sideways) or closes (down) */
+let sw = null;
+dlg.addEventListener('pointerdown', e => {
+  if (dBusy || e.target.closest('button, a, input, select, textarea')) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  sw = { x: e.clientX, y: e.clientY, axis: null, id: e.pointerId, head: !!e.target.closest('.dhead') };
+});
+dlg.addEventListener('pointermove', e => {
+  if (!sw || e.pointerId !== sw.id) return;
+  const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
+  if (!sw.axis) {
+    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+    sw.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : (dy > 0 && sw.head ? 'y' : 'none'); // pull down from the header to close; the body scrolls normally
+    if (sw.axis !== 'none') { try { dlg.setPointerCapture(sw.id); } catch (err) { /* not capturable */ } }
+  }
+  if (sw.axis === 'x') { gsap.set(dlg, { x: dx * 0.9, rotation: dx * 0.01, opacity: 1 - Math.min(0.4, Math.abs(dx) / 600) }); e.preventDefault(); }
+  else if (sw.axis === 'y') gsap.set(dlg, { y: Math.max(0, dy), opacity: 1 - Math.min(0.5, Math.max(0, dy) / 500) });
+});
+function endSwipe(e) {
+  if (!sw || e.pointerId !== sw.id) return;
+  const dx = e.clientX - sw.x, dy = e.clientY - sw.y, axis = sw.axis; sw = null;
+  if (axis === 'x' && Math.abs(dx) > 70 && dList.length > 1) {
+    const dir = dx < 0 ? 1 : -1;
+    dBusy = true;
+    gsap.to(dlg, { x: -dir * innerWidth * 0.5, opacity: 0, duration: 0.16, ease: 'power2.in', onComplete: () => {
+      dAt = (dAt + dir + dList.length) % dList.length; fillDetail(dList[dAt]);
+      gsap.fromTo(dlg, { x: dir * innerWidth * 0.35, rotation: 0, opacity: 0 }, { x: 0, opacity: 1, duration: 0.3, ease: 'power3.out', clearProps: 'transform', onComplete: () => { dBusy = false; } });
+    } });
+  } else if (axis === 'y' && dy > 110) {
+    gsap.to(dlg, { y: innerHeight * 0.4, opacity: 0, duration: 0.2, ease: 'power2.in', onComplete: () => { dlg.close(); gsap.set(dlg, { clearProps: 'all' }); } });
+  } else if (axis === 'x' || axis === 'y') gsap.to(dlg, { x: 0, y: 0, rotation: 0, opacity: 1, duration: 0.3, ease: 'power3.out', clearProps: 'transform' });
+}
+dlg.addEventListener('pointerup', endSwipe); dlg.addEventListener('pointercancel', endSwipe);
 stage.addEventListener('pointermove', e => {
   const el = e.target.closest('.card.offer, .feature'); if (!el) return;
   const r = el.getBoundingClientRect(); el.style.setProperty('--mx', (e.clientX - r.left) + 'px'); el.style.setProperty('--my', (e.clientY - r.top) + 'px');
 }, { passive: true });
-dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+dlg.addEventListener('click', e => { if (e.target === dlg && !sw) closeDetail(); });
 
 /* ---------- Render ---------- */
 const LAYOUTS = { featured: ['Featured + Cascade', renderFeatured, 'The offers wall'], cascade: ['Cascade', renderCascade, 'The offers wall'], ledger: ['Ledger', renderLedger, 'The offers list'], spotlight: ['Spotlight', renderSpotlight, 'Tonight’s pick'], guide: ['Field guide', renderGuide, 'Show your ticket'] };
