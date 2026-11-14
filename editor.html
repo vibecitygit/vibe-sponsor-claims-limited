@@ -65,7 +65,7 @@ output.count { font: 900 34px/1 var(--font-display); color: var(--ember); font-v
 input[type=range] { width: 100%; accent-color: var(--ember); }
 .ticks { display: flex; justify-content: space-between; font: 400 10px/1 var(--font-body); color: var(--muted); }
 
-.picker { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; }
+.picker { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
 .pick {
   position: relative; aspect-ratio: 1; padding: 6px; cursor: pointer; display: grid; place-items: center;
   background: var(--warm); border: 1px solid var(--line-strong); border-radius: 0;
@@ -187,8 +187,8 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
   <div class="panel">
     <section class="sec">
       <div class="sec-head"><label class="lbl" for="countRange">Coupons in the deck</label><output class="count" id="countOut" for="countRange">10</output></div>
-      <input type="range" id="countRange" min="1" max="10" step="1" value="10">
-      <div class="ticks" aria-hidden="true"><span>1</span><span>5</span><span>10</span></div>
+      <input type="range" id="countRange" min="1" max="8" step="1" value="8">
+      <div class="ticks" aria-hidden="true"><span>1</span><span id="tickMax">8</span></div>
       <p class="note">The deck shows cards 1 to this number. Cards past it stay saved but off the table.</p>
     </section>
 
@@ -231,7 +231,7 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
           <option value="star">Burst</option><option value="shield">Shield</option><option value="octagon">Octagon</option><option value="ring">Ring</option><option value="tri">Triangle</option></select></label>
         <label class="field"><span class="lbl">Colour</span><input type="color" id="color"></label>
       </div>
-      <label class="field"><span class="lbl">Brand name</span><input type="text" id="brand" maxlength="24"></label>
+      <label class="field"><span class="lbl">Brand name</span><input type="text" id="brand" maxlength="40"></label>
       <label class="field"><span class="lbl">Short description</span><input type="text" id="short" maxlength="64"></label>
       <div class="g2">
         <label class="field"><span class="lbl">Promotion type</span><select id="type"><option>Option</option><option>Discount</option><option>Freebie</option></select></label>
@@ -260,7 +260,7 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
 
     <section class="sec">
       <h2>Deck data</h2>
-      <p class="note">The same JSON a site connector would send: an array of up to 10 coupons, in table order. Its length sets the deck size.</p>
+      <p class="note">The same JSON a site connector would send: an array of up to 8 coupons, in table order. Its length sets the deck size.</p>
       <div class="btns">
         <button type="button" class="sbtn" id="copyJson">Copy deck JSON</button>
         <button type="button" class="sbtn" id="resetAll">Reset to sample offers</button>
@@ -335,7 +335,7 @@ function toast(msg) {
 }
 
 /* ---------- Art ---------- */
-function logoCanvas(c) { return c._img ? D.drawUploadedLogo(c._img) : D.drawLogo(c); }
+function logoCanvas(c) { return D.logoCanvasFor(c, deck.theme === 'dark' ? 'dark' : 'light'); }
 function renderArt(c) {
   c._logoURL = logoCanvas(c).toDataURL();
   c._faceURL = D.drawFace(c, D.serialOf(c), false, deck.theme).toDataURL('image/jpeg', 0.88);
@@ -367,8 +367,9 @@ function fillForm() {
   $('bpmOut').textContent = c.bpm;
   $('tLogo').src = c._logoURL; $('tName').textContent = c.brand;
   $('tState').textContent = cur < deck.count ? `Card ${cur + 1} · on the table` : `Card ${cur + 1} · off the table (raise the deck size to ${cur + 1})`;
-  $('monoFields').classList.toggle('dim', !!c.logoImg);
+  $('monoFields').classList.toggle('dim', !!c._img);
   $('useMono').hidden = !c.logoImg;
+  $('useMono').textContent = c.logoSrc ? 'Use sponsor logo' : 'Use monogram';
 }
 function readForm() {
   const c = deck.coupons[cur];
@@ -384,7 +385,7 @@ function renderPreview() {
   $('pcard').style.setProperty('--brand', c.color);
   $('pArt').style.backgroundImage = `url(${c._faceURL})`;
   $('pEyebrow').textContent = `${c.type} offer`;
-  $('pName').textContent = c.brand;
+  $('pName').textContent = c.brand; $('pName').style.fontSize = c.brand.length > 26 ? 'calc(var(--u) * 5.8)' : c.brand.length > 16 ? 'calc(var(--u) * 7.2)' : '';
   $('pLogo').src = c._logoURL; $('pLogo').alt = `${c.brand} logo`;
   $('pShort').textContent = c.short;
   $('pType').textContent = c.type;
@@ -433,13 +434,13 @@ $('logoFile').addEventListener('change', e => {
   r.readAsDataURL(file);
 });
 $('useMono').addEventListener('click', () => {
-  const c = deck.coupons[cur]; c.logoImg = null; c._img = null;
-  renderArt(c); fillForm(); refreshCurrent(false); persist(true);
+  const c = deck.coupons[cur]; c.logoImg = null;
+  D.loadImg(c).then(() => { renderArt(c); fillForm(); refreshCurrent(false); persist(true); });
 });
 $('resetCard').addEventListener('click', () => {
   const fresh = D.sample().coupons[cur];
-  deck.coupons[cur] = fresh; renderArt(fresh); fillForm(); refreshCurrent(false); persist(true);
-  toast(`Card ${cur + 1} reset`);
+  deck.coupons[cur] = fresh;
+  D.loadImg(fresh).then(() => { renderArt(fresh); fillForm(); refreshCurrent(false); persist(true); toast(`Card ${cur + 1} reset`); });
 });
 
 /* ---------- Deck size ---------- */
@@ -527,6 +528,7 @@ function renderWallControls() {
 function renderAll() {
   renderTheme(); renderWallControls();
   deck.coupons.forEach(renderArt);
+  $('countRange').max = deck.coupons.length; $('tickMax').textContent = deck.coupons.length;
   $('countRange').value = deck.count; $('countOut').textContent = deck.count;
   renderPicker(); fillForm(); renderPreview();
 }

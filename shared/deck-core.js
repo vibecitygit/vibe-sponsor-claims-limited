@@ -6,57 +6,50 @@
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 /* ---------- Sample offers (the deck's defaults) ---------- */
+const SIM = 'Simulated example for this prototype. Not a real offer and cannot be redeemed.';
+/* Sponsor names, roles, sites and logos are from tickets.vibecity.art (Vibe Check: After Hours).
+   Every offer below is a simulated example written for this prototype. */
 const SAMPLE = [
-  { id: 'HAL', brand: 'Halcyon Coffee', mark: 'Hc', shape: 'circle', color: '#c8743a', bpm: 72, dub: true,
-    type: 'Freebie', short: 'A free 12oz oat latte with any pastry.', from: '11/14', to: '12/31', year: '2026',
-    remaining: 42, total: 120, where: 'All 6 Halcyon cafés', limit: '1 per person',
-    long: 'Pick any pastry from the case and your oat latte is on us. Swap to any plant milk or make it iced at no charge. Works at the counter or through the Halcyon order-ahead line.',
-    terms: ['Valid on one 12oz latte with purchase of any pastry.', 'Plant-milk and iced swaps included; extra shots are charged.', 'Not valid with other offers or loyalty rewards.', 'Show the QR code before paying.'] },
-  { id: 'TDW', brand: 'Tidewater Surf', mark: 'Tw', shape: 'pill', color: '#2c8fa8', bpm: 96,
-    type: 'Discount', short: '25% off any full wetsuit, in store only.', from: '11/11', to: '11/30', year: '2026',
-    remaining: 8, total: 40, where: 'Tidewater Pier St.', limit: '1 per person',
-    long: 'Take a quarter off any full-length wetsuit from the winter wall, 3/2 through 6/5. Fitting is free and staff will size you in the shop before you commit.',
-    terms: ['25% off one full wetsuit at regular price.', 'Excludes springsuits, boots and hoods.', 'In-store purchase only.', 'Returns refund the discounted price.'] },
-  { id: 'NBR', brand: 'Northbound Rail', mark: 'NR', shape: 'diamond', color: '#3e5ba9', bpm: 84,
-    type: 'Option', short: 'Pick one: a seat upgrade or a lounge pass.', from: '11/18', to: '01/15', year: '2026 – 27',
-    remaining: 17, total: 50, where: 'Any Northbound station', limit: '1 per booking',
-    long: 'Choose how you travel: move up to First on any single journey under 4 hours, or spend your wait in the Platform Lounge with coffee and quiet desks. Decide at the ticket desk.',
-    terms: ['Choose one option when you redeem; it cannot be split.', 'Upgrade subject to First Class availability.', 'Lounge pass valid for 3 hours on the day of travel.', 'Not exchangeable for cash or credit.'] },
-  { id: 'PLM', brand: 'Plume Cycles', mark: 'Pl', shape: 'hex', color: '#d2483f', bpm: 120,
-    type: 'Discount', short: '$40 off a full service tune-up.', from: '11/11', to: '12/20', year: '2026',
-    remaining: 31, total: 60, where: 'Plume Workshop, Dock 4', limit: '1 per bike',
-    long: 'Our full tune-up covers gears, brakes, wheel truing and a drivetrain clean. With this coupon the $95 service drops to $55. Book a slot and drop the bike off in the morning.',
-    terms: ['Applies to the Full Service tune-up only.', 'Parts are charged separately at shelf price.', 'Booking required; walk-ins as space allows.', 'One coupon per bicycle.'] },
-  { id: 'EMR', brand: 'Ember & Rye', mark: 'E&R', shape: 'squircle', color: '#b5552b', bpm: 60, dub: true,
-    type: 'Freebie', short: 'A free sourdough loaf, Saturdays only.', from: '11/15', to: '12/27', year: '2026',
-    remaining: 55, total: 80, where: 'Ember & Rye Bakery', limit: '1 per Saturday',
-    long: 'Our 36-hour country sourdough, baked at dawn. Come in on any Saturday morning during the run and take a loaf home with no purchase needed while the batch lasts.',
-    terms: ['Saturdays only, while the morning batch lasts.', 'Country sourdough only; specialty loaves excluded.', 'No purchase required.', 'One loaf per person per Saturday.'] },
-  { id: 'LUM', brand: 'Lumen Cinema', mark: 'Lu', shape: 'star', color: '#d9a32e', bpm: 128,
-    type: 'Option', short: '2-for-1 tickets or a free large popcorn.', from: '11/12', to: '12/18', year: '2026',
-    remaining: 24, total: 100, where: 'Lumen, Screens 1–5', limit: '1 per visit',
-    long: 'Bring a friend for free on any standard screening, or keep it solo and get a large popcorn on the house. Works for matinees and evening shows, Monday through Thursday.',
-    terms: ['Monday to Thursday screenings only.', '2-for-1 applies to standard 2D seats.', 'Choose one option at the box office.', 'Excludes premieres and special events.'] },
-  { id: 'FLD', brand: 'Fieldnote Books', mark: 'Fn', shape: 'shield', color: '#4e7d4a', bpm: 90,
-    type: 'Discount', short: '15% off your whole basket, any genre.', from: '11/11', to: '12/24', year: '2026',
-    remaining: 12, total: 30, where: 'Fieldnote, Market Row', limit: '1 per person',
-    long: 'Fill a basket from any shelf (new releases, used stacks, stationery) and take 15% off the total. Staff can gift-wrap anything over $20 at no cost through December.',
-    terms: ['15% off the full basket in one transaction.', 'Excludes gift cards and event tickets.', 'Cannot be combined with member pricing.', 'In-store only.'] },
-  { id: 'KLN', brand: 'Kiln Studio', mark: 'Ki', shape: 'octagon', color: '#9c5a8e', bpm: 104,
-    type: 'Freebie', short: 'A free intro wheel class for one.', from: '11/20', to: '01/31', year: '2026 – 27',
-    remaining: 4, total: 20, where: 'Kiln Studio, Unit 9', limit: '1 per person',
-    long: 'A two-hour beginner session on the wheel. Clay, glaze and one firing are included, and you collect your finished piece about two weeks later.',
-    terms: ['Valid for one seat in an Intro to Wheel class.', 'Booking required at least 48 hours ahead.', 'Includes clay, glaze and one firing.', 'Cancellations under 24 hours forfeit the seat.'] },
-  { id: 'ORB', brand: 'Orbit Arcade', mark: 'Ob', shape: 'ring', color: '#6b4fd0', bpm: 140,
-    type: 'Option', short: '20 free tokens or one hour of free play.', from: '11/11', to: '12/31', year: '2026',
-    remaining: 38, total: 75, where: 'Orbit Arcade, Level 2', limit: '1 per visit',
-    long: 'Load 20 tokens onto a play card, or get a wristband for one hour of unlimited cabinet play. The rhythm machines and the racing pods are included.',
-    terms: ['Choose tokens or timed play at the desk.', 'Wristband hour starts when issued.', 'Excludes prize-redemption games.', 'Under 12s with an adult.'] },
-  { id: 'VRD', brand: 'Verdant Grocer', mark: 'Vg', shape: 'tri', color: '#2f8a5e', bpm: 110,
-    type: 'Discount', short: '$10 off when you spend $50 or more.', from: '11/11', to: '11/29', year: '2026',
-    remaining: 60, total: 150, where: 'Both Verdant stores', limit: '1 per household',
-    long: 'Stock up on the weekly shop and take $10 off at the till once you hit $50. Works on produce, the deli counter and the bulk bins.',
-    terms: ['Minimum spend $50 after other discounts.', 'Excludes alcohol, tobacco and gift cards.', 'One coupon per household per week.', 'In-store only.'] },
+  { id: 'CVR', brand: 'Casa Verde Ramos', role: 'Venue partner', site: 'https://www.casaverde.ph/', logoSrc: 'shared/sponsors/casa-verde.png',
+    mark: 'CV', shape: 'circle', color: '#037732', bpm: 72, type: 'Freebie', short: 'A free dessert with any main course.', from: '11/19', to: '12/19', year: '2026',
+    remaining: 96, total: 150, where: '69 Lim Tian Teng St., Cebu City', limit: '1 per ticket',
+    long: 'Come back after the show. Order any main course at Casa Verde and a dessert from the regular menu is included.',
+    terms: ['One dessert with one main course, dine-in only.', 'Show your ticket QR to your server before ordering.', 'Not valid with other promos.', SIM] },
+  { id: 'FRI', brand: 'Freedom Island Light Rum', role: 'Event partner', site: 'https://www.ginebrasanmiguel.com/', logoSrc: 'shared/sponsors/freedom-island.png',
+    mark: 'FI', shape: 'pill', color: '#cc511d', bpm: 96, type: 'Freebie', short: 'One welcome cocktail at the event bar.', from: '11/19', to: '11/20', year: '2026',
+    remaining: 127, total: 150, where: 'Event bar, Casa Verde Ramos', limit: '1 per ticket, 18+',
+    long: 'Start the night with a Freedom Island Light Rum cocktail on the house. Pick it up at the event bar any time before midnight.',
+    terms: ['One cocktail per ticket, on the night of the event only.', 'For guests 18 and over. Valid ID may be asked for.', 'Drink responsibly.', SIM] },
+  { id: 'DWT', brand: 'Dawata Wellness Resort and Cafe', role: 'Featured sponsor', site: 'https://www.dawatawellness.com/', logoSrc: 'shared/sponsors/dawata.png',
+    mark: 'DW', shape: 'squircle', color: '#5f7f5a', bpm: 60, type: 'Discount', short: '15% off a day pass or your café bill.', from: '11/20', to: '12/19', year: '2026',
+    remaining: 41, total: 60, where: 'Dawata Wellness Resort and Cafe', limit: '1 per ticket',
+    long: 'Slow down the morning after. Take 15% off a wellness day pass or the bill at the café, whichever you choose on the day.',
+    terms: ['Choose the day pass or the café bill; not both.', 'Book day passes at least one day ahead.', 'Show your ticket QR when you pay.', SIM] },
+  { id: 'AIR', brand: 'Air Condo', role: 'Sponsor', site: 'https://irealtee.com/developers/cebu-rite-homes-development-and-realty-corp', logoSrc: 'shared/sponsors/air-condo.png',
+    mark: 'AC', shape: 'hex', color: '#ff521a', bpm: 110, type: 'Freebie', short: 'Coffee for two when you book a viewing.', from: '11/20', to: '12/19', year: '2026',
+    remaining: 18, total: 30, where: 'Air Condo showroom, Cebu City', limit: '1 per household',
+    long: 'Curious about the building? Book a showroom viewing with your ticket and coffee for two is on Air Condo.',
+    terms: ['Viewing by appointment.', 'One redemption per household.', 'No purchase needed.', SIM] },
+  { id: 'KTC', brand: 'Know The Culture', role: 'Sponsor', site: 'https://knowtheculture.ph', logoSrc: 'shared/sponsors/know-the-culture.png',
+    mark: 'KTC', shape: 'diamond', color: '#6b6b6b', bpm: 128, type: 'Discount', short: '10% off one item, in store or online.', from: '11/19', to: '12/19', year: '2026',
+    remaining: 52, total: 100, where: 'knowtheculture.ph', limit: '1 per ticket',
+    long: 'Take 10% off any single item from Know The Culture. Use it at the event stall, in store, or online with your claim code.',
+    terms: ['One item per ticket at regular price.', 'Online: enter your claim code at checkout.', 'Excludes collaborations and sale items.', SIM] },
+  { id: 'PET', brand: 'Pets Society Veterinary and Wellness', role: 'Sponsor', site: 'https://www.petssociety.ph/', logoSrc: 'shared/sponsors/pets-society.png',
+    mark: 'PS', shape: 'shield', color: '#2f8a5e', bpm: 84, type: 'Freebie', short: 'A free wellness check for one pet.', from: '11/20', to: '12/19', year: '2026',
+    remaining: 9, total: 25, where: 'Pets Society clinic, Cebu City', limit: '1 pet per ticket',
+    long: 'Bring your dog or cat in for a basic wellness check with the Pets Society team. Vaccines, tests and treatment are quoted separately.',
+    terms: ['By appointment, on weekdays.', 'Covers one basic wellness check for one pet.', 'Vaccines, tests and medicine are not included.', SIM] },
+  { id: 'DSZ', brand: 'DESAINZ', role: 'Supporting sponsor', site: 'https://www.instagram.com/desainz_/', logoSrc: 'shared/sponsors/desainz.png',
+    mark: 'DZ', shape: 'octagon', color: '#8a8a8a', bpm: 104, type: 'Discount', short: '10% off one custom design order.', from: '11/19', to: '12/19', year: '2026',
+    remaining: 14, total: 20, where: 'Order by Instagram message', limit: '1 per ticket',
+    long: 'Planning merch, a poster or a logo? Message DESAINZ with your claim code and take 10% off one custom design order.',
+    terms: ['One order per ticket.', 'Send your claim code when you ask for a quote.', 'Printing costs are quoted separately.', SIM] },
+  { id: 'NBC', brand: 'Northbound Barbershop Cebu', role: 'Supporting sponsor', site: 'https://www.instagram.com/northboundcebu', logoSrc: 'shared/sponsors/northbound.png',
+    mark: 'NB', shape: 'ring', color: '#de2b44', bpm: 90, type: 'Option', short: '₱100 off a haircut, or a free beard trim with any cut.', from: '11/19', to: '12/19', year: '2026',
+    remaining: 33, total: 50, where: 'Northbound Barbershop Cebu', limit: '1 per ticket',
+    long: 'Fresh for the night or tidy after it. Choose ₱100 off any haircut, or add a beard trim to your cut at no charge.',
+    terms: ['Choose one option when you pay.', 'Walk-ins welcome; booking recommended on weekends.', 'Show your ticket QR at the counter.', SIM] },
 ];
 
 
@@ -67,7 +60,7 @@ const SHAPES = ['circle', 'pill', 'diamond', 'hex', 'squircle', 'star', 'shield'
 const TYPES = ['Option', 'Discount', 'Freebie'];
 
 const EDIT_KEYS = ['brand', 'mark', 'shape', 'color', 'bpm', 'type', 'short', 'from', 'to', 'year', 'remaining', 'total', 'where', 'limit', 'long', 'terms', 'logoImg'];
-const LIMITS = { brand: 24, mark: 3, short: 64, from: 5, to: 5, year: 11, where: 40, limit: 30, long: 420 };
+const LIMITS = { brand: 40, mark: 3, short: 64, from: 5, to: 5, year: 11, where: 40, limit: 30, long: 420 };
 function sanitize(c) {
   for (const k of Object.keys(LIMITS)) c[k] = String(c[k] ?? '').slice(0, LIMITS[k]);
   if (!c.brand.trim()) c.brand = 'Untitled sponsor';
@@ -95,13 +88,44 @@ const themeOf = t => (t === 'dark' ? 'dark' : 'paper');
 function stackSize(c) { return c.remaining <= 0 ? 1 : 1 + Math.ceil((c.remaining / c.total) * 5); }
 function editable(c) { const o = {}; EDIT_KEYS.forEach(k => { o[k] = c[k]; }); return o; }
 function serialOf(c) { return `No. ${c.id}-${String(c.total).padStart(4, '0')}`; }
+/* Loads the card's logo: an uploaded image if there is one, else the sponsor's logo file.
+   Also measures the logo's tone so light logos can sit on a dark plate (and dark ones on a light plate). */
 function loadImg(c) {
-  if (!c.logoImg) { c._img = null; return Promise.resolve(); }
-  return new Promise(res => { const im = new Image(); im.onload = () => { c._img = im; res(); }; im.onerror = () => { c.logoImg = null; c._img = null; res(); }; im.src = c.logoImg; });
+  const src = c.logoImg || c.logoSrc || null;
+  if (!src) { c._img = null; c._tone = 'mid'; return Promise.resolve(); }
+  return new Promise(res => {
+    const im = new Image();
+    im.onload = () => { c._img = im; c._tone = toneOf(im); res(); };
+    im.onerror = () => { if (c.logoImg) c.logoImg = null; c._img = null; c._tone = 'mid'; res(); };
+    im.src = src;
+  });
+}
+function toneOf(img) {
+  try {
+    const S = 48, cv = document.createElement('canvas'); cv.width = cv.height = S;
+    const ctx = cv.getContext('2d'); ctx.drawImage(img, 0, 0, S, S);
+    const d = ctx.getImageData(0, 0, S, S).data; let sum = 0, n = 0;
+    for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 128) { sum += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]; n++; }
+    const lum = n ? sum / n : 128;
+    return lum > 185 ? 'light' : lum < 60 ? 'dark' : 'mid';
+  } catch (e) { return 'mid'; }
+}
+/* Which plate a logo needs on a ground ('light' or 'dark'): 'dark', 'light' or null. */
+function plateFor(c, ground) { return !c._img ? null : c._tone === 'light' && ground === 'light' ? 'dark' : c._tone === 'dark' && ground === 'dark' ? 'light' : null; }
+/* The logo as a canvas for a given ground, with a rounded plate baked in when it needs one. */
+function logoCanvasFor(c, ground) {
+  if (!c._img) return drawLogo(c);
+  const logo = drawUploadedLogo(c._img), plate = plateFor(c, ground);
+  if (!plate) return logo;
+  const pad = Math.round(Math.max(logo.width, logo.height) * 0.12), cv = document.createElement('canvas');
+  cv.width = logo.width + pad * 2; cv.height = logo.height + pad * 2;
+  const ctx = cv.getContext('2d'); ctx.fillStyle = plate === 'dark' ? '#0b0b0b' : '#ffffff';
+  ctx.beginPath(); ctx.roundRect(0, 0, cv.width, cv.height, pad * 0.8); ctx.fill();
+  ctx.drawImage(logo, pad, pad); return cv;
 }
 
 /* ---------- Store: localStorage on the artifact's origin, plus a BroadcastChannel so open tabs update live ---------- */
-const KEY = 'sponsor-drops-deck-v1';
+const KEY = 'sponsor-drops-deck-v2';
 let channel = null;
 try { channel = new BroadcastChannel(KEY); } catch (e) { channel = null; }
 const sample = () => JSON.parse(JSON.stringify(SAMPLE));
@@ -278,7 +302,7 @@ function logoColor(cv) {
 
 window.DeckCore = Object.freeze({
   SAMPLE, SHAPES, TYPES, EDIT_KEYS, WALL_LAYOUTS, wallOf, THEMES, themeOf, stackSize, clamp, sanitize, editable, serialOf, loadImg,
-  load, save, clear, subscribe, sample: () => normalize(null),
+  load, save, clear, subscribe, plateFor, logoCanvasFor, toneOf, sample: () => normalize(null),
   mulberry32, hashStr, shapePath, drawLogo, drawFace, drawUploadedLogo, logoColor,
 });
 })();

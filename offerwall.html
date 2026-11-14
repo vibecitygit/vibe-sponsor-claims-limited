@@ -58,6 +58,7 @@ a { color: inherit; }
 .intro h1 em { font-style: normal; color: var(--brand-ink); }
 .intro p.lead { margin: 0; max-width: 560px; font-size: 16px; color: var(--soft); }
 .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; }
+.notice { margin: 0; max-width: 640px; }
 .slotpill { font: 700 10px/1.4 var(--mono); letter-spacing: .04em; text-transform: uppercase; border: 1px solid var(--border); padding: 6px 10px; color: var(--muted); }
 
 /* ---------- Preview toolbar (design options) ---------- */
@@ -84,7 +85,10 @@ a { color: inherit; }
 
 /* shared card pieces */
 .tile { position: relative; background: var(--tile); border: 1px solid var(--tile-border); border-radius: 8px; display: grid; place-items: center; padding: 14px; overflow: hidden; }
-.tile img { position: absolute; top: 11%; left: 11%; width: 78%; height: 78%; object-fit: contain; display: block; transition: transform .5s var(--ease); }
+.tile.plate-dark { background: #0b0b0b; border-color: #0b0b0b; }
+.tile.plate-light { background: #ffffff; border-color: rgba(17,16,14,.14); }
+.sitelink { color: var(--ink); text-underline-offset: 3px; }
+.tile img { position: absolute; top: 11%; left: 11%; width: 78%; height: 78%; object-fit: contain; display: block; transition: transform .3s var(--ease); }
 .tag { align-self: flex-start; background: var(--tag); color: #0b0b0b; font: 700 10px/1.4 "DM Sans", Arial, sans-serif; letter-spacing: .1em; text-transform: uppercase; padding: 5px 9px; }
 .tag.claimed { background: transparent; color: var(--brand-ink); box-shadow: inset 0 0 0 1px var(--brand-ink); }
 .between { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
@@ -100,10 +104,22 @@ a { color: inherit; }
 .cta[disabled] { background: transparent; color: var(--muted); border-color: var(--border); cursor: default; box-shadow: none; }
 .textlink { appearance: none; background: none; border: 0; padding: 6px 0; cursor: pointer; color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
 
+/* pointer sheen: a faint light follows the cursor across a card */
+.card.offer, .rail-item, .feature { position: relative; isolation: isolate; }
+.card.offer::after, .feature::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: -1; opacity: 0; transition: opacity .2s var(--ease);
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 0%), color-mix(in srgb, var(--brand) 14%, transparent), transparent 70%); }
+.card.offer:hover::after, .feature:hover::after { opacity: 1; }
+.cta:active, .chip:active, .seg button:active, .rail-item:active, .rowhead:active { transform: scale(.98); }
+.sechead { position: sticky; top: 0; z-index: 5; padding: 10px 0; margin: -10px 0; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.count { color: var(--muted); margin-left: 10px; font: 400 12px/1 var(--mono); letter-spacing: 0; vertical-align: middle; }
+::view-transition-group(*) { animation-duration: .32s; animation-timing-function: cubic-bezier(.23, 1, .32, 1); }
+::view-transition-old(*), ::view-transition-new(*) { animation-duration: .2s; }
+@media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
+
 /* ---------- A. Cascade (masonry, from the bundle) ---------- */
 .cascade { column-count: 3; column-gap: 13px; }
 .cascade > * { break-inside: avoid; margin: 0 0 13px; }
-.card { background: var(--card); border: 1px solid var(--border); padding: 28px; display: flex; flex-direction: column; gap: 12px; color: var(--ink); transition: border-color .25s var(--ease), transform .35s var(--ease); }
+.card { background: var(--card); border: 1px solid var(--border); padding: 28px; display: flex; flex-direction: column; gap: 12px; color: var(--ink); transition: border-color .15s var(--ease), transform .2s var(--ease); }
 .card.offer:hover { border-color: var(--ink); transform: translateY(-3px); }
 .card.offer:hover .tile img { transform: scale(1.04); }
 .card h3 { font-size: 30px; letter-spacing: .01em; }
@@ -226,7 +242,8 @@ html.preview .stagewrap { border-top: 0; padding: 16px 16px 24px; }
     <p class="label">02 — Partner offers · Vibe Check: After Hours</p>
     <h1 class="disp">Your ticket unlocks<br>the <em>city</em></h1>
     <p class="lead">Every ticket to Vibe Check: After Hours unlocks offers from partner places across Cebu. Add to your night.</p>
-    <div class="meta"><span class="cap">Sample offers shown · edit them in the Editor tab</span><span class="slotpill" id="slotPill"></span></div>
+    <div class="meta"><span class="cap">Casa Verde Ramos · Nov 19, 2026, 7:30 PM – Nov 20, 2026, 1:30 AM · Asia/Manila</span><span class="slotpill" id="slotPill"></span></div>
+    <p class="cap notice">Sponsors and logos are from tickets.vibecity.art. The offers are simulated examples for this prototype and can't be redeemed.</p>
   </section>
 
   <div class="options" role="group" aria-label="Design options">
@@ -253,7 +270,7 @@ html.preview .stagewrap { border-top: 0; padding: 16px 16px 24px; }
   </section>
 
   <footer class="foot">
-    <p class="cap">Prototype. Offers are sample data and claiming is simulated.</p>
+    <p class="cap">Prototype. Sponsors are real; offers and claiming are simulated.</p>
     <p class="cap"><a href="editor.html">Edit offers and wall settings</a></p>
   </footer>
 
@@ -293,8 +310,12 @@ const add = (parent, ...kids) => { kids.forEach(k => k && parent.appendChild(k))
 const typeLabel = t => (t === 'Option' ? 'Choice' : t);
 const valid = c => `${c.from} – ${c.to} · ${c.year}`;
 const slotNo = i => String(i + 1).padStart(2, '0');
+const ground = () => (deck.wall.cards === 'white' || deck.wall.theme === 'light' ? 'light' : 'dark');
+const isSim = c => c.terms.some(t => /^Simulated example/.test(t));
+const tagText = c => (claims[c.id] ? 'Claimed' : (isSim(c) ? 'Example · ' : '') + typeLabel(c.type));
 function logoTile(c, cls) {
-  const t = h('div', 'tile' + (cls ? ' ' + cls : ''));
+  const plate = D.plateFor(c, ground());
+  const t = h('div', 'tile' + (cls ? ' ' + cls : '') + (plate ? ' plate-' + plate : ''));
   add(t, h('img', null, null, { src: c._logo, alt: `${c.brand} logo` }));
   return t;
 }
@@ -304,7 +325,7 @@ function offers() {
 }
 const OPEN = [
   { kind: 'open', glyph: '✳', tag: 'Bar / lounge', pitch: 'Give quieter weeknights a reason to go out with a music-led offer you control.' },
-  { kind: 'partner', title: 'Become a founding partner', pitch: 'Shape a perk around your margins. Your offer sits on every ticket for Vibe Check: After Hours.' },
+  { kind: 'partner', title: 'Become a sponsor', pitch: 'Shape a perk around your margins. Your offer sits on every ticket for Vibe Check: After Hours.' },
   { kind: 'open', glyph: '▶', tag: 'Café / day spot', pitch: 'Turn the morning after into a second visit with a daytime perk for ticket holders.' },
 ];
 function ctaBtn(label, onClick, cls) {
@@ -320,14 +341,14 @@ function renderCascade() {
   const wrap = h('div', 'cascade');
   const list = offers();
   list.forEach(({ c, i }) => {
-    const card = h('article', 'card offer');
+    const card = h('article', 'card offer', null, { 'data-oid': c.id });
     const tile = logoTile(c); tile.style.height = TILE_H[i % TILE_H.length] + 'px';
-    const r1 = add(h('div', 'between'), h('span', claims[c.id] ? 'tag claimed' : 'tag', claims[c.id] ? 'Claimed' : typeLabel(c.type)), h('span', 'mono', leftText(c)));
-    const r2 = add(h('div', 'between'), h('p', 'label typ', c.where), h('span', 'mono', 'SLOT ' + slotNo(i)));
+    const r1 = add(h('div', 'between'), h('span', claims[c.id] ? 'tag claimed' : 'tag', tagText(c)), h('span', 'mono', leftText(c)));
+    const r2 = add(h('div', 'between'), h('p', 'label typ', c.role || c.where), h('span', 'mono', 'SLOT ' + slotNo(i)));
     const perk = h('p', 'cap'); add(perk, h('span', 'star', '✳ ', { 'aria-hidden': 'true' }), document.createTextNode(c.limit));
     add(card, tile, r1, r2, h('h3', 'disp', c.brand), h('p', 'sum', c.short), perk, h('div', 'rule'),
       add(h('div', 'kv cap'), h('span', null, 'Valid'), h('span', null, valid(c))),
-      add(h('div', 'kv cap'), h('span', null, 'Basis'), h('span', null, c.limit)),
+      add(h('div', 'kv cap'), h('span', null, 'Where'), h('span', null, c.where)),
       ctaBtn('View offer', () => openDetail(i)));
     add(wrap, card);
   });
@@ -335,13 +356,13 @@ function renderCascade() {
     const n = 'SLOT ' + slotNo(deck.count + k);
     if (o.kind === 'open') {
       const card = h('article', 'card open');
-      const foot = add(h('div', 'between'), h('a', 'label', 'Explore the slot ↗', { href: 'https://vibecity.art' }), h('span', 'mono', n));
+      const foot = add(h('div', 'between'), h('a', 'label', 'Explore the slot ↗', { href: 'https://sponsor.vibecity.art' }), h('span', 'mono', n));
       foot.style.marginTop = 'auto';
       add(wrap, add(card, h('span', 'glyph', o.glyph, { 'aria-hidden': 'true' }), h('p', 'label typ', o.tag), h('p', 'sum', o.pitch), foot));
     } else {
       const card = h('article', 'card partner');
-      const a = h('a', 'cta ghost', null, { href: 'https://vibecity.art' }); add(a, h('span', null, 'Book a partner call'), h('span', 'arr', '↗', { 'aria-hidden': 'true' }));
-      add(wrap, add(card, add(h('div', 'between'), h('p', 'label typ', 'Founding partner slot'), h('span', 'mono', n)), h('h3', 'disp', o.title), h('p', 'sum', o.pitch), a));
+      const a = h('a', 'cta ghost', null, { href: 'https://sponsor.vibecity.art' }); add(a, h('span', null, 'Sponsor us'), h('span', 'arr', '↗', { 'aria-hidden': 'true' }));
+      add(wrap, add(card, add(h('div', 'between'), h('p', 'label typ', 'Open sponsor slot'), h('span', 'mono', n)), h('h3', 'disp', o.title), h('p', 'sum', o.pitch), a));
     }
   });
   return wrap.children.length ? wrap : null;
@@ -351,6 +372,7 @@ function renderCascade() {
 function sidePanel(c) {
   const s = h('div', 'side');
   [['Where', c.where], ['Valid', valid(c)], ['Rules', c.limit], ['Left', `${c.remaining} of ${c.total}`]].forEach(([k, v]) => add(s, add(h('div'), h('span', 'cap', k), h('b', null, v))));
+  if (/^https:\/\//.test(c.site || '')) add(s, add(h('div'), h('span', 'cap', c.role || 'Sponsor'), h('a', 'cap sitelink', 'Visit ' + c.brand + ' ↗', { href: c.site, target: '_blank', rel: 'noopener noreferrer' })));
   return s;
 }
 function termsList(c) { const ol = h('ol', 'terms'); c.terms.forEach(t => add(ol, h('li', null, t))); return ol; }
@@ -374,11 +396,11 @@ function renderLedger() {
   const list = offers(); if (!list.length) return null;
   const wrap = h('div', 'ledger');
   list.forEach(({ c, i }) => {
-    const row = h('article', 'row', null, { 'data-open': 'false' });
+    const row = h('article', 'row', null, { 'data-open': 'false', 'data-oid': c.id });
     const head = h('button', 'rowhead', null, { type: 'button', 'aria-expanded': 'false', 'aria-controls': 'rb' + i });
     const mid = add(h('span'), h('h3', 'disp', c.brand), h('p', 'sum', c.short));
     add(head, h('span', 'mono', slotNo(i)), logoTile(c), mid,
-      h('span', 'label c-type', claims[c.id] ? 'Claimed' : typeLabel(c.type)), h('span', 'cap c-valid', valid(c)), h('span', 'mono c-left', leftText(c)), h('span', 'plus', '+', { 'aria-hidden': 'true' }));
+      h('span', 'label c-type', tagText(c)), h('span', 'cap c-valid', valid(c)), h('span', 'mono c-left', leftText(c)), h('span', 'plus', '+', { 'aria-hidden': 'true' }));
     const body = h('div', 'rowbody', null, { id: 'rb' + i });
     const inner = h('div', 'rowbody-in');
     const fill = () => {
@@ -404,8 +426,8 @@ function toggleRow(row, head, body) {
 function slide(el, open) {
   if (reduced) { el.style.height = open ? 'auto' : '0px'; return; }
   gsap.killTweensOf(el);
-  if (open) gsap.fromTo(el, { height: el.offsetHeight }, { height: 'auto', duration: 0.42, ease: 'power3.out' });
-  else gsap.to(el, { height: 0, duration: 0.3, ease: 'power2.inOut' });
+  if (open) gsap.fromTo(el, { height: el.offsetHeight }, { height: 'auto', duration: 0.28, ease: 'power3.out' });
+  else gsap.to(el, { height: 0, duration: 0.2, ease: 'power2.inOut' });
 }
 
 /* ---------- C. Spotlight ---------- */
@@ -417,16 +439,16 @@ function renderSpotlight() {
     const { c, i } = list.find(o => o.i === featured);
     feat.replaceChildren();
     const body = h('div', 'body');
-    add(body, add(h('div', 'between'), h('span', claims[c.id] ? 'tag claimed' : 'tag', claims[c.id] ? 'Claimed' : typeLabel(c.type)), h('span', 'mono', 'SLOT ' + slotNo(i) + ' · ' + leftText(c))),
+    add(body, add(h('div', 'between'), h('span', claims[c.id] ? 'tag claimed' : 'tag', tagText(c)), h('span', 'mono', 'SLOT ' + slotNo(i) + ' · ' + leftText(c))),
       h('h3', 'disp', c.brand), h('p', null, c.short), h('p', null, c.long), h('div', 'rule'),
       add(h('div', 'kv cap'), h('span', null, 'Where'), h('span', null, c.where)), add(h('div', 'kv cap'), h('span', null, 'Valid'), h('span', null, valid(c))),
       ctaBtn(claims[c.id] ? 'Show claim' : 'View offer', () => openDetail(i)));
     add(feat, logoTile(c), body);
     rail.querySelectorAll('.rail-item').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.i === featured)));
-    if (animate && !reduced) gsap.fromTo(feat.children, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, ease: 'power2.out' });
+    if (animate && !reduced) gsap.fromTo(feat.children, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.24, stagger: 0.03, ease: 'power2.out' });
   };
   list.forEach(({ c, i }) => {
-    const b = h('button', 'rail-item', null, { type: 'button', 'data-i': i, 'aria-pressed': 'false' });
+    const b = h('button', 'rail-item', null, { type: 'button', 'data-i': i, 'aria-pressed': 'false', 'data-oid': c.id });
     add(b, logoTile(c), add(h('span'), h('strong', null, c.brand), h('span', 's', c.short)), h('span', 'mono', slotNo(i)));
     b.addEventListener('click', () => { if (featured === i) return; featured = i; paint(true); });
     add(rail, b);
@@ -443,14 +465,14 @@ function renderGuide() {
   list.sort((a, b) => key(a.c) - key(b.c));
   const wrap = h('div', 'guide');
   list.forEach(({ c, i }) => {
-    const card = h('article', 'card offer gcard');
-    add(card, add(h('div', 'brandrow'), logoTile(c), h('span', 'brandname', c.brand), h('span', claims[c.id] ? 'tag claimed' : 'tag', claims[c.id] ? 'Saved' : typeLabel(c.type))),
+    const card = h('article', 'card offer gcard', null, { 'data-oid': c.id });
+    add(card, add(h('div', 'brandrow'), logoTile(c), h('span', 'brandname', c.brand), h('span', claims[c.id] ? 'tag claimed' : 'tag', claims[c.id] ? 'Saved' : tagText(c))),
       h('h3', 'disp', c.short.replace(/\.$/, '')),
       add(h('div', 'facts'),
         add(h('div', 'kv cap'), h('span', null, 'Use by'), h('span', null, `${c.to} · ${c.year}`)),
         add(h('div', 'kv cap'), h('span', null, 'Where'), h('span', null, c.where)),
         add(h('div', 'kv cap'), h('span', null, 'Limit'), h('span', null, c.limit))),
-      h('p', 'how', c.terms[c.terms.length - 1] || 'Show the code at the counter.'));
+      h('p', 'how', c.terms.filter(t => !/^Simulated example/.test(t) && /show|code|ticket/i.test(t))[0] || c.terms[0] || 'Show your ticket QR at the counter.'));
     const acts = h('div', 'acts');
     if (claims[c.id]) add(acts, ctaBtn('Saved · show code', () => openDetail(i)), ctaBtn('Terms', () => openDetail(i), 'ghost'));
     else if (c.remaining <= 0) { const b = ctaBtn('All claimed', () => {}); b.disabled = true; add(acts, b, ctaBtn('Terms', () => openDetail(i), 'ghost')); }
@@ -469,21 +491,36 @@ function openDetail(i) {
     const body = $('dBody'); body.replaceChildren();
     const main = h('div', 'dmain');
     add(main, logoTile(c, 'dlogo'),
-      add(h('div', 'between'), h('span', claims[c.id] ? 'tag claimed' : 'tag', claims[c.id] ? 'Claimed' : typeLabel(c.type)), h('span', 'mono', leftText(c))),
+      add(h('div', 'between'), h('span', claims[c.id] ? 'tag claimed' : 'tag', tagText(c)), h('span', 'mono', leftText(c))),
       h('h1', 'disp', c.brand), h('p', null, c.short), h('p', null, c.long), h('div', 'rule'), h('span', 'cap', 'How to claim'), termsList(c));
     add(main, add(h('div', 'dfoot'), claimArea(c, () => { fill(); render(false); })));
     add(body, main, sidePanel(c));
   };
   fill();
   if (!dlg.open) dlg.showModal();
-  if (!reduced) gsap.fromTo(dlg, { opacity: 0, y: 14, scale: 0.985 }, { opacity: 1, y: 0, scale: 1, duration: 0.32, ease: 'power3.out' });
+  if (!reduced) gsap.fromTo(dlg, { opacity: 0, y: 10, scale: 0.985 }, { opacity: 1, y: 0, scale: 1, duration: 0.22, ease: 'power3.out' });
 }
 $('dClose').addEventListener('click', () => dlg.close());
+stage.addEventListener('pointermove', e => {
+  const el = e.target.closest('.card.offer, .feature'); if (!el) return;
+  const r = el.getBoundingClientRect(); el.style.setProperty('--mx', (e.clientX - r.left) + 'px'); el.style.setProperty('--my', (e.clientY - r.top) + 'px');
+}, { passive: true });
 dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
 
 /* ---------- Render ---------- */
 const LAYOUTS = { cascade: ['Cascade', renderCascade, 'The offers wall'], ledger: ['Ledger', renderLedger, 'The offers list'], spotlight: ['Spotlight', renderSpotlight, 'Tonight’s pick'], guide: ['Field guide', renderGuide, 'Show your ticket'] };
+/* Morph between states with the View Transitions API where it exists; each offer keeps one
+   transition name, so its card glides to its new place when the filter, layout or theme changes. */
+let first = true;
 function render(animate = true) {
+  if (animate && !first && !reduced && document.startViewTransition) { document.startViewTransition(() => paint(false)); return; }
+  paint(animate); first = false;
+}
+function nameItems(view) {
+  if (!view) return;
+  view.querySelectorAll('[data-oid]').forEach(el => { el.style.viewTransitionName = 'o-' + el.dataset.oid; });
+}
+function paint(animate) {
   const w = deck.wall;
   wallEl.dataset.theme = w.theme; wallEl.dataset.cards = w.cards; wallEl.dataset.layout = w.layout;
   document.body.style.background = w.theme === 'light' ? '#ffffff' : '#0b0b0b';
@@ -502,12 +539,15 @@ function render(animate = true) {
     const b = h('button', 'chip label', label, { type: 'button', 'aria-pressed': String(filter === id) });
     b.addEventListener('click', () => { filter = id; openRow = null; render(); }); add(chips, b);
   });
+  const shown = offers().length;
+  const cnt = h('span', 'count', `${shown} offer${shown === 1 ? '' : 's'}`); $('secTitle').appendChild(cnt);
   const view = LAYOUTS[w.layout][1]();
+  nameItems(view);
   stage.replaceChildren(view || h('p', 'empty', filter === 'saved' ? 'Nothing saved yet. Tap Save offer on a card and it will appear here.' : 'No offers match this filter yet. Choose All to see every offer.'));
   syncOptions();
   if (animate && !reduced && view) {
     const items = view.matches('.spot') ? [view.firstChild, ...view.lastChild.children] : [...view.children];
-    gsap.fromTo(items, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, stagger: 0.045, ease: 'power3.out', clearProps: 'transform,opacity' });
+    gsap.fromTo(items, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.3, stagger: 0.028, ease: 'power3.out', clearProps: 'transform,opacity' });
   }
 }
 

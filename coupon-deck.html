@@ -412,7 +412,7 @@ const hitMat = new THREE.MeshBasicMaterial({ visible: false });
 const stackSize = DeckCore.stackSize; // 1–6 layers from the share left
 function makeArt(c) {
   c.serial = serialOf(c);
-  c.logoCanvas = c._img ? drawUploadedLogo(c._img) : drawLogo(c); c.logoURL = c.logoCanvas.toDataURL();
+  c.logoCanvas = DeckCore.logoCanvasFor(c, cardTheme() === 'dark' ? 'dark' : 'light'); c.logoURL = c.logoCanvas.toDataURL();
   c.faceCanvas = drawFace(c, c.serial, false, cardTheme()); c.faceURL = c.faceCanvas.toDataURL('image/jpeg', 0.9);
   c.tableCanvas = drawFace(c, c.serial, true, cardTheme()); // table cards also preview the offer
   if (c.plainTex) { c.plainTex.dispose(); c.plainTex = null; }
@@ -710,8 +710,13 @@ function fillDOM(s) {
   artEl.style.backgroundImage = `url(${c.faceURL})`;
   $('ceyebrow').textContent = `${c.type} offer`;
   const nm = $('cname'); nm.innerHTML = '';
+  nm.style.fontSize = c.brand.length > 26 ? 'calc(var(--u) * 5.8)' : c.brand.length > 16 ? 'calc(var(--u) * 7.2)' : ''; // long sponsor names step down
   nm.setAttribute('aria-label', c.brand);
-  [...c.brand].forEach(ch => { const sp = document.createElement('span'); sp.className = 'ch'; sp.textContent = ch; sp.setAttribute('aria-hidden', 'true'); nm.appendChild(sp); });
+  c.brand.split(' ').forEach((word, wi, all) => { // letters animate one by one, but words never break in the middle
+    const w = document.createElement('span'); w.style.whiteSpace = 'nowrap'; w.style.display = 'inline-block';
+    [...word].forEach(ch => { const sp = document.createElement('span'); sp.className = 'ch'; sp.textContent = ch; sp.setAttribute('aria-hidden', 'true'); w.appendChild(sp); });
+    nm.appendChild(w); if (wi < all.length - 1) nm.appendChild(document.createTextNode(' '));
+  });
   $('clogo').src = c.logoURL; $('clogo').alt = `${c.brand} logo`;
   $('cshort').textContent = c.short;
   $('ctype').querySelector('span').textContent = c.type;
