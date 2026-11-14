@@ -510,7 +510,7 @@ function setCtx(next) {
 document.querySelectorAll('[data-ctx-pick]').forEach(b => b.addEventListener('click', () => setCtx(b.dataset.ctxPick)));
 
 const WALL_OPTS = {
-  layout: [['cascade', 'Cascade', 'Masonry wall from the design bundle, with open slots.'], ['ledger', 'Ledger', 'Quiet rows that open in place.'], ['spotlight', 'Spotlight', 'One featured offer, the rest in a rail.'], ['guide', 'Field guide', 'Research-led: benefit first, even grid.']],
+  layout: [['featured', 'Featured + Cascade', 'One rotating featured offer above the masonry wall.'], ['cascade', 'Cascade', 'Masonry wall from the design bundle, with open slots.'], ['ledger', 'Ledger', 'Quiet rows that open in place.'], ['spotlight', 'Spotlight', 'One featured offer, the rest in a rail.'], ['guide', 'Field guide', 'Research-led: benefit first, even grid.']],
   theme: [['dark', 'Dark'], ['light', 'White']], cards: [['theme', 'Match theme'], ['white', 'White brand']] };
 function buildWallControls() {
   WALL_OPTS.layout.forEach(([v, name, blurb]) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.v = v; b.innerHTML = '<strong></strong><span></span>'; b.querySelector('strong').textContent = name; b.querySelector('span').textContent = blurb;

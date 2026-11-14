@@ -130,11 +130,12 @@ let channel = null;
 try { channel = new BroadcastChannel(KEY); } catch (e) { channel = null; }
 const sample = () => JSON.parse(JSON.stringify(SAMPLE));
 /* Offer wall display settings, shared by the wall page and the editor. */
-const WALL_LAYOUTS = ['cascade', 'ledger', 'spotlight', 'guide'];
+const WALL_LAYOUTS = ['featured', 'cascade', 'ledger', 'spotlight', 'guide'];
 function wallOf(w) {
   w = w && typeof w === 'object' ? w : {};
   return {
-    layout: WALL_LAYOUTS.includes(w.layout) ? w.layout : 'cascade',
+    v: 2, // settings saved before the Featured + Cascade layout existed move to it once
+    layout: w.v === 2 && WALL_LAYOUTS.includes(w.layout) ? w.layout : 'featured',
     theme: w.theme === 'light' ? 'light' : 'dark',
     cards: w.cards === 'white' ? 'white' : 'theme',
     openSlots: w.openSlots !== false,

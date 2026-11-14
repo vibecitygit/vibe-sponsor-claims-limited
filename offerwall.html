@@ -90,6 +90,15 @@ a { color: inherit; }
 .sitelink { color: var(--ink); text-underline-offset: 3px; }
 .tile img { position: absolute; top: 11%; left: 11%; width: 78%; height: 78%; object-fit: contain; display: block; transition: transform .3s var(--ease); }
 .tag { align-self: flex-start; background: var(--tag); color: #0b0b0b; font: 700 10px/1.4 "DM Sans", Arial, sans-serif; letter-spacing: .1em; text-transform: uppercase; padding: 5px 9px; }
+.stub { --notch: 5px; display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px 5px 10px; white-space: nowrap;
+  font: 700 10px/1.4 "DM Sans", Arial, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  background: color-mix(in srgb, var(--ink) 9%, transparent);
+  -webkit-mask: radial-gradient(circle var(--notch) at 0 50%, #0000 97%, #000) 0 0 / 51% 100% no-repeat, radial-gradient(circle var(--notch) at 100% 50%, #0000 97%, #000) 100% 0 / 51% 100% no-repeat;
+          mask: radial-gradient(circle var(--notch) at 0 50%, #0000 97%, #000) 0 0 / 51% 100% no-repeat, radial-gradient(circle var(--notch) at 100% 50%, #0000 97%, #000) 100% 0 / 51% 100% no-repeat; }
+.stub svg { width: 12px; height: 12px; flex: none; }
+.stub.soon { background: var(--brand); color: var(--on-brand); }
+.stub.ended { text-decoration: line-through; opacity: .7; }
+.stubrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .tag.claimed { background: transparent; color: var(--brand-ink); box-shadow: inset 0 0 0 1px var(--brand-ink); }
 .between { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .rule { border-top: 1px solid var(--line); }
@@ -152,6 +161,10 @@ a { color: inherit; }
 .side b { font-weight: 500; color: var(--soft); }
 
 /* ---------- C. Spotlight (one featured offer, the rest in a rail) ---------- */
+.combo { display: grid; gap: 13px; }
+.combo > .feature { min-height: 380px; border-color: var(--brand); box-shadow: inset 0 4px 0 0 var(--brand); }
+.tag.flag { background: var(--ink); color: var(--bg); }
+.wall[data-cards="white"] .tag.flag { background: #0b0b0b; color: #ffffff; }
 .spot { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 13px; align-items: start; }
 .feature { background: var(--card); border: 1px solid var(--border); color: var(--ink); display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); min-height: 440px; }
 .feature .tile { border-radius: 0; border: 0; border-right: 1px solid var(--line); min-height: 240px; }
@@ -290,7 +303,13 @@ const PREVIEW = location.hash === '#preview';
 if (PREVIEW) document.documentElement.classList.add('preview');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches || typeof gsap === 'undefined';
 const wallEl = $('wall'), stage = $('stage');
-let deck = D.load(), filter = 'all', openRow = null, featured = 0;
+let deck = D.load(), filter = 'all', openRow = null;
+/* The featured offer advances one sponsor on every page load, so each sponsor takes a turn. */
+let rotation = 0;
+try { rotation = (parseInt(localStorage.getItem('sponsor-drops-featured-turn') || '-1', 10) + 1) || 0; localStorage.setItem('sponsor-drops-featured-turn', String(rotation)); }
+catch (e) { rotation = Math.floor(Math.random() * 1000); }
+let featured = null; // offer index; null until the first render picks this load's turn
+function turnPick(list) { const live = list.filter(o => o.c.remaining > 0); const pool = live.length ? live : list; return pool[rotation % pool.length].i; }
 
 /* per-viewer claimed state (a convenience, not the record) */
 const CLAIM_KEY = 'sponsor-drops-claims-v1';
@@ -333,17 +352,34 @@ function ctaBtn(label, onClick, cls) {
   add(b, h('span', null, label), h('span', 'arr', '↗', { 'aria-hidden': 'true' }));
   b.addEventListener('click', onClick); return b;
 }
+/* Expiry stub: a ticket-stub chip with a clock. It reads the real end date; within 7 days it turns
+   into the highlighted "Expiring" state, and after the date it reads "Ended". No countdown timers. */
+function endDate(c) {
+  const y = parseInt(c.year, 10) || new Date().getFullYear(), fm = +c.from.slice(0, 2) || 1, tm = +c.to.slice(0, 2) || 12, td = +c.to.slice(3) || 28;
+  return new Date(y + (tm < fm ? 1 : 0), tm - 1, td, 23, 59, 59);
+}
+function daysLeft(c) { return Math.ceil((endDate(c) - Date.now()) / 86400000); }
+function expiryStub(c) {
+  const d = daysLeft(c), soon = d >= 0 && d <= 7, ended = d < 0;
+  const text = ended ? 'Ended ' + c.to : soon ? (d <= 1 ? 'Ends today' : `Expiring · ${d} days`) : 'Ends ' + c.to;
+  const el = h('span', 'stub' + (soon ? ' soon' : '') + (ended ? ' ended' : ''), null, { title: `Valid until ${c.to}, ${endDate(c).getFullYear()}` });
+  const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('aria-hidden', 'true');
+  svg.innerHTML = '<circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.6V8l2.3 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
+  el.appendChild(svg); el.appendChild(h('span', null, text));
+  return el;
+}
 const leftText = c => (c.remaining > 0 ? `${c.remaining} left` : 'Sold out');
 
 /* ---------- A. Cascade ---------- */
 const TILE_H = [170, 120, 150, 130, 190, 140];
-function renderCascade() {
+function renderCascade(skip) {
   const wrap = h('div', 'cascade');
-  const list = offers();
+  const list = offers().filter(o => o.i !== skip);
   list.forEach(({ c, i }) => {
     const card = h('article', 'card offer', null, { 'data-oid': c.id });
     const tile = logoTile(c); tile.style.height = TILE_H[i % TILE_H.length] + 'px';
-    const r1 = add(h('div', 'between'), h('span', claims[c.id] ? 'tag claimed' : 'tag', tagText(c)), h('span', 'mono', leftText(c)));
+    const r1 = add(h('div', 'between'), add(h('span', 'stubrow'), h('span', claims[c.id] ? 'tag claimed' : 'tag', tagText(c)), expiryStub(c)), h('span', 'mono', leftText(c)));
     const r2 = add(h('div', 'between'), h('p', 'label typ', c.role || c.where), h('span', 'mono', 'SLOT ' + slotNo(i)));
     const perk = h('p', 'cap'); add(perk, h('span', 'star', '✳ ', { 'aria-hidden': 'true' }), document.createTextNode(c.limit));
     add(card, tile, r1, r2, h('h3', 'disp', c.brand), h('p', 'sum', c.short), perk, h('div', 'rule'),
@@ -400,7 +436,7 @@ function renderLedger() {
     const head = h('button', 'rowhead', null, { type: 'button', 'aria-expanded': 'false', 'aria-controls': 'rb' + i });
     const mid = add(h('span'), h('h3', 'disp', c.brand), h('p', 'sum', c.short));
     add(head, h('span', 'mono', slotNo(i)), logoTile(c), mid,
-      h('span', 'label c-type', tagText(c)), h('span', 'cap c-valid', valid(c)), h('span', 'mono c-left', leftText(c)), h('span', 'plus', '+', { 'aria-hidden': 'true' }));
+      h('span', 'label c-type', tagText(c)), add(h('span', 'c-valid'), expiryStub(c)), h('span', 'mono c-left', leftText(c)), h('span', 'plus', '+', { 'aria-hidden': 'true' }));
     const body = h('div', 'rowbody', null, { id: 'rb' + i });
     const inner = h('div', 'rowbody-in');
     const fill = () => {
@@ -431,19 +467,36 @@ function slide(el, open) {
 }
 
 /* ---------- C. Spotlight ---------- */
+function featurePanel(c, i, flagged) {
+  const feat = h('article', 'feature', null, flagged ? { 'data-oid': c.id } : null), body = h('div', 'body');
+  const tags = h('span', 'stubrow');
+  if (flagged) add(tags, h('span', 'tag flag', 'Featured'));
+  add(tags, h('span', claims[c.id] ? 'tag claimed' : 'tag', tagText(c)), expiryStub(c));
+  add(body, add(h('div', 'between'), tags, h('span', 'mono', 'SLOT ' + slotNo(i) + ' · ' + leftText(c))),
+    h('p', 'label typ', c.role || c.where), h('h3', 'disp', c.brand), h('p', null, c.short), h('p', null, c.long), h('div', 'rule'),
+    add(h('div', 'kv cap'), h('span', null, 'Where'), h('span', null, c.where)), add(h('div', 'kv cap'), h('span', null, 'Valid'), h('span', null, valid(c))),
+    ctaBtn(claims[c.id] ? 'Show claim' : 'View offer', () => openDetail(i)));
+  return add(feat, logoTile(c), body);
+}
+/* ---------- Featured + Cascade: this load's featured sponsor on top, everyone else in the wall ---------- */
+function renderFeatured() {
+  const list = offers();
+  if (!list.length) return renderCascade();
+  if (!list.some(o => o.i === featured)) featured = turnPick(list);
+  const f = list.find(o => o.i === featured), wrap = h('div', 'combo');
+  add(wrap, featurePanel(f.c, f.i, true));
+  const rest = renderCascade(featured);
+  if (rest) add(wrap, rest);
+  return wrap;
+}
 function renderSpotlight() {
   const list = offers(); if (!list.length) return null;
-  if (!list.some(o => o.i === featured)) featured = list[0].i;
+  if (!list.some(o => o.i === featured)) featured = turnPick(list);
   const wrap = h('div', 'spot'), feat = h('article', 'feature'), rail = h('div', 'rail', null, { role: 'group', 'aria-label': 'More offers' });
   const paint = (animate) => {
     const { c, i } = list.find(o => o.i === featured);
-    feat.replaceChildren();
-    const body = h('div', 'body');
-    add(body, add(h('div', 'between'), h('span', claims[c.id] ? 'tag claimed' : 'tag', tagText(c)), h('span', 'mono', 'SLOT ' + slotNo(i) + ' · ' + leftText(c))),
-      h('h3', 'disp', c.brand), h('p', null, c.short), h('p', null, c.long), h('div', 'rule'),
-      add(h('div', 'kv cap'), h('span', null, 'Where'), h('span', null, c.where)), add(h('div', 'kv cap'), h('span', null, 'Valid'), h('span', null, valid(c))),
-      ctaBtn(claims[c.id] ? 'Show claim' : 'View offer', () => openDetail(i)));
-    add(feat, logoTile(c), body);
+    feat.replaceChildren(...featurePanel(c, i, false).childNodes);
+    feat.querySelector('.stubrow').prepend(h('span', 'tag flag', 'Featured'));
     rail.querySelectorAll('.rail-item').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.i === featured)));
     if (animate && !reduced) gsap.fromTo(feat.children, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.24, stagger: 0.03, ease: 'power2.out' });
   };
@@ -469,7 +522,7 @@ function renderGuide() {
     add(card, add(h('div', 'brandrow'), logoTile(c), h('span', 'brandname', c.brand), h('span', claims[c.id] ? 'tag claimed' : 'tag', claims[c.id] ? 'Saved' : tagText(c))),
       h('h3', 'disp', c.short.replace(/\.$/, '')),
       add(h('div', 'facts'),
-        add(h('div', 'kv cap'), h('span', null, 'Use by'), h('span', null, `${c.to} · ${c.year}`)),
+        add(h('div', 'kv cap'), h('span', null, 'Use by'), expiryStub(c)),
         add(h('div', 'kv cap'), h('span', null, 'Where'), h('span', null, c.where)),
         add(h('div', 'kv cap'), h('span', null, 'Limit'), h('span', null, c.limit))),
       h('p', 'how', c.terms.filter(t => !/^Simulated example/.test(t) && /show|code|ticket/i.test(t))[0] || c.terms[0] || 'Show your ticket QR at the counter.'));
@@ -491,7 +544,7 @@ function openDetail(i) {
     const body = $('dBody'); body.replaceChildren();
     const main = h('div', 'dmain');
     add(main, logoTile(c, 'dlogo'),
-      add(h('div', 'between'), h('span', claims[c.id] ? 'tag claimed' : 'tag', tagText(c)), h('span', 'mono', leftText(c))),
+      add(h('div', 'between'), add(h('span', 'stubrow'), h('span', claims[c.id] ? 'tag claimed' : 'tag', tagText(c)), expiryStub(c)), h('span', 'mono', leftText(c))),
       h('h1', 'disp', c.brand), h('p', null, c.short), h('p', null, c.long), h('div', 'rule'), h('span', 'cap', 'How to claim'), termsList(c));
     add(main, add(h('div', 'dfoot'), claimArea(c, () => { fill(); render(false); })));
     add(body, main, sidePanel(c));
@@ -508,7 +561,7 @@ stage.addEventListener('pointermove', e => {
 dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
 
 /* ---------- Render ---------- */
-const LAYOUTS = { cascade: ['Cascade', renderCascade, 'The offers wall'], ledger: ['Ledger', renderLedger, 'The offers list'], spotlight: ['Spotlight', renderSpotlight, 'Tonight’s pick'], guide: ['Field guide', renderGuide, 'Show your ticket'] };
+const LAYOUTS = { featured: ['Featured + Cascade', renderFeatured, 'The offers wall'], cascade: ['Cascade', renderCascade, 'The offers wall'], ledger: ['Ledger', renderLedger, 'The offers list'], spotlight: ['Spotlight', renderSpotlight, 'Tonight’s pick'], guide: ['Field guide', renderGuide, 'Show your ticket'] };
 /* Morph between states with the View Transitions API where it exists; each offer keeps one
    transition name, so its card glides to its new place when the filter, layout or theme changes. */
 let first = true;
@@ -533,7 +586,7 @@ function paint(animate) {
   // Field guide: status first (All / Saved); type filters only once the list is long enough to need them
   const defs = w.layout === 'guide' ? [['all', 'All'], ['saved', `Saved (${deck.coupons.slice(0, deck.count).filter(c => claims[c.id]).length})`]].concat(deck.count >= 9 ? [['Discount', 'Discount'], ['Freebie', 'Freebie'], ['Option', 'Choice']] : [])
     : [['all', 'All'], ['Discount', 'Discount'], ['Freebie', 'Freebie'], ['Option', 'Choice']];
-  if (w.openSlots && w.layout === 'cascade') defs.push(['open', 'Open slots']);
+  if (w.openSlots && (w.layout === 'cascade' || w.layout === 'featured')) defs.push(['open', 'Open slots']);
   if (!defs.some(d => d[0] === filter)) filter = 'all';
   defs.forEach(([id, label]) => {
     const b = h('button', 'chip label', label, { type: 'button', 'aria-pressed': String(filter === id) });
@@ -546,7 +599,7 @@ function paint(animate) {
   stage.replaceChildren(view || h('p', 'empty', filter === 'saved' ? 'Nothing saved yet. Tap Save offer on a card and it will appear here.' : 'No offers match this filter yet. Choose All to see every offer.'));
   syncOptions();
   if (animate && !reduced && view) {
-    const items = view.matches('.spot') ? [view.firstChild, ...view.lastChild.children] : [...view.children];
+    const items = view.matches('.spot') ? [view.firstChild, ...view.lastChild.children] : view.matches('.combo') ? [view.firstChild, ...(view.children[1] ? view.children[1].children : [])] : [...view.children];
     gsap.fromTo(items, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.3, stagger: 0.028, ease: 'power3.out', clearProps: 'transform,opacity' });
   }
 }
