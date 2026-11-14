@@ -288,6 +288,37 @@ html.preview .stagewrap { border-top: 0; padding: 16px 16px 24px; }
   .sechead h2 { font-size: 30px; }
 }
 @media (prefers-reduced-motion: reduce) { .card, .tile img, .cta, .cta .arr, .rail-item, .row .plus { transition: none; } }
+/* ---------- Phones: the wall still cascades, in two columns. Partner (and Package A) cards span both;
+   the rest are compact half-width cards. Placed last so it wins over the rules above. ---------- */
+@media (max-width: 720px) {
+  .cascade { column-count: 2; column-gap: 10px; }
+  .cascade > * { margin-bottom: 10px; }
+  .cascade.tiered { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .cascade.tiered > * { margin: 0; }
+  .tiered .t-partner, .tiered .t-a { grid-column: span 2; }
+  .tiered .t-partner { display: flex; }
+  .cascade .card { padding: 12px; gap: 8px; }
+  .cascade .card > .tile, .cascade .card > .media { height: 84px !important; min-height: 0; }
+  .cascade .card h3 { font-size: 21px; }
+  .cascade .card .sum { font-size: 12.5px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .cascade .card .between { flex-wrap: wrap; gap: 6px; }
+  .cascade .card .between > .mono, .cascade .card > p.cap, .cascade .card .rule, .cascade .card .kv, .cascade .card .long { display: none; }
+  .cascade .card .typ { font-size: 10px; }
+  .cascade .card .tag, .cascade .card .stub { font-size: 9px; padding: 4px 7px; }
+  .cascade .card .stub { padding-left: 9px; padding-right: 10px; }
+  .cascade .card .cta { padding: 10px 12px; font-size: 11px; min-height: 44px; margin-top: auto; }
+  .cascade .card.open { min-height: 0; }
+  /* full-width cards keep the richer layout */
+  .tiered .t-partner, .tiered .t-a { padding: 16px; gap: 10px; }
+  .tiered .t-partner > .tile, .tiered .t-partner > .media { height: 170px !important; }
+  .tiered .t-a > .tile, .tiered .t-a > .media { height: 120px !important; }
+  .tiered .t-partner h3 { font-size: 30px; } .tiered .t-a h3 { font-size: 26px; }
+  .tiered .t-partner .sum, .tiered .t-a .sum { font-size: 14px; -webkit-line-clamp: unset; display: block; }
+  .tiered .t-partner .between > .mono, .tiered .t-a .between > .mono, .tiered .t-partner .kv, .tiered .t-partner .rule { display: flex; }
+  .tiered .t-partner .rule { display: block; }
+  .tiered .t-c > .tile, .tiered .t-c > .media { height: 56px !important; }
+  .card.partner { column-span: all; grid-column: span 2; }
+}
 </style>
 </head>
 <body>

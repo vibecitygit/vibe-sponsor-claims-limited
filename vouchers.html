@@ -186,14 +186,35 @@ html.preview .top, html.preview .intro, html.preview .legend, html.preview .bar,
 html.preview .grid { padding: 16px; gap: 14px; }
 
 @media (max-width: 1060px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .legend { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Phones: still a cascade, in two columns. Magazine and ticket span both; voucher and stub are one column each. */
 @media (max-width: 700px) {
-  .grid { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; gap: 18px; }
-  .cell.s-voucher, .cell.s-ticket, .cell.s-magazine { grid-column: auto; grid-row: auto; }
-  .cell.s-stub .piece { min-height: 180px; } .cell.s-voucher .piece { min-height: 400px; } .cell.s-magazine .piece { min-height: 520px; }
-  .ticket .paper { flex-wrap: wrap; --stubw: 0px; -webkit-mask: none; mask: none; }
-  .ticket .art { width: 34%; min-height: 130px; } .ticket .main { flex-basis: 60%; }
-  .ticket .tear { width: 100%; flex-direction: row; align-items: center; border-left: 0; border-top: 2px dashed var(--rule); }
-  .magazine .spread { grid-template-columns: minmax(0, 1fr); } .magazine .photo { min-height: 190px; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(132px, auto); gap: 12px; }
+  .cell.s-magazine { grid-column: span 2; grid-row: span 4; }
+  .cell.s-ticket { grid-column: span 2; grid-row: span 1; }
+  .cell.s-voucher { grid-column: auto; grid-row: span 2; }
+  .legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* ticket */
+  .ticket .paper { --stubw: 74px; --n: 8px; }
+  .ticket .art { width: 24%; } .ticket .band { width: 6px; }
+  .ticket .main { padding: 10px 12px; gap: 4px; }
+  .ticket h3 { font-size: 20px; -webkit-line-clamp: 3; } .ticket .brand { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ticket .row { gap: 6px; } .ticket .row .type { display: none; }
+  .ticket .tear { padding: 10px 8px; gap: 4px; } .ticket .tear strong { font-size: 28px; } .ticket .tear .cap { font-size: 8px; } .ticket .tear .code { font-size: 8px; }
+  .ticket .foot .alloc .meter, .ticket .foot > .cap { display: none; }
+  /* voucher */
+  .voucher .paper { padding: 7px; } .voucher .cut { padding: 12px 10px 10px; gap: 7px; }
+  .voucher .logo { height: 58px; } .voucher h3 { font-size: 21px; } .voucher p, .voucher .tierchip { display: none; }
+  .voucher .bars { height: 20px; } .voucher .foot { flex-wrap: wrap; gap: 4px 8px; }
+  /* stub */
+  .stub .tear { display: none; } .stub .paper { --n: 6px; }
+  .stub .body { padding: 10px 14px; gap: 5px; } .stub .logo { width: 36px; height: 26px; } .stub .brand { font-size: 9px; }
+  .stub h3 { font-size: 17px; -webkit-line-clamp: 3; } .stub .foot .ends { display: none; }
+  .go { font-size: 10px; gap: 5px; } .ends { font-size: 9px; } .badge { font-size: 9px; padding: 3px 6px; }
+  /* magazine */
+  .magazine .paper { padding: 16px 16px 14px; gap: 10px; }
+  .magazine .spread { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 12px; }
+  .magazine .photo { min-height: 150px; } .magazine h3 span { font-size: 24px; padding: 2px 6px 1px; } .magazine p { font-size: 13px; -webkit-line-clamp: 2; }
+  .magazine .tape.t1 { top: 48px; } .magazine .tape.t2 { top: 44px; }
   .facts { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { .piece, .magazine .paper, .go .arr { transition: none; } .piece.expiring { animation: none; filter: drop-shadow(0 0 12px rgba(255,73,55,.6)); } .magazine .photo .ph { transition: opacity .01s; transform: none; } }
