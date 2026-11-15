@@ -206,11 +206,11 @@ details summary { cursor: pointer; font: 700 11px/1.25 var(--font-body); letter-
       <h2>Wall layout</h2>
       <div class="optgrid" id="wLayout" role="group" aria-label="Wall layout"></div>
       <div class="g2">
-        <div class="field"><span class="lbl" id="wThemeLbl">Page theme</span><div class="seg2" id="wTheme" role="group" aria-labelledby="wThemeLbl"></div></div>
-        <div class="field"><span class="lbl" id="wCardsLbl">Card stock</span><div class="seg2" id="wCards" role="group" aria-labelledby="wCardsLbl"></div></div>
+        <div class="field"><span class="lbl" id="wThemeLbl">Page background (preview)</span><div class="seg2" id="wTheme" role="group" aria-labelledby="wThemeLbl"></div></div>
+        <div class="field"><span class="lbl" id="wCardsLbl">Card colour</span><div class="seg2" id="wCards" role="group" aria-labelledby="wCardsLbl"></div></div>
       </div>
       <label class="check"><input type="checkbox" id="wSlots">Show open sponsor slots and the founding partner card (Cascade layout)</label>
-      <p class="note">White brand cards keep every card neutral white, so sponsor logos sit on their own background on either page theme.</p>
+      <p class="note">Card colour is separate from the page background. On your site the wall sits on the site's own background, so only the card colour carries over.</p>
     </section>
 
     <section class="sec" data-ctx="deck">
@@ -593,7 +593,7 @@ document.querySelectorAll('[data-ctx-pick]').forEach(b => b.addEventListener('cl
 
 const WALL_OPTS = {
   layout: [['featured', 'Featured + Cascade', 'One rotating featured offer above the masonry wall.'], ['cascade', 'Cascade', 'Masonry wall from the design bundle, with open slots.'], ['ledger', 'Ledger', 'Quiet rows that open in place.'], ['spotlight', 'Spotlight', 'One featured offer, the rest in a rail.'], ['guide', 'Field guide', 'Research-led: benefit first, even grid.']],
-  theme: [['dark', 'Dark'], ['light', 'White']], cards: [['theme', 'Match theme'], ['white', 'White brand']] };
+  theme: [['dark', 'Dark'], ['light', 'White']], cards: [['dark', 'Dark'], ['white', 'White']] };
 function buildWallControls() {
   WALL_OPTS.layout.forEach(([v, name, blurb]) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.v = v; b.innerHTML = '<strong></strong><span></span>'; b.querySelector('strong').textContent = name; b.querySelector('span').textContent = blurb;
     b.addEventListener('click', () => { deck.wall.layout = v; renderWallControls(); persist(true); }); $('wLayout').appendChild(b); });

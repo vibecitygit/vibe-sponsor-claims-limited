@@ -33,9 +33,16 @@ body { margin: 0; background: #0b0b0b; font: 400 14px/1.4 "DM Sans", Arial, sans
 }
 /* White card stock: neutral cards for sponsor logos, on either page theme */
 .wall[data-cards="white"] .card, .wall[data-cards="white"] .row, .wall[data-cards="white"] .feature, .wall[data-cards="white"] .rail-item, .wall[data-cards="white"] dialog {
-  --card: #ffffff; --warm: #f6f5f2; --border: rgba(17,16,14,.14); --line: rgba(17,16,14,.14);
+  --bg: #ffffff; --card: #ffffff; --warm: #f6f5f2; --border: rgba(17,16,14,.14); --line: rgba(17,16,14,.14);
   --ink: #0b0b0b; --soft: #11100e; --muted: #48433d; --brand-ink: #a54635; --tile: #ffffff; --tile-border: rgba(17,16,14,.14);
   color: var(--ink); color-scheme: light;
+}
+/* Dark cards, on either page background. The page setting only paints what is around the cards;
+   on the live site that is the site's own background. */
+.wall[data-cards="dark"] .card, .wall[data-cards="dark"] .row, .wall[data-cards="dark"] .feature, .wall[data-cards="dark"] .rail-item, .wall[data-cards="dark"] dialog {
+  --bg: #0b0b0b; --card: #1a1a1a; --warm: #24211f; --border: #444444; --line: rgba(255,255,255,.21);
+  --ink: #f5f2e9; --soft: #f0ede7; --muted: #c9c5be; --brand-ink: #ff4937; --tile: #24211f; --tile-border: transparent;
+  color: var(--ink); color-scheme: dark;
 }
 a { color: inherit; }
 :focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 2px; }
@@ -271,6 +278,10 @@ dialog { z-index: 1000; will-change: transform; touch-action: none; }
 
 /* preview mode (inside the editor): the wall only */
 html.preview .top, html.preview .intro, html.preview .options, html.preview .foot { display: none; }
+/* #embed: the wall alone on a transparent ground, for placing on a host page */
+html.embed .top, html.embed .intro, html.embed .options, html.embed .foot, html.embed .skyline { display: none; }
+html.embed, html.embed body, html.embed .wall { background: transparent !important; }
+html.embed .stagewrap { border-top: 0; padding: 0; }
 html.preview .stagewrap { border-top: 0; padding: 16px 16px 24px; }
 
 @media (max-width: 1100px) { .cascade { column-count: 2; } .guide { grid-template-columns: repeat(2, minmax(0, 1fr)); } .spot { grid-template-columns: minmax(0, 1fr); } .rail { grid-auto-flow: column; grid-auto-columns: minmax(220px, 70%); overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; } .rail-item { scroll-snap-align: start; } }
@@ -340,12 +351,13 @@ html.preview .stagewrap { border-top: 0; padding: 16px 16px 24px; }
     <h1 class="disp">Your ticket unlocks<br>the <em>city</em></h1>
     <p class="lead">Every ticket to Vibe Check: After Hours unlocks offers from partner places across Cebu. Add to your night.</p>
     <div class="meta"><span class="cap">Casa Verde Ramos · Nov 19, 2026, 7:30 PM – Nov 20, 2026, 1:30 AM · Asia/Manila</span><span class="slotpill" id="slotPill"></span></div>
+    <p class="cap notice">Page background is a preview only. On your site the wall sits on the site's own background; Cards sets the card colour.</p>
     <p class="cap notice">Sponsors and logos are from tickets.vibecity.art. The offers are simulated examples for this prototype and can't be redeemed.</p>
   </section>
 
   <div class="options" role="group" aria-label="Design options">
     <div class="opt"><span class="cap">Layout</span><div class="seg" id="segLayout"></div></div>
-    <div class="opt"><span class="cap">Theme</span><div class="seg" id="segTheme"></div></div>
+    <div class="opt"><span class="cap">Page background (preview)</span><div class="seg" id="segTheme"></div></div>
     <div class="opt"><span class="cap">Cards</span><div class="seg" id="segCards"></div></div>
     <div class="opt"><span class="cap">Open slots</span><div class="seg" id="segSlots"></div></div>
   </div>
@@ -388,6 +400,7 @@ html.preview .stagewrap { border-top: 0; padding: 16px 16px 24px; }
 const D = window.DeckCore, $ = id => document.getElementById(id);
 const PREVIEW = location.hash === '#preview';
 if (PREVIEW) document.documentElement.classList.add('preview');
+if (location.hash === '#embed') document.documentElement.classList.add('embed');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches || typeof gsap === 'undefined';
 const wallEl = $('wall'), stage = $('stage');
 let deck = D.load(), filter = 'all', openRow = null;
@@ -416,7 +429,7 @@ const add = (parent, ...kids) => { kids.forEach(k => k && parent.appendChild(k))
 const typeLabel = t => (t === 'Option' ? 'Choice' : t);
 const valid = c => `${c.from} – ${c.to} · ${c.year}`;
 const slotNo = i => String(i + 1).padStart(2, '0');
-const ground = () => (deck.wall.cards === 'white' || deck.wall.theme === 'light' ? 'light' : 'dark');
+const ground = () => (deck.wall.cards === 'white' ? 'light' : 'dark');
 const isSim = c => c.terms.some(t => /^Simulated example/.test(t));
 const tagText = c => (claims[c.id] ? 'Claimed' : (isSim(c) ? 'Example · ' : '') + typeLabel(c.type));
 function logoTile(c, cls) {
@@ -827,7 +840,7 @@ function paint(animate) {
 
 /* ---------- Design options (saved with the deck so the editor and other tabs follow) ---------- */
 const OPTS = [['segLayout', 'layout', Object.keys(LAYOUTS).map(k => [k, LAYOUTS[k][0]])], ['segTheme', 'theme', [['dark', 'Dark'], ['light', 'White']]],
-  ['segCards', 'cards', [['theme', 'Match theme'], ['white', 'White brand cards']]], ['segSlots', 'openSlots', [[true, 'Show'], [false, 'Hide']]]];
+  ['segCards', 'cards', [['dark', 'Dark'], ['white', 'White']]], ['segSlots', 'openSlots', [[true, 'Show'], [false, 'Hide']]]];
 function buildOptions() {
   OPTS.forEach(([id, key, vals]) => vals.forEach(([v, label]) => {
     const b = h('button', null, label, { type: 'button' }); b._v = v;

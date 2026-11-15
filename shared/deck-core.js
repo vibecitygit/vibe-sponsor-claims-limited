@@ -153,7 +153,8 @@ function wallOf(w) {
     v: 2, // settings saved before the Featured + Cascade layout existed move to it once
     layout: w.v === 2 && WALL_LAYOUTS.includes(w.layout) ? w.layout : 'featured',
     theme: w.theme === 'light' ? 'light' : 'dark',
-    cards: w.cards === 'white' ? 'white' : 'theme',
+    // card colour is its own setting, separate from the page background (older 'match theme' values follow the theme they had)
+    cards: w.cards === 'white' || (w.cards === 'theme' && w.theme === 'light') ? 'white' : 'dark',
     openSlots: w.openSlots !== false,
   };
 }
