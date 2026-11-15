@@ -201,17 +201,16 @@ class VibeSponsorWall extends HTMLElement {
 }
 
 const STYLE = `
-:host { display: block; box-sizing: border-box; font: 14px/1.4 "DM Sans", Arial, sans-serif; color: #f5f2e9; }
+:host { display: block; box-sizing: border-box; font: 14px/1.4 "DM Sans", Arial, sans-serif; }
 :host([data-format="legacy"]) { display: none; }
 *, *::before, *::after { box-sizing: border-box; }
 .wall { padding: var(--pad, 24px) 16px; }
-.wall.white { color: #0b0b0b; }
 .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 9.5rem; grid-auto-flow: dense; gap: var(--gap, 14px); }
 .lead { display: block; width: 100%; margin-bottom: 14px; }
 .lead .face { min-height: 14rem; }
 .f-featured .lead { grid-column: 1 / -1; }
-.piece { position: relative; appearance: none; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.04); color: inherit; font: inherit; text-align: left; cursor: pointer; padding: 0; overflow: hidden; border-radius: 0; min-width: 0; }
-.white .piece { border-color: rgba(0,0,0,.18); background: #fbf8f1; }
+.piece { position: relative; appearance: none; border: 1px solid rgba(255,255,255,.18); background: #14110f; color: #f5f2e9; font: inherit; text-align: left; cursor: pointer; padding: 0; overflow: hidden; border-radius: 0; min-width: 0; }
+.white .piece { border-color: rgba(0,0,0,.18); background: #fbf8f1; color: #0b0b0b; }
 .piece:focus-visible { outline: 2px solid #ff4937; outline-offset: 2px; }
 .face { height: 100%; padding: 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
@@ -226,7 +225,7 @@ const STYLE = `
 .voucher { border-style: dashed; }
 .ticket .face { flex-direction: row; }
 .magazine { border-width: 2px; }
-.empty { opacity: .8; }
+.empty { opacity: .8; color: inherit; }
 dialog.detail { width: min(560px, calc(100vw - 32px)); max-height: 86vh; border: 0; padding: 0; background: #14110f; color: #f5f2e9; }
 dialog.detail::backdrop { background: rgba(0,0,0,.6); }
 .dbody { padding: 18px; display: grid; gap: 10px; overflow: auto; }
