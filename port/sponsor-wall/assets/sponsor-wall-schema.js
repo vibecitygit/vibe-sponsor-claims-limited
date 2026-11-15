@@ -10,9 +10,9 @@ const CARD_STOCKS = ['dark', 'white'];
 const GRID_COLUMNS = 3;
 // Tier caps: the largest piece a sponsor may take (columns x rows of the 3-column grid) and photos shown.
 const TIERS = Object.freeze({
-  t1: Object.freeze({ id: 't1', name: 'Tier 1', cols: 3, rows: 4, photos: 5, defaultCols: 2, defaultRows: 2 }),
-  t2: Object.freeze({ id: 't2', name: 'Tier 2', cols: 2, rows: 3, photos: 3, defaultCols: 2, defaultRows: 1 }),
-  t3: Object.freeze({ id: 't3', name: 'Tier 3', cols: 1, rows: 2, photos: 1, defaultCols: 1, defaultRows: 1 }),
+  tier1: Object.freeze({ id: 'tier1', name: 'Tier 1', cols: 3, rows: 4, photos: 5, defaultCols: 2, defaultRows: 2 }),
+  tier2: Object.freeze({ id: 'tier2', name: 'Tier 2', cols: 2, rows: 3, photos: 3, defaultCols: 2, defaultRows: 1 }),
+  tier3: Object.freeze({ id: 'tier3', name: 'Tier 3', cols: 1, rows: 2, photos: 1, defaultCols: 1, defaultRows: 1 }),
 });
 const TIER_IDS = Object.freeze(Object.keys(TIERS));
 // Placement limits from the sponsor placements: partners ≤3, featured ≤5, minor ≤10.
@@ -32,9 +32,9 @@ function integer(v, min, max, label) {
 // Default tier for a sponsor from its placement group: partners and the ₱5,000 featured tier → Tier 1,
 // the ₱3,000 featured tier → Tier 2, minor sponsors → Tier 3. Unknown groups fall to the smallest tier.
 function defaultTierFor(group, price) {
-  if (group === 'partner') return 't1';
-  if (group === 'featured') return price === 5000 ? 't1' : price === 3000 ? 't2' : 't3';
-  return 't3';
+  if (group === 'partner') return 'tier1';
+  if (group === 'featured') return price === 5000 ? 'tier1' : price === 3000 ? 'tier2' : 'tier3';
+  return 'tier3';
 }
 
 // The piece a sponsor gets before the editor changes it: the tier's default size, and a sensible order.

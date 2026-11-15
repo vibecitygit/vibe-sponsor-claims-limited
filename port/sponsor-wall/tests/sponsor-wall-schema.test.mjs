@@ -11,9 +11,9 @@ const S = sandbox.VCSponsorWallSchema;
 const plain = (v) => JSON.parse(JSON.stringify(v));
 
 test('tier caps match the approved sizes and photo limits', () => {
-  assert.deepEqual([S.TIERS.t1.cols, S.TIERS.t1.rows, S.TIERS.t1.photos], [3, 4, 5]);
-  assert.deepEqual([S.TIERS.t2.cols, S.TIERS.t2.rows, S.TIERS.t2.photos], [2, 3, 3]);
-  assert.deepEqual([S.TIERS.t3.cols, S.TIERS.t3.rows, S.TIERS.t3.photos], [1, 2, 1]);
+  assert.deepEqual([S.TIERS.tier1.cols, S.TIERS.tier1.rows, S.TIERS.tier1.photos], [3, 4, 5]);
+  assert.deepEqual([S.TIERS.tier2.cols, S.TIERS.tier2.rows, S.TIERS.tier2.photos], [2, 3, 3]);
+  assert.deepEqual([S.TIERS.tier3.cols, S.TIERS.tier3.rows, S.TIERS.tier3.photos], [1, 2, 1]);
 });
 
 test('placement limits give a 18-sponsor maximum', () => {
@@ -24,11 +24,11 @@ test('placement limits give a 18-sponsor maximum', () => {
 });
 
 test('default tier follows the placement group and price', () => {
-  assert.equal(S.defaultTierFor('partner'), 't1');
-  assert.equal(S.defaultTierFor('featured', 5000), 't1');
-  assert.equal(S.defaultTierFor('featured', 3000), 't2');
-  assert.equal(S.defaultTierFor('minor'), 't3');
-  assert.equal(S.defaultTierFor('unknown'), 't3');
+  assert.equal(S.defaultTierFor('partner'), 'tier1');
+  assert.equal(S.defaultTierFor('featured', 5000), 'tier1');
+  assert.equal(S.defaultTierFor('featured', 3000), 'tier2');
+  assert.equal(S.defaultTierFor('minor'), 'tier3');
+  assert.equal(S.defaultTierFor('unknown'), 'tier3');
 });
 
 test('defaults are the legacy format, dark cards, open slots, and the prototype spacing', () => {
@@ -43,17 +43,17 @@ test('defaults are the legacy format, dark cards, open slots, and the prototype 
 
 test('a default item is inside its tier', () => {
   const it = S.defaultItem('partner', undefined, 0);
-  assert.equal(it.tier, 't1');
-  assert.ok(it.cols <= S.TIERS.t1.cols && it.rows <= S.TIERS.t1.rows);
+  assert.equal(it.tier, 'tier1');
+  assert.ok(it.cols <= S.TIERS.tier1.cols && it.rows <= S.TIERS.tier1.rows);
   assert.equal(it.featured, true);
   const minor = S.defaultItem('minor', undefined, 4);
-  assert.deepEqual([minor.tier, minor.cols, minor.rows, minor.featured, minor.order], ['t3', 1, 1, false, 4]);
+  assert.deepEqual([minor.tier, minor.cols, minor.rows, minor.featured, minor.order], ['tier3', 1, 1, false, 4]);
 });
 
 test('an accepted set of settings round-trips unchanged', () => {
   const input = {
     format: 'cutouts', cards: 'white', openSlots: false, cutGap: 64, cutPad: 200,
-    items: { 'sp-1': { tier: 't1', cols: 3, rows: 4, featured: true, order: 0 }, 'sp-2': { tier: 't3', cols: 1, rows: 2, featured: false, order: 9 } },
+    items: { 'sp-1': { tier: 'tier1', cols: 3, rows: 4, featured: true, order: 0 }, 'sp-2': { tier: 'tier3', cols: 1, rows: 2, featured: false, order: 9 } },
   };
   assert.deepEqual(plain(S.validate(input)), input);
 });
@@ -63,13 +63,13 @@ test('rejects a format that is not offered', () => {
 });
 
 test('rejects a size above the tier cap', () => {
-  assert.throws(() => S.validate({ items: { a: { tier: 't3', cols: 2, rows: 1, featured: false } } }), /columns for Tier 3/);
-  assert.throws(() => S.validate({ items: { a: { tier: 't2', cols: 2, rows: 4, featured: false } } }), /rows for Tier 2/);
+  assert.throws(() => S.validate({ items: { a: { tier: 'tier3', cols: 2, rows: 1, featured: false } } }), /columns for Tier 3/);
+  assert.throws(() => S.validate({ items: { a: { tier: 'tier2', cols: 2, rows: 4, featured: false } } }), /rows for Tier 2/);
 });
 
 test('rejects an unknown tier and a non-boolean featured flag', () => {
   assert.throws(() => S.validate({ items: { a: { tier: 'partner', cols: 1, rows: 1, featured: false } } }), /choose a tier/);
-  assert.throws(() => S.validate({ items: { a: { tier: 't1', cols: 1, rows: 1, featured: 'yes' } } }), /featured must be on or off/);
+  assert.throws(() => S.validate({ items: { a: { tier: 'tier1', cols: 1, rows: 1, featured: 'yes' } } }), /featured must be on or off/);
 });
 
 test('rejects out-of-range spacing and non-integers', () => {
@@ -81,13 +81,13 @@ test('rejects out-of-range spacing and non-integers', () => {
 
 test('rejects more sponsors than the placement limits allow', () => {
   const items = {};
-  for (let i = 0; i < 19; i++) items['s' + i] = { tier: 't3', cols: 1, rows: 1, featured: false };
+  for (let i = 0; i < 19; i++) items['s' + i] = { tier: 'tier3', cols: 1, rows: 1, featured: false };
   assert.throws(() => S.validate({ items }), /at most 18/);
 });
 
 test('rejects unsafe sponsor ids', () => {
-  assert.throws(() => S.validate({ items: { '<script>': { tier: 't3', cols: 1, rows: 1, featured: false } } }), /Sponsor ids/);
-  assert.throws(() => S.validate({ items: { ['x'.repeat(65)]: { tier: 't3', cols: 1, rows: 1, featured: false } } }), /Sponsor ids/);
+  assert.throws(() => S.validate({ items: { '<script>': { tier: 'tier3', cols: 1, rows: 1, featured: false } } }), /Sponsor ids/);
+  assert.throws(() => S.validate({ items: { ['x'.repeat(65)]: { tier: 'tier3', cols: 1, rows: 1, featured: false } } }), /Sponsor ids/);
 });
 
 test('unknown keys are dropped rather than stored', () => {
