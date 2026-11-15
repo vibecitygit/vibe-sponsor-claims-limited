@@ -1,18 +1,24 @@
-# Wiring the Offer wall tab into the page designer (target repo)
+# Wiring the Offer wall into the Page designer (target repo)
 
-Applies to `vibecitygit/vibe-city-checkout-payments`, not yet pushed (waiting on the portal session).
+Target: `vibecitygit/vibe-city-checkout-payments`. Done locally on `claude/busy-thompson-c1lfge` as commit `fedd8c5`
+(not pushed; waiting on the portal session). Gate passed locally: `npm run check`, `npm run build`, `npm test` (50/50).
 
-1. Copy `portal/offer-wall-tab.js` to `portal/offer-wall-tab.js` in the target repo.
-2. `portal/index.html`: add `<script src="/assets/sponsor-wall-schema.js" defer></script>` before
-   `/portal/page-effects.js`, and `<script src="/portal/offer-wall-tab.js" defer></script>` after it.
-3. `portal/page-effects.js`:
-   - Add a tab button `Offer wall` (`data-pe-tab="wall"`) to the tab list, next to Shader layer, Scroll animation
-     and Smooth scroll.
-   - In the view setup, before the first draw: `let wall = await window.VCOfferWallTab.load(api);`
-   - In `draw()`, when `tab==='wall'`, render `window.VCOfferWallTab.html(esc, wall)` in the fields panel
-     (the preview panel shows the chosen format's name).
-   - After the tab's markup is in place: `window.VCOfferWallTab.bind(main.querySelector('#peFields'), wall, { api, redraw: draw })`.
-   - The tab keeps its own Save draft and Publish buttons. Page designer's buttons stay for the other tabs.
-4. Do not add a nav item in `portal/app.js` or `portal/admin.js`: the Offer wall is a tab, not a page.
-5. Worker: `GET /ops-api/sponsor-wall` and `POST /ops-api/sponsor-wall` (with `version`, `action`, `draft`), per
-   the Phase 1 plan. Until then the tab shows an error on load.
+The Page designer menu item has three tabs: Page content, Page effects and Offer wall. Page effects no longer
+appears as its own menu item.
+
+Files changed in the target:
+- `assets/sponsor-wall-schema.js` (new): the settings schema, shared by the portal tab and the Worker.
+- `portal/offer-wall-tab.js` (new): the Offer wall tab: format selector, card stock, open slots, cut-out spacing,
+  Save draft and Publish. It reads and saves through `/sponsor-wall`.
+- `portal/app.js`: `pageDesigner()` draws the three tabs; `contentView(host)` renders into the designer body;
+  `state.pdTab` remembers the tab; `page-effects` removed from the menu and from the view loader.
+- `portal/admin.js`, `portal/runtime.js`: `page-effects` removed from the menu definitions and the view list.
+- `portal/index.html`: schema and tab scripts added after `/portal/page-effects.js`.
+- `tests/page-effects.test.mjs`: asserts the designer wiring and that Page effects is not its own menu item.
+- `AGENTS.md`: owner-authorization entry for the change.
+
+Known gaps:
+- The Page content tab keeps its own heading, so the designer's heading appears above it as well.
+- The Worker endpoints `GET/POST /ops-api/sponsor-wall` and `GET /public-sponsor-wall` are not built yet, so the
+  Offer wall tab shows an error on load until they are.
+- Per-sponsor tier and size controls are still to be added to the Offer wall tab.
