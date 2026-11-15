@@ -51,6 +51,8 @@
   window.__claims = [];
   const now = q.get('now') ? +q.get('now') : undefined;
   window.__wall = R.mount(container, deck, { root, now, onClaim: id => window.__claims.push(id) });
+// The prototype page painted the wall's page colour itself; the port leaves that to the host page, so this test page paints it.
+{ const paint = () => { const w = container.querySelector('.cw'); if (w) document.body.style.background = getComputedStyle(w).getPropertyValue('--bg').trim(); }; paint(); new MutationObserver(paint).observe(container, { subtree: true, childList: true, attributes: true }); }
   window.__root = root;
 })();
 </script>

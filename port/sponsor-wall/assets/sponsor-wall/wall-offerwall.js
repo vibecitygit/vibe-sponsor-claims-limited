@@ -525,21 +525,28 @@ function fillDetail(i) {
   add(body, main, sidePanel(c));
 }
 const cardFor = i => stage.querySelector(`[data-oid="${deck.coupons[i].id}"]`);
+/* Port fix (owner decision): keep the offer dialog a real popup (dimmed backdrop, Escape and a click outside close it).
+   GSAP measures an element with no transform and no offsetParent (an open dialog is position: fixed) by moving it to the
+   page root for a moment, which silently drops a dialog's modal state; the prototype did this on every clearProps. So GSAP
+   measures the dialog while it is closed (dlgReset), and the dialog's own inline transform is cleared by hand (dlgClear)
+   instead of with clearProps. The animations are unchanged. */
+function dlgClear(all) { if (all) { dlg.removeAttribute('style'); return; } for (const p of ['transform', 'translate', 'rotate', 'scale', 'transform-origin']) dlg.style.removeProperty(p); }
+function dlgReset() { gsap.set(dlg, { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0, lazy: false }); gsap.getProperty(dlg, 'x'); dlgClear(false); }
 function openDetail(i, fromEl) {
   if (noOffer(deck.coupons[i])) return; // nothing to open: no-offer sponsors link to their site
   dList = offers().filter(o => !noOffer(o.c)).map(o => o.i); if (!dList.includes(i)) dList = [i];
   dAt = dList.indexOf(i); dFrom = fromEl || cardFor(i);
   fillDetail(i);
-  if (!dlg.open) dlg.showModal();
+  if (!dlg.open) { if (!reduced) dlgReset(); dlg.showModal(); }
   if (reduced) return;
   gsap.killTweensOf([dlg, $('dBody')]);
-  gsap.set(dlg, { clearProps: 'transform,opacity' });
+  dlgClear(false); dlg.style.removeProperty('opacity');
   // FLIP: start at the card's box, settle into the dialog's own box
   const to = dlg.getBoundingClientRect(), from = dFrom && dFrom.isConnected ? dFrom.getBoundingClientRect() : null;
   if (from && from.width > 0) {
     gsap.fromTo(dlg, { x: from.left - to.left, y: from.top - to.top, scaleX: from.width / to.width, scaleY: from.height / to.height, transformOrigin: '0 0', opacity: 1 },
-      { x: 0, y: 0, scaleX: 1, scaleY: 1, opacity: 1, duration: 0.5, ease: 'expo.out', clearProps: 'transform' });
-  } else gsap.fromTo(dlg, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power3.out', clearProps: 'transform' });
+      { x: 0, y: 0, scaleX: 1, scaleY: 1, opacity: 1, duration: 0.5, ease: 'expo.out', onComplete: () => dlgClear(false) });
+  } else gsap.fromTo(dlg, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power3.out', onComplete: () => dlgClear(false) });
   gsap.fromTo([dlg.querySelector('.dhead'), $('dBody')], { opacity: 0 }, { opacity: 1, duration: 0.3, delay: 0.14, ease: 'power1.out' });
 }
 function closeDetail() {
@@ -550,7 +557,7 @@ function closeDetail() {
   const from = dlg.getBoundingClientRect(), to = target.getBoundingClientRect();
   gsap.to([dlg.querySelector('.dhead'), $('dBody')], { opacity: 0, duration: 0.12 });
   gsap.to(dlg, { x: to.left - from.left, y: to.top - from.top, scaleX: to.width / from.width, scaleY: to.height / from.height, transformOrigin: '0 0', opacity: 0, duration: 0.3, ease: 'power3.inOut',
-    onComplete: () => { dlg.close(); gsap.set([dlg, dlg.querySelector('.dhead'), $('dBody')], { clearProps: 'all' }); dBusy = false; } });
+    onComplete: () => { dlg.close(); gsap.set([dlg.querySelector('.dhead'), $('dBody')], { clearProps: 'all' }); dlgClear(true); dBusy = false; } });
 }
 /* step to the next or previous offer; the content slides out one way and in from the other */
 function stepDetail(dir) {
@@ -562,7 +569,7 @@ function stepDetail(dir) {
   gsap.to(body, { x: -40 * dir, opacity: 0, duration: 0.14, ease: 'power2.in', onComplete: () => {
     swap(); gsap.fromTo(body, { x: 40 * dir, opacity: 0 }, { x: 0, opacity: 1, duration: 0.26, ease: 'power3.out', clearProps: 'transform', onComplete: () => { dBusy = false; } });
   } });
-  gsap.set(dlg, { clearProps: 'transform' });
+  dlgClear(false);
 }
 $('dClose').addEventListener('click', closeDetail);
 $('dPrev').addEventListener('click', () => stepDetail(-1));
@@ -604,11 +611,11 @@ function endSwipe(e) {
     dBusy = true;
     gsap.to(dlg, { x: -dir * innerWidth * 0.5, opacity: 0, duration: 0.16, ease: 'power2.in', onComplete: () => {
       dAt = (dAt + dir + dList.length) % dList.length; fillDetail(dList[dAt]);
-      gsap.fromTo(dlg, { x: dir * innerWidth * 0.35, rotation: 0, opacity: 0 }, { x: 0, opacity: 1, duration: 0.3, ease: 'power3.out', clearProps: 'transform', onComplete: () => { dBusy = false; } });
+      gsap.fromTo(dlg, { x: dir * innerWidth * 0.35, rotation: 0, opacity: 0 }, { x: 0, opacity: 1, duration: 0.3, ease: 'power3.out', onComplete: () => { dlgClear(false); dBusy = false; } });
     } });
   } else if (axis === 'y' && Math.abs(dy) > dlg.offsetHeight * 0.4) { // past 40% of the card's height, in either direction: close
-    gsap.to(dlg, { y: Math.sign(dy) * innerHeight * 0.7, opacity: 0, duration: 0.22, ease: 'power2.in', onComplete: () => { dlg.close(); gsap.set([dlg, dlg.querySelector('.dhead'), $('dBody')], { clearProps: 'all' }); } });
-  } else if (axis === 'x' || axis === 'y') gsap.to(dlg, { x: 0, y: 0, rotation: 0, opacity: 1, duration: 0.3, ease: 'power3.out', clearProps: 'transform' });
+    gsap.to(dlg, { y: Math.sign(dy) * innerHeight * 0.7, opacity: 0, duration: 0.22, ease: 'power2.in', onComplete: () => { dlg.close(); gsap.set([dlg.querySelector('.dhead'), $('dBody')], { clearProps: 'all' }); dlgClear(true); } });
+  } else if (axis === 'x' || axis === 'y') gsap.to(dlg, { x: 0, y: 0, rotation: 0, opacity: 1, duration: 0.3, ease: 'power3.out', onComplete: () => dlgClear(false) });
 }
 dlg.addEventListener('pointerup', endSwipe); dlg.addEventListener('pointercancel', endSwipe);
 stage.addEventListener('pointermove', e => {

@@ -7,6 +7,12 @@
 // Comparison: pixelmatch-style YIQ colour distance with threshold 0.1 (no anti-alias exclusion), decoded in-page.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+
+// Owner-approved fix under test: the port's offer dialog stays a real popup. In the prototype GSAP briefly moves an open
+// dialog to measure it, which silently drops its modal state (no backdrop, Escape and outside clicks do nothing). For a
+// like-for-like comparison both pages get this guard: an open modal dialog is never moved, which changes nothing else in
+// the prototype. The port does not need it (it no longer moves the dialog); the test also asserts the port is modal.
+const KEEP_MODAL = () => { for (const m of ['appendChild', 'insertBefore']) { const o = Node.prototype[m]; Node.prototype[m] = function (node, ...rest) { if (node instanceof HTMLDialogElement && node.open && node.matches(':modal')) return node; return o.call(this, node, ...rest); }; } };
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -82,6 +88,7 @@ async function open(kind, [w, hgt], theme, top = 0, bottom = 0) {
   const page = await ctx.newPage();
   const stored = kind === 'proto' && theme === 'light' ? JSON.stringify({ wall: { theme: 'light', cards: 'white' } }) : null;
   await page.addInitScript(initScript, { seed: 12345, stored });
+  await page.addInitScript(KEEP_MODAL);
   await page.clock.install({ time: NOW });
   await page.clock.pauseAt(NOW + 1);
   const url = kind === 'proto' ? base + PROTO : `${base}${HARNESS}?now=${NOW + 1}&top=${top}&bottom=${bottom}&theme=${theme}${theme === 'light' ? '&cards=white' : ''}`;
@@ -197,6 +204,11 @@ for (const vp of VIEWPORTS) {
         const idx = await P[0].page.evaluate(() => [...window.__P.board().querySelectorAll('.piece:not(.slot)')].findIndex(p => { const r = p.getBoundingClientRect(); return r.top >= 0 && r.top <= innerHeight / 2; }));
         assert.ok(idx >= 0, 'a piece in view');
         await both(P, i => window.__P.board().querySelectorAll('.piece:not(.slot)')[i].click(), idx);
+        assert.ok(await P[1].page.evaluate(() => {
+  // Owner-approved fix: the port's offer dialog must be a real popup.
+  const r = [...document.querySelectorAll('*')].find(e => e.shadowRoot).shadowRoot, d = r.querySelector('dialog'), modal = d.matches(':modal');
+  return modal;
+}), 'port dialog is a real popup');
         const t2 = (await both(P, () => gsap.globalTimeline.time()))[0];
         const full = { x: 0, y: 0, width: vp[0], height: vh };
         for (const t of TIMES) { await both(P, t => window.__P.seek(t), t2 + t); await shotBoth(P, `${vp[0]} ${card} dialog t=${t}`, full); }

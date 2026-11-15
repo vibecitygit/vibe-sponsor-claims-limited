@@ -5,6 +5,12 @@
 // Every comparison counts differing pixels (any channel off by more than TOL) and fails above 0.5%.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+
+// Owner-approved fix under test: the port's offer dialog stays a real popup. In the prototype GSAP briefly moves an open
+// dialog to measure it, which silently drops its modal state (no backdrop, Escape and outside clicks do nothing). For a
+// like-for-like comparison both pages get this guard: an open modal dialog is never moved, which changes nothing else in
+// the prototype. The port does not need it (it no longer moves the dialog); the test also asserts the port is modal.
+const KEEP_MODAL = () => { for (const m of ['appendChild', 'insertBefore']) { const o = Node.prototype[m]; Node.prototype[m] = function (node, ...rest) { if (node instanceof HTMLDialogElement && node.open && node.matches(':modal')) return node; return o.call(this, node, ...rest); }; } };
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -130,6 +136,7 @@ async function openPage(kind, format, cards, width, top) {
   await page.clock.install({ time: NOW });
   await page.clock.pauseAt(PAUSED);
   await page.addInitScript(INIT);
+  await page.addInitScript(KEEP_MODAL);
   let url;
   if (kind === 'proto') {
     await page.addInitScript(([layout, cards]) => {
@@ -217,6 +224,11 @@ for (const format of ['featured', 'cascade']) {
           // open the offer dialog from the first wall card (FLIP from the card), frames while it grows, then open
           for (const p of [A, B]) {
             await p.page.evaluate(() => { const s = window.__q('stage'); s.querySelector('.cascade .card.offer .cta').click(); });
+            if (p === B) assert.ok(await B.page.evaluate(() => {
+  // Owner-approved fix: the port's offer dialog must be a real popup.
+  const r = [...document.querySelectorAll('*')].find(e => e.shadowRoot).shadowRoot, d = r.querySelector('dialog'), modal = d.matches(':modal');
+  return modal;
+}), 'port dialog is a real popup');
             p.t1 = await p.page.evaluate(() => window.__tweenStart(t => t.targets()[0] === window.__q('detail') && t.vars.ease === 'expo.out'));
             assert.ok(p.t1 != null, 'dialog FLIP tween');
             await p.page.evaluate(() => Promise.all([...window.__q('detail').querySelectorAll('img')].map(i => i.decode().catch(() => {}))));

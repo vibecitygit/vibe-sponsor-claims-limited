@@ -25,6 +25,10 @@
       never counted as ended.
    5. Determinism: opts.now replaces Date.now() (and new Date() for the year fallback).
    6. No global GSAP settings are touched (the prototype sets none).
+   7. Owner-approved fix (not in the prototype): the offer dialog stays modal (dimmed backdrop, Escape and a click
+      outside close it). GSAP measures an element with no transform and no offsetParent (an open dialog is position:
+      fixed) by moving it to the page root for a moment, which drops a dialog's modal state, so GSAP measures the dialog before showModal() and the end of the opening animation clears
+      the transform by hand instead of with clearProps; see openDetail. The animation itself is unchanged.
 */
 (function () {
 'use strict';
@@ -43,8 +47,9 @@ const CSS = `
   --x-ok: #0f7440; --x-ok-ink: #ffffff; --x-soon: #f2b233; --x-soon-ink: #0b0b0b; --x-last: #ff4937; --x-last-ink: #0b0b0b; --x-done: #6b6660; --x-done-ink: #ffffff;
   --gutter: clamp(12px, 4.4vw, 72px); --ease: cubic-bezier(.23, 1, .32, 1);
   color-scheme: dark; display: flex; flex-direction: column; color: var(--fg);
-  background: var(--bg) linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 100% 28px, linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 28px 100%;
-  background-color: var(--bg);
+  /* Port change: drawn as a wall on a host page: the faint pinboard grid stays, the solid page colour goes, so the
+     site's own background shows through. */
+  background: linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 100% 28px, linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 28px 100%;
   /* from the prototype's html/body rules */
   -webkit-text-size-adjust: 100%; margin: 0; font: 400 14px/1.4 "DM Sans", Arial, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: clip;
 }
@@ -360,10 +365,21 @@ function mount(container, deckIn, opts) {
       add(body, add(h('div', 'drow'), expTag(c), c.type ? h('span', 'label', c.type === 'Option' ? 'Choice' : c.type) : null, h('span', 'cap', D.TIERS[c.tier].name)), h('h2', L.face, headline(c)), c.long ? h('p', null, c.long) : null, facts, terms ? h('span', 'cap', 'How to claim') : null, terms, action);
     };
     fill();
-    if (!dlg.open) dlg.showModal();
+    if (!dlg.open) {
+      // Port fix (owner decision): GSAP measures the dialog's transform here, while it is still closed. In the prototype it
+      // first measured it after showModal(), briefly moving the element to the page root, and Chrome then dropped the modal state:
+      // no dimmed backdrop, and Escape or a click outside did nothing. The opening animation is unchanged.
+      // gsap.set can be rendered lazily (on the next tick); getProperty makes GSAP measure now, while the dialog is closed.
+      if (!reduced) { gsap.set(dlg, { x: 0, y: 0, scaleX: 1, scaleY: 1, transformOrigin: '0 0', lazy: false }); gsap.getProperty(dlg, 'x'); }
+      dlg.showModal();
+    }
     if (reduced) return;
     const to = dlg.getBoundingClientRect(), fr = from.getBoundingClientRect();
-    gsap.fromTo(dlg, { x: fr.left - to.left, y: fr.top - to.top, scaleX: fr.width / to.width, scaleY: fr.height / to.height, transformOrigin: '0 0' }, { x: 0, y: 0, scaleX: 1, scaleY: 1, duration: 0.42, ease: 'expo.out', clearProps: 'transform' });
+    gsap.fromTo(dlg, { x: fr.left - to.left, y: fr.top - to.top, scaleX: fr.width / to.width, scaleY: fr.height / to.height, transformOrigin: '0 0' }, { x: 0, y: 0, scaleX: 1, scaleY: 1, duration: 0.42, ease: 'expo.out',
+      // Port fix: the prototype's clearProps made GSAP re-measure the dialog, and GSAP measures a fixed element with no
+      // transform by moving it to the page root for a moment, which drops the modal state. The end state is the identity, so clearing the inline
+      // transform by hand looks the same.
+      onComplete: () => { dlg.style.removeProperty('transform'); dlg.style.removeProperty('transform-origin'); dlg.style.removeProperty('translate'); dlg.style.removeProperty('rotate'); dlg.style.removeProperty('scale'); } });
     gsap.fromTo([dlg.querySelector('.dhead'), dBody], { opacity: 0 }, { opacity: 1, duration: 0.26, delay: 0.12 });
   }
   dClose.addEventListener('click', () => dlg.close());

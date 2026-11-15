@@ -5,6 +5,12 @@
 // Run: node --test port/sponsor-wall/tests/parity-vouchers.test.mjs   (PARITY_OUT=<dir> saves the PNGs)
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+
+// Owner-approved fix under test: the port's offer dialog stays a real popup. In the prototype GSAP briefly moves an open
+// dialog to measure it, which silently drops its modal state (no backdrop, Escape and outside clicks do nothing). For a
+// like-for-like comparison both pages get this guard: an open modal dialog is never moved, which changes nothing else in
+// the prototype. The port does not need it (it no longer moves the dialog); the test also asserts the port is modal.
+const KEEP_MODAL = () => { for (const m of ['appendChild', 'insertBefore']) { const o = Node.prototype[m]; Node.prototype[m] = function (node, ...rest) { if (node instanceof HTMLDialogElement && node.open && node.matches(':modal')) return node; return o.call(this, node, ...rest); }; } };
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -76,6 +82,7 @@ async function openPage(url, [w, hgt], white) {
   await ctx.route(/^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com|cdnjs\.cloudflare\.com)\//, replay);
   const page = await ctx.newPage();
   await page.addInitScript(initScript, { white });
+  await page.addInitScript(KEEP_MODAL);
   await page.clock.install({ time: NOW });
   await page.clock.pauseAt(NOW);
   await page.goto(url);
@@ -180,6 +187,11 @@ for (const size of WIDTHS) for (const cards of CARDS) {
     for (const p of [proto, port]) await p.evaluate(y => window.scrollTo(0, y), g.y);
     const [d1, d2] = [await baseTime(proto), await baseTime(port)];
     for (const p of [proto, port]) await p.evaluate(q(R => R.querySelector('.grid .piece').click()));
+    assert.ok(await port.evaluate(() => {
+  // Owner-approved fix: the port's offer dialog must be a real popup.
+  const r = [...document.querySelectorAll('*')].find(e => e.shadowRoot).shadowRoot, d = r.querySelector('dialog'), modal = d.matches(':modal');
+  return modal;
+}), 'port dialog is a real popup');
     for (const t of DIALOG) {
       await seek(proto, d1 + t); await seek(port, d2 + t);
       await pinCss(proto); await pinCss(port);

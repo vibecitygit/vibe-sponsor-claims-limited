@@ -41,8 +41,9 @@ const CSS = `
   --shadow: 0 10px 30px rgba(0,0,0,.45);
   --display: "Barlow Condensed", Impact, "Arial Narrow", sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
   --ease: cubic-bezier(.23, 1, .32, 1); --gutter: clamp(20px, 5.4vw, 83px);
-  color-scheme: dark; min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); color: var(--fg);
-  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Port change: drawn as a wall on a host page (as the offer wall port does with the prototype's #embed mode): no page
+     background, full-screen height or safe-area padding, so the site's own background shows through. */
+  color-scheme: dark; display: flex; flex-direction: column; color: var(--fg);
 }
 .vw[data-theme="light"] { --bg: #ffffff; --panel: #f5f2e9; --border: rgba(17,16,14,.3); --line: rgba(17,16,14,.16); --fg: #0b0b0b; --muted: #48433d; --brand-ink: #a54635;
   --paper: #fbfaf6; --shadow: 0 10px 28px rgba(17,16,14,.16); color-scheme: light; }
@@ -368,10 +369,17 @@ function mount(container, initialDeck, opts) {
         h('h2', 'disp', headline(c)), longEl(c), facts, terms ? h('span', 'cap', 'How to claim') : null, terms, action);
     };
     fill();
-    if (!dlg.open) dlg.showModal();
+    if (!dlg.open) {
+      // Port fix (owner decision): keep the dialog a real popup (dimmed backdrop, Escape and a click outside close it).
+      // GSAP measures an element with no transform and no offsetParent (an open dialog is position: fixed) by moving it to
+      // the page root for a moment, which drops a dialog's modal state. So GSAP measures it here, while it is closed
+      // (getProperty forces that now; gsap.set can be lazy), and the opening animation clears its transform by hand.
+      if (!reduced) { gsap.set(dlg, { x: 0, y: 0, scaleX: 1, scaleY: 1, transformOrigin: '0 0', lazy: false }); gsap.getProperty(dlg, 'x'); }
+      dlg.showModal();
+    }
     if (reduced) return;
     const to = dlg.getBoundingClientRect(), fr = from && from.isConnected ? from.getBoundingClientRect() : null;
-    if (fr) gsap.fromTo(dlg, { x: fr.left - to.left, y: fr.top - to.top, scaleX: fr.width / to.width, scaleY: fr.height / to.height, transformOrigin: '0 0' }, { x: 0, y: 0, scaleX: 1, scaleY: 1, duration: 0.45, ease: 'expo.out', clearProps: 'transform' });
+    if (fr) gsap.fromTo(dlg, { x: fr.left - to.left, y: fr.top - to.top, scaleX: fr.width / to.width, scaleY: fr.height / to.height, transformOrigin: '0 0' }, { x: 0, y: 0, scaleX: 1, scaleY: 1, duration: 0.45, ease: 'expo.out', onComplete: () => { for (const p of ['transform', 'translate', 'rotate', 'scale', 'transform-origin']) dlg.style.removeProperty(p); } });
     gsap.fromTo([dlg.querySelector('.dhead'), $('dBody')], { opacity: 0 }, { opacity: 1, duration: 0.28, delay: 0.12 });
   }
   $('dClose').addEventListener('click', () => dlg.close());
