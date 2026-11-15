@@ -1,128 +1,146 @@
-# Sponsor Drops → tickets.vibecity.art: handoff plan
+# Sponsor wall → tickets.vibecity.art and the portal: port plan
 
-Target repo: `vibecitygit/vibe-city-checkout-payments`, `main` at `cd41f7f` (Nov 12, 2026, the latest Sites publish).
-First surveyed at `a69172b`. The four later commits change only the Event view (the hero sponsor rail was removed, the artist lineup header simplified), Vibe TV and `tickets-v2.css`. None of the files this plan depends on changed: `previews/page-shell/`, `offer-browser.js`, `experience*.js`, `worker/`, `scripts/`, `package.json`, `AGENTS.md`, `assets/vendor/`, `drizzle/`.
-`main` moves often through Sites publishes. Re-check it before each phase: `git diff --stat <commit in this file>..origin/main -- previews/page-shell offer-browser.js experience.js package.json AGENTS.md`.
-Source: this repo, `claude/coupon-claim-interface-cb9xst`.
+Rewritten Nov 15, 2026. It replaces the earlier plan, which covered only the 3D card deck in an iframe (still in git history at `56fa00a`). The card deck is out of scope here.
 
-## Summary
+- **Source:** `vibecitygit/vibe-sponsor-claims-limited`, branch `claude/coupon-claim-interface-cb9xst`, commit `609b7eb` or later. Files: `offerwall.html`, `vouchers.html`, `cutouts.html`, `editor.html`, `shared/deck-core.js`. Use the GitHub branch as the source of truth, not the Claude share link or the artifact page.
+- **Target:** `vibecitygit/vibe-city-checkout-payments`, `main` surveyed at `3d44e42`. `main` moves often; before each phase run
+  `git diff --stat 3d44e42..origin/main -- previews/page-shell offer-browser.js experience.js returning-guests.js worker/offers.js worker/portal-api.js worker/page-effects.js portal/app.js portal/runtime.js portal/admin.js scripts package.json AGENTS.md`
+  and re-read anything that changed.
 
-Port the deck as a **self-contained block in an iframe** that reads the **same offer data the existing offer browser already gets**. Drop the prototype's editor, storage, fake QR and wallet, and send "Claim" to the site's existing claim flow.
+## What is being built
 
-Most of the work happens here, before Codex starts: refactor the deck into a production **port kit**. That leaves Codex one small task. It copies one folder, adds about 30 lines to `page-shell.js`, adds a test, a doc and an AGENTS.md entry, and runs the repo checks. No new database tables, Worker routes or environment settings.
+1. **Tickets site:** the Offers view shows one sponsor wall in place of today's offer browser. Which format it shows (Featured + Cascade, Cascade, Voucher wall, Cut-out wall, or the current offer browser) is a published backend setting.
+2. **Portal:** a "Sponsor wall" screen with the prototype editor's controls (format, card colour, each sponsor's tier and size, cut-out spacing, live preview), open only to people who have been assigned access.
+3. **1:1:** the wall on the site matches the prototype at the same data and width, proven by screenshot comparison, not by eye.
 
-## What the checkout repo already has (and what it changes)
+## Decisions needed from you before any code is written
 
-| Fact in the repo | Consequence for the port |
+| # | Decision | Why it blocks | My recommendation |
+|---|---|---|---|
+| 1 | **How many sponsors can be on the wall.** Today at most **3 offers** can be public per event (`portal_offers` has one offer per slot, slots 1–3). The prototype shows 8. | A 3-column wall with three pieces is not a wall. | Fill the wall from **sponsor placements** (partners ≤3, featured ≤5, minor ≤10), which already exist. A sponsor with a published offer gets a claimable piece; one without gets a logo piece that links to their site. No database change. Raising the 3-offer cap is a separate, later change. |
+| 2 | **Where a sponsor's tier comes from.** No tier exists on offers. Placements have partners, featured ₱5,000 / ₱3,000, and minor. | Tier caps size and photos. | Default from placements: partners and ₱5,000 → Tier 1, ₱3,000 → Tier 2, minor → Tier 3. The wall editor can override per sponsor. |
+| 3 | **Who gets "assigned access".** The portal has only owner, admin, business manager and partner claim staff. Nothing grants one person one feature. | Decides the access design. | Owner and admins always have it. The owner can also assign named portal members as wall editors. Business managers editing their own piece is an optional later phase. |
+| 4 | **"N left" and limited claims.** The site has no stock count per offer; claims are one per ticket. | The prototype's "96 of 150 left" is simulated. | Leave counters and limited claims off at launch. |
+| 5 | **Cut-out wall fonts.** It uses eight display fonts the site doesn't load. | Needed only if that format can be chosen. | Load them from Google Fonts only when the cut-out format is published. |
+
+The plan below assumes the recommendations. Changing #1 or #3 changes Phase 1.
+
+## Facts in the tickets repo that shape the port
+
+| Fact | Consequence |
 |---|---|
-| Plain JS, no bundler. `scripts/build.mjs` copies `assets/` to `dist/` recursively. | Put everything under `assets/sponsor-drops/`, so no build-script change is needed. |
-| GSAP 3.12.5 is already loaded from cdnjs (same version as the deck). Three.js is **not** used anywhere (the offer browser uses its own small WebGL shader). | Vendor Three.js under `assets/vendor/three/` with its MIT licence, like `assets/vendor/paper-shaders/`. |
-| Partner offers are published in the portal and served by `GET /public-offers` (`worker/offers.js`). The page passes them to `VibeOfferBrowser.mount(section, data)`. `previews/page-shell/page-shell.js` **already wraps that mount** to place `#confirmedOffers` in the Offers view. | Hook the same wrapper and hand the deck the **identical `data` object**. Mock mode, live mode, "coming soon" and example offers then behave exactly like the offer browser, with no new fetch. |
-| Offer fields: `id`, `type` (`discount` / `freebie` / `option`), `title`, `description`, `summary`, `partnerName`, `logoUrl`, `terms`, `redemptionInstructions`, `address`, `startsAt`, `expiresAt`, `timezone`, `rules`… All are rendered as text, never HTML. | Map these to the deck's fields (table below). The deck's three promotion types are already the same set. |
-| Claims are **per ticket**: `GET /orders/{orderId}/offers/{offerId}/allocation` returns `{total, remaining}` for the visitor's own order. There is **no event-wide "N of M left" inventory** (`rules` has only `onePerPerson`, `eligibleTicketTypes`, `repeatIntervalMinutes`, `staffRoles` and `attendanceRequired`). | The deck's "42 of 120 left" counter and its stack heights have no data source yet. Phase 1 hides the counter and uses a uniform stack. A public inventory count is a separate decision for the owner (Phase 3). |
-| `sponsor_coupons` (migration 0018) are **sponsor admissions** (free tickets emailed to a sponsor), not consumer offers. | Do not connect the deck to `sponsor_coupons`. It shows partner **offers**. |
-| Claim, QR, voucher binding and account already exist (`offer-browser.js`, `claim-qr.js`, `/coupon-bindings`, `/account/`). | Don't port the deck's demo QR, "Link account" or wallet. **Claim** goes to the existing offer page (`#offer/{id}`), where *Claim now* already lives. |
-| Page effects (Nov 11) shows the house pattern for a configurable feature: a shared schema file, BUCKET JSON with draft/publish, a portal screen, a `/public-…` route and a test file. | Optional Phase 2 copies that pattern for the deck's display settings. |
-| AGENTS.md is a change-control log. Each change needs an owner-authorization entry and lands as a **PR to `main`, not a deployment** (publishing is a separate OpenAI Sites step). | Codex adds one AGENTS.md entry and opens a PR. Nothing is deployed. |
-| Node ≥ 24 is required. `npm run check && npm test && npm run build` is the gate. | Put these commands in the Codex prompt as the acceptance check. |
+| The live Offers view is built by `previews/page-shell/page-shell.js` (despite the folder name). It creates `section#confirmedOffers` and wraps `VibeOfferBrowser.mount`. | The swap happens in that wrapper. Nothing else needs to move. |
+| `offer-browser.js` and `offer-browser.css` are also used by the portal's offer preview, by `tests/offers.test.mjs` and `tests/packaged-templates.test.mjs`, and the CSS styles the nav, top bar and install prompt. | **Do not delete or stop loading them.** Replace by not mounting, not by removing. |
+| Claiming: the offer browser's "Claim now" opens a modal whose button calls `window.VCRetrievePurchaseQR` (`returning-guests.js`). `#vcPurchaseSummary` sits in the Offers view outside the wall. | The wall's Claim button calls `VCRetrievePurchaseQR` directly. Keep `#vcPurchaseSummary`, `claim-qr.js`, and the `#offers` / `#offer/{id}` routes. Drop the prototype's fake claim codes. |
+| `assets/tickets-v2.js` forces a 14px minimum font size on every element with text and re-applies it on every DOM change. Global CSS styles `.card`, `.offer-*`, `.modal` across seven stylesheets. Page effects blur `.offer-card` and `.offer-browser` on scroll. | Mounted straight into the page, the wall cannot be 1:1. It must be isolated (next section). |
+| Page effects is the house pattern for a published setting: shared schema file, R2 JSON with draft/publish and history, admin API, public route, portal screen, tests, docs. | Copy that pattern file for file. No database migration. |
+| New files are silently left out unless listed: `npm test` is a hand-written chain, `scripts/build.mjs` copies fixed lists (everything under `assets/` is copied), `scripts/build-portal.mjs` concatenates named Worker files into one scope. | Public files go under `assets/sponsor-wall/`. The Worker file and test file are added to their lists by name. Worker helpers use an `sw` prefix. |
+| `/public-offers` also feeds order snapshots and sponsor coupons. | Do not change its shape. The wall gets its own route. |
+| Offer photos already exist (`photos[]`, up to 20, with `enabled`). Images are capped at 2 MB. | Photos map directly; the tier limit (5 / 3 / 1) is applied when rendering. |
+| No ScrollTrigger on the site; GSAP 3.12.5 core is loaded. | The cut-out wall's drop-on-scroll is rebuilt on `IntersectionObserver` in the kit. No new library. |
+| The built `dist/index.html` runs scripts in a different order from source. | The wall registers itself and waits for data; it never assumes another script has run. |
+| AGENTS.md: every change needs a dated owner-authorization entry, lands as a PR to `main`, and is not a deployment. Node ≥ 24. Gate: `npm run check && npm test && npm run build`. | Each phase is one PR with one AGENTS.md entry. |
 
-## Why an iframe (it causes the fewest errors)
+## How the wall is isolated: a custom element with a shadow root
 
-The prototype is a full-screen app. Mounting it straight into the page would collide with the live site in five places, and each would need careful edits in shared files:
+`<vibe-sponsor-wall>` renders inside a shadow root.
 
-1. **`gsap.globalTimeline.timeScale(2)`**: the deck halves *all* GSAP durations. On the live page that would also speed up checkout, ticket-stack and payment animations.
-2. **Full-screen overlays** at z-index 50/60, plus a page-wide Escape handler, would fight the site's `<dialog>`s, the buy bar and Lenis.
-3. **Viewport maths:** picking, the hover label and the counters assume the canvas fills the window.
-4. **Page effects** would apply its scroll blur-out to the block, and page-shell's swipe handling would steal drags.
-5. **CSS name clashes** (`.card`, `.btn`, `.face`, `.zone`, `.hint`, `.toast`…) with the site's global stylesheets.
+- The site's stylesheets, the 14px rule and the page-effects selectors do not reach inside it, and the wall's class names do not leak out. This is what makes 1:1 possible.
+- Unlike an iframe, the detail dialog opens over the whole page, scrolling stays with the page (and Lenis), and the page background shows through, which is what you asked for.
+- The host element carries `data-page-swipe-ignore` so dragging a carousel does not change views.
+- Fonts are loaded by the page (shadow roots use the document's fonts).
 
-A same-origin iframe isolates all five. Its CSS, JS and GSAP clock are its own. The deck's embed mode already exists (`index.html#embed` in the prototype): it fits the block's width, sends its height to the parent page, and takes spacing from the parent through `postMessage`.
+## Data contract
 
-Known costs, with mitigations:
-- **Lenis does not see wheel events over the iframe.** The page falls back to native scrolling while the pointer is over the block. Mitigation: the deck forwards `wheel` deltas to the parent (`{type:'deck-wheel', dy}`), and the parent calls its Lenis `scrollTo`. This is about 5 lines; it is optional.
-- **An opened coupon is limited to the iframe's box.** Mitigation: the deck sends `deck-open` / `deck-close`, and the parent sets the iframe to `position:fixed; inset:0; z-index` above the header while it is open. Then the coupon presents full screen like the prototype.
+**Settings** (one JSON per event, `site-content/sponsor-wall/<eventId>.json`, draft and published):
 
-## Phases (one PR each)
+```
+format     'legacy' | 'featured' | 'cascade' | 'vouchers' | 'cutouts'     default 'legacy'
+cards      'dark' | 'white'
+openSlots  true | false
+cutGap     0–64     cutPad  0–200          (cut-out wall spacing)
+items      { [sponsorId]: { tier: 't1'|'t2'|'t3', cols: 1–3, rows: 1–4, featured: bool, order: n } }
+```
 
-### Phase 0: port kit (here, by Claude, no Codex usage)
-Build `port/sponsor-drops/` in this repo, ready to drop in:
-- `index.html`, `deck.js`, `deck.css`: embed mode only. No header, wallet or editor link. Only the `mount` data source, no localStorage store.
-- `adapter.js`: a **pure** `offersToCoupons(data)` that mirrors the offer browser's entry filtering (published `active` partner offers, topped up with examples to 3), then maps fields as in the table below. Testable in Node.
-- Remove the global GSAP time scale; speed is set per timeline inside the deck.
-- **Claim** posts `{type:'deck-claim', offerId}` to the parent. **Terms** shows `terms` / `redemptionInstructions` on the card's back face.
-- Logos are loaded with `crossOrigin='anonymous'`. If loading or canvas reads fail (a cross-origin image without CORS), it falls back to the monogram. This matters because a tainted image breaks both the WebGL texture and `logoColor`.
-- Counter and stack height are **off by default** (no inventory source). They can be enabled by passing `allocation: {[offerId]: {total, remaining}}`.
-- `assets/vendor/three/three.min.js` (r128) + LICENSE.
-- `parent-snippet.js`: the exact code Codex pastes into `page-shell.js`.
-- `sponsor-drops.test.mjs`: adapter mapping, message contract, and "no `globalTimeline` mutation".
-- Verified here in a headless browser against the **mock data shape copied from `experience-config.js`**.
+`format: 'legacy'` means "show today's offer browser". It is the default, so merging the code changes nothing visible, and it is the rollback switch.
 
-### Phase 1: drop-in (one Codex task, Sonnet-sized)
-Files Codex touches (nothing else):
-- `assets/sponsor-drops/**`: copied from the kit.
-- `assets/vendor/three/**`: copied from the kit.
-- `previews/page-shell/page-shell.js`: about 30 lines from `parent-snippet.js`:
-  - inside the existing `VibeOfferBrowser.mount` wrapper: create or update `<section id="sponsorDrops" class="sponsor-drops" data-page-swipe-ignore data-lenis-prevent>` holding the iframe, directly **after** `#confirmedOffers` in `slots[2]`, then post `data` to it;
-  - `placeOffers()` keeps `#sponsorDrops` right after `#confirmedOffers`;
-  - handle `deck-height`, `deck-claim` (→ `location.hash = '#offer/'+id`, then `window.VCOpenOffers()`), and `deck-open` / `deck-close` (full-screen toggle).
-- `previews/page-shell/page-shell.css`: block frame styles. These reuse the offers panel look already in the stylesheet (1px border, translucent fill, square corners).
-- `tests/sponsor-drops.test.mjs`: copied from the kit, then added to the `npm test` script.
-- `docs/SPONSOR-DROPS.md` and an AGENTS.md "Authorized Sponsor Drops block — <date>" entry.
+Tier caps are enforced in the shared schema, in the Worker and in the editor: Tier 1 up to 3 × 4 and 5 photos; Tier 2 up to 2 × 3 and 3 photos; Tier 3 up to 1 × 2 and 1 photo.
 
-Acceptance: `npm run check && npm test && npm run build` pass on Node 24, and `dist/assets/sponsor-drops/` exists. In mock mode, the Offers view shows the deck under the offer browser on 375px and 1280px screens. Claim opens the matching offer. The checkout flow and timings are unchanged.
+**`GET /public-sponsor-wall?page=home`** returns `{ eventId, settings, items[] }`, where the Worker has already joined placements, published offers and settings into one list. Each item:
 
-### Phase 2 (optional): portal settings (one Codex task)
-Copy the Page effects pattern exactly:
-- `assets/sponsor-drops-schema.js`: `enabled`, `cardStyle` (`paper` / `dark`), `columns` (auto, or 1–5), `cardWidth` (desktop and phone), `gapMode` (`max` / `manual`), `gapCap`, `gap`, `maxContentWidth`.
-- `worker/sponsor-drops.js` with `GET/POST /ops-api/sponsor-drops` (admin) and `GET /public-sponsor-drops`, using BUCKET `site-content/sponsor-drops.json` with history.
-- `portal/sponsor-drops.js`, under *Content & design*. Its sliders and live preview reuse the prototype's `preview.html` controls and maths (content width = device − 2×gutter − 2×padding, then the maximised gap).
-- Tests that mirror `tests/page-effects.test.mjs`.
+| Wall field | Source |
+|---|---|
+| `id`, `brand`, `logo`, `site` | placement `id`, `name`, `logo_url`, `website_url` |
+| `tier`, `cols`, `rows`, `featured`, `order` | settings `items[id]`, else the default from the placement group |
+| `offerId`, `short`, `long`, `type`, `terms[]`, `where`, `limit`, `from`, `to` | the sponsor's published offer, matched by `businessId === placement id`: `summary`, `description`, `type`, `terms` + `redemptionInstructions`, `address`, `rules.onePerPerson`, `startsAt`, `expiresAt` |
+| `photos[]` | offer `photos` where `enabled`, cut to the tier limit |
+| `role` | "Partner" / "Sponsor" / "Supporting sponsor" from the placement group |
 
-### Phase 3 (needs the owner's decision): "N left" counters
-Pick one:
-- (a) **Per visitor:** when a booking is bound, pass the existing allocation (`remaining/total` per offer) to the deck. No backend change. It only shows for visitors with a linked ticket.
-- (b) **Event-wide:** add a cached, read-only aggregate (claims vs. eligible tickets per offer) to `/public-offers`. This needs a Worker change and tests, and it publishes claim volume.
+All text is rendered as text, never HTML. A sponsor with no published offer has no `offerId` and renders as a logo piece.
 
-## Field mapping (offer → deck coupon)
+## Phases
 
-| Deck | Offer source | Notes |
-|---|---|---|
-| `id` | `id` | |
-| `brand` | `partnerName` → business name → `title` | |
-| logo | `logoUrl` | Falls back to a monogram drawn from `brand`. The colour comes from the logo, else a neutral one. |
-| `short` (front, table card) | `summary` → first sentence of `description` | Text only. |
-| `long` (back) | `description` + `businessDescription` | |
-| `type` | `type` | Labels match the portal: Discount / Freebie / **Choice** (for `option`). |
-| `terms[]` | `terms` split by line, plus `redemptionInstructions` | |
-| `where` | `address` | |
-| `limit` | `rules.onePerPerson ? '1 per person' : ''` | |
-| `from` / `to` / `year` | `startsAt` / `expiresAt` in `timezone` (default Asia/Manila) | Formatted with `Intl`, MM/DD. Coming soon: "Details to come". |
-| `remaining` / `total` | not available (see Phase 3) | Counter hidden. |
+### Phase 0 — port kit (done here by Claude; no Codex usage)
 
-## Codex usage: keeping it to one short task
+Built in this repo under `port/sponsor-wall/`, ready to copy:
 
-- Use **one task per phase**, with the full prompt below pasted as-is. The prompt names every file and the acceptance commands, and forbids other edits.
-- Codex copies prepared files rather than writing the deck. The 3D and animation code, which is where most mistakes would happen, is already built and tested in the kit.
-- Codex should start from `main` at a fresh pull, not from any `claude/*` branch.
+- `assets/sponsor-wall/sponsor-wall.js` and `.css`: the custom element with all four formats, the detail dialog (swipe, close-by-drag), carousels and entrance animations, lifted from the prototype pages. Prototype-only parts removed: page header, layout switcher, local storage, simulated claims, sample data.
+- `assets/sponsor-wall-schema.js`: the one validator, in the same shape as `assets/page-effects-schema.js`.
+- `worker/sponsor-wall.js`: admin API, public route, the join, the access check.
+- `portal/sponsor-wall.js` and `.css`: the editor screen, using the same custom element for its live preview.
+- `tests/sponsor-wall.test.mjs`, fixtures, `docs/SPONSOR-WALL.md`, the exact snippets for `page-shell.js`, and the Codex prompts.
+- **Parity check:** a Playwright script renders the prototype page and the kit with the same fixture at 390, 768 and 1280px for every format and both card colours, and fails on any pixel difference above 0.5%. The kit is not handed over until this passes.
 
-### Phase 1 prompt (ready once the Phase 0 kit is merged here)
+Codex then copies files and edits a handful of named lines. It does not write wall code.
 
-> Owner-authorized change: add the Sponsor Drops block below the partner offers in the Offers view. PR to `main` only, no deployment. Read AGENTS.md first and add an "Authorized Sponsor Drops block" entry.
-> 1. Copy `port/sponsor-drops/assets/**` from `vibecitygit/vibe-sponsor-claims-limited` (branch `claude/coupon-claim-interface-cb9xst`) to `assets/` unchanged.
-> 2. In `previews/page-shell/page-shell.js`, paste `port/sponsor-drops/parent-snippet.js` where its header comment says (inside the existing `VibeOfferBrowser.mount` wrapper and `placeOffers`). Add `port/sponsor-drops/page-shell.css` to the end of `previews/page-shell/page-shell.css`.
-> 3. Copy `port/sponsor-drops/sponsor-drops.test.mjs` to `tests/`, and append `tests/sponsor-drops.test.mjs` to the last `node --test` group in `package.json` → `scripts.test`.
-> 4. Add `docs/SPONSOR-DROPS.md` from the kit's README.
-> Do not edit any other file. Do not change GSAP, Lenis, page effects, checkout, payment, worker or schema code.
-> Done when `npm run check && npm test && npm run build` pass on Node 24, and `dist/assets/sponsor-drops/index.html` exists.
+### Phase 1 — backend and schema (PR 1, no visible change)
 
-## Risks and how the plan covers them
+- Add `assets/sponsor-wall-schema.js`, `worker/sponsor-wall.js`; wire `GET/POST /ops-api/sponsor-wall`, `GET/POST /ops-api/sponsor-wall/access` and `GET /public-sponsor-wall` beside the page-effects routes in `worker/portal-api.js` and `worker/index.js`.
+- Add the Worker file to `scripts/build-portal.mjs`, the route to `scripts/portal-local-server.mjs`, the test to `package.json`.
+- Access: `swCanEdit(member)` is true for owner and admin, or when the member's id is in `site-content/sponsor-wall-access.json`. Only the owner can change that list. Every save is audited like page effects.
+- **Gate:** the three commands pass; tests cover validation and tier caps, draft/publish and version conflict, the join (offer and no-offer sponsors), access allowed and refused, and that `/public-offers` output is unchanged.
+
+### Phase 2 — the wall on the tickets site (PR 2, still no visible change)
+
+- Copy `assets/sponsor-wall/**`. Add one script tag to `index.html`.
+- In `previews/page-shell/page-shell.js`, inside the existing `VibeOfferBrowser.mount` wrapper: fetch `/public-sponsor-wall` once; if `format` is `legacy` or the fetch fails, call the original mount as today. Otherwise skip the original mount, do not add `vc-ad-v2-enabled`, and mount `<vibe-sponsor-wall>` into `#confirmedOffers`.
+- `#offer/{id}` opens that offer's detail dialog. Claim calls `window.VCRetrievePurchaseQR`.
+- **Gate:** the three commands pass; with no settings saved the Offers view is identical to before (screenshot test); with a fixture setting each format renders and the parity check passes inside the real page; checkout, buy bar and view swiping still work.
+
+### Phase 3 — portal screen and access (PR 3)
+
+- Copy `portal/sponsor-wall.js` and `.css`. Register the screen in the five places page effects is registered: `portal/runtime.js`, `portal/app.js` (nav and render), `portal/admin.js` (label and group), `portal/index.html`.
+- The nav item shows for owner, admin and assigned members. The Worker refuses everyone else regardless of what the portal shows.
+- Controls: format, card colour, open slots, cut-out spacing, and per sponsor the tier, columns, rows, Featured and order, with sizes above the tier cap disabled. Save draft, preview, publish.
+- Owner-only panel: assign or remove wall editors.
+- **Gate:** the three commands pass; tests cover portal wiring, an assigned member can save, an unassigned business manager gets 403.
+
+### Phase 4 — go live (no code)
+
+1. Deploy through the usual Sites publish.
+2. In the portal, set sizes and tiers, publish a format.
+3. Check the Offers view on a phone and a laptop, open an offer, retrieve a QR.
+4. **Rollback:** publish `format: legacy`. No deploy needed.
+
+### Later, each its own decision
+
+Business managers editing their own piece within their tier; real "N left" counts; more than three published offers per event.
+
+## What "without fail" rests on
+
+No plan can guarantee zero defects. This one removes the usual causes:
 
 | Risk | Covered by |
 |---|---|
-| The deck changes site-wide animation timing | Iframe isolation, plus a test asserting no `gsap.globalTimeline` mutation. |
-| Cross-origin logos break WebGL or colour extraction | `crossOrigin` loading with a monogram fallback. |
-| The offers block moves or exceeds its 1600px cap test | The deck is a separate section after `#confirmedOffers`; `qa.js` checks only `#confirmedOffers`. |
-| Swipe gestures or page effects act on the block | `data-page-swipe-ignore` (already honoured by page-shell) and `data-lenis-prevent`. If the owner wants no blur on the block, page effects needs an exclusion selector. That's a one-line change, decided in Phase 1 review. |
-| Showing an invented "N left" | Counter off until Phase 3 provides a real source. |
-| Repo instructions not followed | The AGENTS.md entry, PR-only scope and named files are all in the prompt. |
-| WebGL unavailable | The kit shows a plain card grid using the same coupon faces (DOM only). |
+| The wall looks different on the real site | Shadow root isolation, plus the pixel parity check in Phase 0 and again in Phase 2. |
+| Codex rewrites or "improves" wall code | It copies a finished kit; prompts name every file it may touch and forbid the rest. |
+| A new file is silently missing from build or tests | Each list edit is spelled out, and the gate checks that `dist/assets/sponsor-wall/` exists and the new tests ran. |
+| Launch breaks the Offers view or claiming | Default is `legacy`; any fetch failure falls back to the current offer browser; rollback is a setting. |
+| Someone without access edits the wall | The Worker checks access on every write; hiding the nav item is not relied on. |
+| Order snapshots or sponsor coupons break | `/public-offers` is not touched, and a test asserts that. |
+| `main` moved under the plan | The diff command at the top, run before each phase. |
+| Invented numbers reach the public | No counters at launch; sample offers do not ship. |
+
+## Codex usage
+
+One task per PR, three tasks in all, each a paste-ready prompt from the kit that names the files, the exact insert points and the gate commands. Start each from a fresh pull of `main`. The prompts are written at the end of Phase 0, once the kit's file names are final.
