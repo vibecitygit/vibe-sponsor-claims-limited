@@ -20,7 +20,9 @@ const label = key => (FORMAT_OPTIONS.find(o => o.key === key) || FORMAT_OPTIONS[
 // Each event has its own wall. `events` is the portal's event list; the first event is used when none is chosen.
 async function load(api, events, eventId) {
   const S = window.VCSponsorWallSchema;
-  const list = Array.isArray(events) ? events : [];
+  // Use the portal's event list; if it has not been loaded yet, fetch it, so the tab never wrongly says there are no events.
+  let list = Array.isArray(events) && events.length ? events : [];
+  if (!list.length) { try { list = (await api('/events')).rows || []; } catch (e) { list = []; } }
   const chosen = eventId || (list[0] && list[0].id) || null;
   if (!chosen) return { events: list, eventId: null, draft: S.validate(undefined), version: 0, status: 'Create an event first.' };
   const saved = await api('/sponsor-wall?event_id=' + encodeURIComponent(chosen));
@@ -55,6 +57,7 @@ function html(esc, st) {
 // Attach the tab's controls inside `root`. `redraw` re-renders the tab after a change; `api` is the portal API.
 function bind(root, st, { api, redraw }) {
   const S = window.VCSponsorWallSchema;
+  if (!st.eventId) return; // only the 'Create an event first' note is drawn; there is nothing to wire
   root.querySelector('#swEvent')?.addEventListener('change', async e => {
     const fresh = await load(api, st.events, e.target.value);
     Object.assign(st, fresh, { status: '' });

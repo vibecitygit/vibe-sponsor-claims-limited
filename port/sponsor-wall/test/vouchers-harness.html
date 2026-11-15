@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Voucher wall harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>body { margin: 0; background: #0b0b0b; } #host { display: block; }</style>
+</head>
+<body>
+<!-- Query: ?cards=white|dark  &top=<px> (a spacer so the wall sits at the same page offset as the prototype's grid)  &bottom=<px> -->
+<div id="spacer"></div>
+<div id="host"></div>
+<div id="after"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="../assets/sponsor-wall/deck-core.js"></script>
+<script src="../assets/sponsor-wall/wall-vouchers.js"></script>
+<script>
+(() => {
+'use strict';
+const q = new URLSearchParams(location.search), D = window.DeckCore, R = window.VCWallRenderers.vouchers;
+const cards = q.get('cards') === 'white' ? 'white' : 'dark';
+document.getElementById('spacer').style.height = (+q.get('top') || 0) + 'px';
+document.getElementById('after').style.height = (+q.get('bottom') || 0) + 'px';
+document.body.style.background = cards === 'white' ? '#ffffff' : '#0b0b0b';
+// The deck as the prototype builds it: DeckCore's normalize path over SAMPLE (D.sample()), with the wall settings.
+const deck = D.sample();
+deck.wall = D.wallOf({ theme: cards === 'white' ? 'light' : 'dark', cards });
+// SAMPLE's asset paths are relative to the repo root (shared/...); the same files are copied next to this harness.
+deck.coupons.forEach(c => {
+  if (c.logoSrc) c.logoSrc = c.logoSrc.replace(/^shared\//, '');
+  c.photos = c.photos.map(p => p.replace(/^shared\//, ''));
+});
+if (q.get('live') === '1') { // live-style coupons: no stock numbers, no end date, empty fields, no published offer
+  const c = deck.coupons[3]; delete c.remaining; delete c.total; c.limited = false; c.to = ''; c.from = ''; c.year = '';
+  const t = deck.coupons[0]; delete t.remaining; delete t.total; t.to = ''; t.from = ''; t.year = '';
+  // an offer with some empty fields
+  const k = deck.coupons[4]; k.where = ''; k.terms = []; k.limit = '';
+  // sponsors without a published offer, with and without a site
+  [5, 6].forEach(n => { const o = deck.coupons[n]; Object.assign(o, { noOffer: true, short: '', long: '', where: '', limit: '', terms: [], from: '', to: '', year: '', type: '' }); delete o.remaining; delete o.total; });
+  deck.coupons[6].site = '';
+}
+const host = document.getElementById('host'), root = host.attachShadow({ mode: 'open' });
+const style = document.createElement('style'); style.textContent = R.css; root.append(style);
+const container = document.createElement('div'); root.append(container);
+window.__claims = [];
+window.__wall = R.mount(container, deck, { root, now: Date.now(), onClaim: id => window.__claims.push(id) });
+window.__root = root;
+})();
+</script>
+</body>
+</html>

@@ -1,6 +1,17 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sponsor wall harness</title></head>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sponsor wall host harness</title></head>
 <body style="margin:0;background:#0b0b0b">
 <vibe-sponsor-wall id="wall"></vibe-sponsor-wall>
 <script src="../assets/sponsor-wall-schema.js"></script>
+<script src="../assets/sponsor-wall/deck-core.js"></script>
+<script src="../assets/sponsor-wall/wall-adapter.js"></script>
+<script>
+// A stand-in renderer for the host tests: it records what the host gives it.
+window.__mounts = []; window.__destroyed = 0;
+window.VCWallRenderers = { cascade: { css: '.vc-wall-root{color:#fff}', fonts: [], needs: [], mount(container, deck, opts) {
+  window.__mounts.push({ inShadow: container.getRootNode() === opts.root, tiers: deck.coupons.map(c => c.tier), layout: deck.wall.layout, cards: deck.wall.cards, remaining: deck.coupons.map(c => c.remaining) });
+  for (const c of deck.coupons) { const b = document.createElement('button'); b.className = 'card'; b.textContent = c.brand; b.onclick = () => opts.onClaim(c.id); container.append(b); }
+  return { update() {}, destroy() { window.__destroyed++; } };
+} } };
+</script>
 <script src="../assets/sponsor-wall/sponsor-wall.js"></script>
 </body></html>
