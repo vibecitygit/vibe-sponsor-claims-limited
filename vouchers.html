@@ -49,7 +49,7 @@ a { color: inherit; }
 .intro p.lead { font-size: 16px; color: var(--fg); }
 
 /* package legend */
-.legend { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; margin: 0 var(--gutter); background: var(--border); border: 1px solid var(--border); }
+.legend { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 0 var(--gutter); background: var(--border); border: 1px solid var(--border); }
 .legend div { background: var(--panel); padding: 12px 14px; display: grid; gap: 4px; align-content: start; }
 .legend strong { font: 800 18px/1 var(--display); text-transform: uppercase; }
 .legend span { color: var(--muted); }
@@ -64,9 +64,7 @@ a { color: inherit; }
 /* ---------- The grid ---------- */
 .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 210px; grid-auto-flow: dense; gap: 22px; padding: 26px var(--gutter) 72px; flex: 1; align-content: start; }
 .cell { min-width: 0; display: flex; }
-.cell.s-voucher { grid-row: span 2; }
-.cell.s-ticket { grid-column: span 2; }
-.cell.s-magazine { grid-column: span 2; grid-row: span 2; }
+.cell { grid-column: span var(--w, 1); grid-row: span var(--h, 1); } /* each sponsor's size: columns x rows, capped by tier */
 .piece { appearance: none; border: 0; padding: 0; margin: 0; font: inherit; text-align: left; cursor: pointer; color: var(--ink); width: 100%; position: relative; display: flex;
   filter: drop-shadow(0 8px 18px rgba(0,0,0,.38)); transition: transform .28s var(--ease), filter .28s var(--ease); }
 .vw[data-theme="light"] .piece { filter: drop-shadow(0 6px 14px rgba(17,16,14,.18)); }
@@ -185,14 +183,10 @@ dialog[open] { display: flex; flex-direction: column; }
 html.preview .top, html.preview .intro, html.preview .legend, html.preview .bar, html.preview .foot-note { display: none; }
 html.preview .grid { padding: 16px; gap: 14px; }
 
-@media (max-width: 1060px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .legend { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-/* Phones: still a cascade, in two columns. Magazine and ticket span both; voucher and stub are one column each. */
+@media (max-width: 1060px) { .legend { grid-template-columns: minmax(0, 1fr); } }
+/* Phones: still three columns. The grid is laid out 560px wide with these compact styles, then scaled to fit (see fit()). */
 @media (max-width: 700px) {
-  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(132px, auto); gap: 12px; }
-  .cell.s-magazine { grid-column: span 2; grid-row: span 4; }
-  .cell.s-ticket { grid-column: span 2; grid-row: span 1; }
-  .cell.s-voucher { grid-column: auto; grid-row: span 2; }
-  .legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid { grid-auto-rows: 190px; gap: 12px; }
   /* ticket */
   .ticket .paper { --stubw: 74px; --n: 8px; }
   .ticket .art { width: 24%; } .ticket .band { width: 6px; }
@@ -213,10 +207,18 @@ html.preview .grid { padding: 16px; gap: 14px; }
   /* magazine */
   .magazine .paper { padding: 16px 16px 14px; gap: 10px; }
   .magazine .spread { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 12px; }
-  .magazine .photo { min-height: 150px; } .magazine h3 span { font-size: 24px; padding: 2px 6px 1px; } .magazine p { font-size: 13px; -webkit-line-clamp: 2; }
+  .magazine .photo { min-height: 110px; } .magazine h3 span { font-size: 24px; padding: 2px 6px 1px; } .magazine p { font-size: 13px; -webkit-line-clamp: 2; }
   .magazine .tape.t1 { top: 48px; } .magazine .tape.t2 { top: 44px; }
   .facts { grid-template-columns: minmax(0, 1fr); }
 }
+/* a photo (or a carousel of them) where the logo would sit, with the logo kept as a chip in the corner */
+.piece .logo.shot { background: #fff; }
+.piece .logo.shot img.ph { position: absolute; inset: 0; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .8s ease; }
+.piece .logo.shot img.ph.on { opacity: 1; }
+.piece .shot .logo.chip { position: absolute; inset: auto auto 0 0; width: 40%; height: 40%; max-width: 84px; max-height: 60px; z-index: 2; background: #fff; }
+.piece .shot .logo.chip.plate-dark { background: #0b0b0b; }
+@media (prefers-reduced-motion: reduce) { .piece .logo.shot img.ph { transition: none; } }
+.stub .head .logo.shot { width: 46px; height: 34px; }
 @media (prefers-reduced-motion: reduce) { .piece, .magazine .paper, .go .arr { transition: none; } .piece.expiring { animation: none; filter: drop-shadow(0 0 12px rgba(255,73,55,.6)); } .magazine .photo .ph { transition: opacity .01s; transform: none; } }
 </style>
 </head>
@@ -231,16 +233,16 @@ html.preview .grid { padding: 16px; gap: 14px; }
   <section class="intro">
     <p class="label">02 — Partner offers · Vibe Check: After Hours</p>
     <h1 class="disp">Cut out. Tear off. <em>Claim.</em></h1>
-    <p class="lead">Every sponsor's offer is printed as a ticket, a voucher, a stub or a magazine cut-out. The package decides which.</p>
-    <p class="cap">Sponsors and logos are from tickets.vibecity.art. The offers and the packages are simulated examples for this prototype and can't be redeemed.</p>
+    <p class="lead">Every sponsor's offer is printed as a ticket, a voucher, a stub or a magazine cut-out. The sponsor's tier sets how big it can be.</p>
+    <p class="cap">Sponsors and logos are from tickets.vibecity.art. The offers and the tiers are simulated examples for this prototype and can't be redeemed.</p>
   </section>
-  <div class="legend cap" id="legend" aria-label="What each sponsor package includes"></div>
+  <div class="legend cap" id="legend" aria-label="What each sponsor tier allows"></div>
   <div class="bar">
-    <div class="opt cap"><span>Show</span><div class="seg" id="segTier" role="group" aria-label="Filter by package"></div></div>
+    <div class="opt cap"><span>Show</span><div class="seg" id="segTier" role="group" aria-label="Filter by tier"></div></div>
     <div class="opt cap"><span>Theme</span><div class="seg" id="segTheme" role="group" aria-label="Theme"></div></div>
   </div>
   <main class="grid" id="grid" aria-live="polite"></main>
-  <footer class="foot-note cap"><p>Prototype. Change each sponsor's package, style and claim allocation in the Editor tab.</p></footer>
+  <footer class="foot-note cap"><p>Prototype. Change each sponsor's tier, size and claim allocation in the Editor tab.</p></footer>
 
   <dialog id="detail" aria-labelledby="dTitle">
     <div class="dhead"><p id="dTitle"></p><button class="x" id="dClose" aria-label="Close offer">×</button></div>
@@ -284,24 +286,32 @@ function alloc(c) {
   const el = h('span', 'alloc'), m = h('span', 'meter'), i = h('i'); i.style.width = Math.max(2, c.remaining / c.total * 100) + '%';
   return add(el, h('span', 'mono', c.remaining > 0 ? `${c.remaining} of ${c.total} left` : 'All claimed'), add(m, i));
 }
-const photos = c => (c.photos || []).slice(0, D.TIERS[c.tier].photos);
+const photos = D.photosFor;
 
+/* the sponsor's photos in the logo's place (a carousel when the tier allows more than one), or the logo when there are none */
+function shot(c, chip) {
+  const ph = photos(c); if (!ph.length) return logo(c);
+  const el = h('span', 'logo shot');
+  ph.forEach((src, k) => add(el, h('img', 'ph' + (k === 0 ? ' on' : ''), null, { src, alt: '' })));
+  if (chip !== false) { const l = logo(c); l.classList.add('chip'); add(el, l); }
+  if (ph.length > 1) cars.push({ el, n: ph.length, at: 0 });
+  return el;
+}
 /* ---------- The four styles ---------- */
 const STYLES = {
   stub(c, i) {
     const body = h('span', 'body');
-    add(body, add(h('span', 'head'), logo(c), h('span', 'brand', c.brand)), h('h3', 'disp', headline(c)), add(h('span', 'foot'), ends(c), go(c)));
+    add(body, add(h('span', 'head'), logo(c), photos(c).length ? shot(c, false) : null, h('span', 'brand', c.brand)), h('h3', 'disp', headline(c)), add(h('span', 'foot'), ends(c), go(c)));
     return add(h('span', 'paper'), add(h('span', 'tear'), h('span', null, `${c.id} · ${String(i + 1).padStart(2, '0')}`)), body);
   },
   voucher(c) {
     const cut = h('span', 'cut');
-    add(cut, h('span', 'cutlabel cap', 'Cut here'), logo(c), add(h('span', 'foot'), h('span', 'label type', typeLabel(c.type)), badge(c) || tierChip(c)),
+    add(cut, h('span', 'cutlabel cap', 'Cut here'), shot(c), add(h('span', 'foot'), h('span', 'label type', typeLabel(c.type)), badge(c) || tierChip(c)),
       h('h3', 'disp', headline(c)), h('p', null, c.long), h('span', 'bars', null, { 'aria-hidden': 'true' }), add(h('span', 'foot'), ends(c), go(c)));
     return add(h('span', 'paper'), cut);
   },
   ticket(c, i) {
-    const art = h('span', 'art'), ph = photos(c);
-    if (ph.length) add(art, h('img', null, null, { src: ph[0], alt: `${c.brand} photo`, style: 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover' })); else add(art, logo(c));
+    const art = add(h('span', 'art'), shot(c));
     const main = h('span', 'main');
     add(main, add(h('span', 'row'), badge(c), h('span', 'label type', typeLabel(c.type)), ends(c)), h('span', 'brand', c.brand), h('h3', 'disp', headline(c)),
       add(h('span', 'foot'), alloc(c), go(c)));
@@ -327,25 +337,30 @@ function render(animate) {
   const grid = $('grid'); grid.replaceChildren(); cars = [];
   $('vw').dataset.theme = deck.wall.theme; document.body.style.background = deck.wall.theme === 'light' ? '#ffffff' : '#0b0b0b';
   // bigger pieces first, so the grid packs without holes
-  const order = { magazine: 0, ticket: 1, voucher: 2, stub: 3 };
   const list = deck.coupons.slice(0, deck.count).map((c, i) => ({ c, i })).filter(o => tierFilter === 'all' || o.c.tier === tierFilter)
-    .sort((a, b) => order[a.c.style] - order[b.c.style] || a.i - b.i);
+    .sort((a, b) => b.c.cols * b.c.rows - a.c.cols * a.c.rows || b.c.cols - a.c.cols || a.i - b.i);
   list.forEach(({ c, i }) => {
-    const cell = h('div', 'cell s-' + c.style);
-    const piece = h('button', `piece ${c.style}${expiring(c) && c.remaining > 0 ? ' expiring' : ''}`, null, { type: 'button', 'aria-label': `${c.brand}: ${headline(c)}. ${D.TIERS[c.tier].name}, ${D.STYLES[c.style]}.` });
+    const cell = h('div', 'cell s-' + c.style, null, { style: `--w:${c.cols};--h:${c.rows}` });
+    const piece = h('button', `piece ${c.style}${expiring(c) && c.remaining > 0 ? ' expiring' : ''}`, null, { type: 'button', 'aria-label': `${c.brand}: ${headline(c)}. ${D.TIERS[c.tier].name}, ${c.cols} by ${c.rows}.` });
     piece.style.setProperty('--tilt', (c.style === 'stub' ? (i % 2 ? 0.8 : -0.8) : c.style === 'voucher' ? 0.5 : c.style === 'ticket' ? -0.4 : -0.6) + 'deg');
     add(piece, STYLES[c.style](c, i));
     piece.addEventListener('click', () => openDetail(i, piece));
     add(grid, add(cell, piece));
   });
-  if (!list.length) add(grid, h('p', 'cap', 'No sponsors in this package yet.'));
-  syncBars();
+  if (!list.length) add(grid, h('p', 'cap', 'No sponsors in this tier yet.'));
+  syncBars(); fit();
   if (animate && !reduced) {
     // each piece drops onto the wall like paper being pinned up: a small fall, a slight spin, then it settles
     gsap.fromTo(grid.querySelectorAll('.piece'), { opacity: 0, y: -26, rotation: () => gsap.utils.random(-5, 5), scale: 1.05 },
       { opacity: 1, y: 0, rotation: 0, scale: 1, duration: 0.6, stagger: 0.07, ease: 'back.out(1.5)', clearProps: 'transform,opacity' });
   }
 }
+/* Three columns at every width: below 1060px the grid keeps a fixed layout width and is scaled down to fit. */
+function fit() {
+  const g = $('grid'), vw = document.documentElement.clientWidth, base = vw <= 700 ? 560 : vw < 1060 ? 1060 : 0;
+  g.style.width = base ? base + 'px' : ''; g.style.zoom = base ? vw / base : '';
+}
+addEventListener('resize', fit);
 /* magazine photos change on a shared beat, one piece at a time */
 let beat = 0;
 setInterval(() => { if (document.hidden || reduced || !cars.length || $('detail').open) return; const car = cars[beat++ % cars.length]; if (!car.el.isConnected) return; car.at = (car.at + 1) % car.n; car.el.querySelectorAll('.ph').forEach((im, k) => im.classList.toggle('on', k === car.at)); }, 2600);
@@ -353,10 +368,10 @@ setInterval(() => { if (document.hidden || reduced || !cars.length || $('detail'
 /* ---------- Legend and filters ---------- */
 function buildChrome() {
   const lg = $('legend');
-  ['partner', 'a', 'b', 'c'].forEach(k => { const t = D.TIERS[k];
-    add(lg, add(h('div'), h('strong', null, t.name), h('span', null, t.styles.map(s => D.STYLES[s]).join(' · ')),
-      h('span', null, `${t.photos ? 'Up to ' + t.photos + ' photo' + (t.photos > 1 ? 's' : '') : 'Logo only'}${t.badge ? ' · Featured badge' : ''}${t.limited ? ' · Limited claims' : ''}`))); });
-  [['all', 'All'], ['partner', 'Partners'], ['a', 'A'], ['b', 'B'], ['c', 'C']].forEach(([v, label]) => { const b = h('button', null, label, { type: 'button' }); b._v = v; b.addEventListener('click', () => { tierFilter = v; render(true); }); add($('segTier'), b); });
+  Object.keys(D.TIERS).forEach(k => { const t = D.TIERS[k];
+    add(lg, add(h('div'), h('strong', null, t.name), h('span', null, `Up to ${t.cols} column${t.cols > 1 ? 's' : ''} × ${t.rows} rows`),
+      h('span', null, `${t.photos > 1 ? 'Carousel, up to ' + t.photos + ' photos' : '1 photo'}${t.badge ? ' · Featured badge' : ''}${t.limited ? ' · Limited claims' : ''}`))); });
+  [['all', 'All'], ['t1', 'Tier 1'], ['t2', 'Tier 2'], ['t3', 'Tier 3']].forEach(([v, label]) => { const b = h('button', null, label, { type: 'button' }); b._v = v; b.addEventListener('click', () => { tierFilter = v; render(true); }); add($('segTier'), b); });
   [['dark', 'Dark'], ['light', 'White']].forEach(([v, label]) => { const b = h('button', null, label, { type: 'button' }); b._v = v; b.addEventListener('click', () => { deck.wall.theme = v; D.save(deck); render(false); }); add($('segTheme'), b); });
 }
 function syncBars() { [...$('segTier').children].forEach(b => b.setAttribute('aria-pressed', String(b._v === tierFilter))); [...$('segTheme').children].forEach(b => b.setAttribute('aria-pressed', String(b._v === deck.wall.theme))); }
