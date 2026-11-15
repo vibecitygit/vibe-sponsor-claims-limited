@@ -17,18 +17,24 @@ const FORMAT_OPTIONS = [
 const label = key => (FORMAT_OPTIONS.find(o => o.key === key) || FORMAT_OPTIONS[0]).label;
 
 // Load the saved offer wall settings: { draft, version }. The page designer calls this before it draws.
-async function load(api) {
+// Each event has its own wall. `events` is the portal's event list; the first event is used when none is chosen.
+async function load(api, events, eventId) {
   const S = window.VCSponsorWallSchema;
-  const saved = await api('/sponsor-wall');
-  return { draft: S.validate(saved.draft), version: saved.version, status: '' };
+  const list = Array.isArray(events) ? events : [];
+  const chosen = eventId || (list[0] && list[0].id) || null;
+  if (!chosen) return { events: list, eventId: null, draft: S.validate(undefined), version: 0, status: 'Create an event first.' };
+  const saved = await api('/sponsor-wall?event_id=' + encodeURIComponent(chosen));
+  return { events: list, eventId: chosen, draft: S.validate(saved.draft), version: saved.version, status: '' };
 }
 
 // The tab's markup. Pure string output, so the page designer can place it anywhere in its panel.
 function html(esc, st) {
   const d = st.draft;
+  if (!st.eventId) return `<section class="sw-tab" aria-labelledby="swTabTitle"><h2 id="swTabTitle">Offer wall</h2><p class="notice">${esc(st.status || 'Create an event first.')}</p></section>`;
   return `<section class="sw-tab" aria-labelledby="swTabTitle">
    <h2 id="swTabTitle">Offer wall</h2>
-   <p class="notice">Choose the offer wall the tickets site shows on the Offers view. Saving a draft does not change the public site.</p>
+   <label class="field" for="swEvent">Event<select id="swEvent">${(st.events || []).map(ev => `<option value="${esc(ev.id)}" ${ev.id === st.eventId ? 'selected' : ''}>${esc(ev.name || ev.id)}</option>`).join('')}</select></label>
+   <p class="notice">Choose the offer wall the tickets site shows on the Offers view for this event. Saving a draft does not change the public site.</p>
    <fieldset class="sw-formats" id="swFormats"><legend>Offer wall format</legend>${FORMAT_OPTIONS.map(o => `<label class="sw-format ${d.format === o.key ? 'is-selected' : ''}"><input type="radio" name="swFormat" value="${esc(o.key)}" ${d.format === o.key ? 'checked' : ''}><span class="sw-format-text"><strong>${esc(o.label)}</strong><small>${esc(o.hint)}</small></span></label>`).join('')}</fieldset>
    <h2>Wall settings</h2>
    <label class="sw-bool"><input type="radio" name="swCards" value="dark" ${d.cards === 'dark' ? 'checked' : ''}> Dark cards</label>
@@ -49,6 +55,11 @@ function html(esc, st) {
 // Attach the tab's controls inside `root`. `redraw` re-renders the tab after a change; `api` is the portal API.
 function bind(root, st, { api, redraw }) {
   const S = window.VCSponsorWallSchema;
+  root.querySelector('#swEvent')?.addEventListener('change', async e => {
+    const fresh = await load(api, st.events, e.target.value);
+    Object.assign(st, fresh, { status: '' });
+    redraw();
+  });
   root.querySelectorAll('input[name="swFormat"]').forEach(input => input.addEventListener('change', () => {
     st.draft.format = input.value;
     root.querySelectorAll('.sw-format').forEach(l => l.classList.toggle('is-selected', l.querySelector('input').value === st.draft.format));
@@ -75,7 +86,7 @@ async function save(root, st, { api, redraw, action }) {
   try { checked = S.validate(st.draft); } catch (e) { st.status = e.message; redraw(); return; }
   root.querySelectorAll('button').forEach(b => { b.disabled = true; });
   try {
-    const next = await api('/sponsor-wall', 'POST', { version: st.version, action, draft: checked });
+    const next = await api('/sponsor-wall', 'POST', { event_id: st.eventId, version: st.version, action, draft: checked });
     st.version = next.version;
     st.draft = S.validate(next.draft);
     st.status = action === 'publish' ? 'Published. Reload the site to see the change.' : 'Draft saved. The public site is unchanged.';
