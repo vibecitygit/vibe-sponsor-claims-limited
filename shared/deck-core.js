@@ -156,6 +156,9 @@ function wallOf(w) {
     // card colour is its own setting, separate from the page background (older 'match theme' values follow the theme they had)
     cards: w.cards === 'white' || (w.cards === 'theme' && w.theme === 'light') ? 'white' : 'dark',
     openSlots: w.openSlots !== false,
+    // cut-out wall spacing in desktop pixels: space between pieces, and padding at the wall's edges
+    cutGap: Number.isFinite(+w.cutGap) && w.cutGap !== null && w.cutGap !== '' ? Math.min(64, Math.max(0, Math.round(+w.cutGap))) : 28,
+    cutPad: Number.isFinite(+w.cutPad) && w.cutPad !== null && w.cutPad !== '' ? Math.min(200, Math.max(0, Math.round(+w.cutPad))) : 72,
   };
 }
 function normalize(d) {

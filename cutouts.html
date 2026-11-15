@@ -59,10 +59,15 @@ a { color: inherit; }
 .seg button { appearance: none; cursor: pointer; font: 700 11px/1 "DM Sans", Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; padding: 9px 12px; min-height: 36px; border: 1px solid var(--border); background: transparent; color: var(--muted); margin-left: -1px; }
 .seg button:first-child { margin-left: 0; }
 .seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); position: relative; }
-.opt { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.opt { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--muted); }
+.space { display: flex; flex-wrap: wrap; gap: 8px 22px; width: 100%; color: var(--muted); }
+.space label { display: flex; align-items: center; gap: 10px; min-height: 36px; flex: 1 1 240px; max-width: 420px; }
+.space label span:first-child { flex: none; min-width: 9.5em; }
+.space input[type=range] { flex: 1; min-width: 90px; accent-color: var(--brand, #ff4937); }
+.space output { flex: none; min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; color: var(--fg); }
 
 /* ---------- The board: 3 columns at every width ---------- */
-.board { row-gap: calc(var(--gap) + 8px); --cols: 3; --gap: clamp(8px, 1.6vw, 20px); --row: 140px; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); grid-auto-rows: var(--row); grid-auto-flow: dense; gap: var(--gap); padding: clamp(16px, 2.4vw, 30px) var(--gutter) 90px; flex: 1; align-content: start; }
+.board { row-gap: calc(var(--gap) + 8px); --cols: 3; --gap: 28px; --edge: 72px; --row: 140px; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); grid-auto-rows: var(--row); grid-auto-flow: dense; gap: var(--gap); padding: max(16px, var(--edge) * .7) var(--edge) 90px; flex: 1; align-content: start; }
 .cell { position: relative; min-width: 0; container-type: size; }
 .cell.s-voucher { grid-row: span 2; }
 .cell.s-ticket { grid-column: span 2; }
@@ -209,6 +214,10 @@ dialog[open] { display: flex; flex-direction: column; }
       <span class="swatch x-ok">15+ days</span><span class="swatch x-soon">8–14 days</span><span class="swatch x-last">Last week</span><span class="swatch x-done">Ended</span></div>
     <div class="opt cap"><span>Theme</span><div class="seg" id="segTheme" role="group" aria-label="Theme"></div>
       <button class="seg-replay" id="replay" type="button" style="appearance:none;cursor:pointer;font:700 11px/1 'DM Sans',Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;padding:9px 12px;min-height:36px;border:1px solid var(--border);background:transparent;color:var(--muted)">Replay ↻</button></div>
+    <div class="space cap" role="group" aria-label="Spacing">
+      <label><span>Space between</span><input id="cutGap" type="range" min="0" max="64" step="2"><output id="cutGapOut"></output></label>
+      <label><span>Edge padding</span><input id="cutPad" type="range" min="0" max="200" step="4"><output id="cutPadOut"></output></label>
+    </div>
   </div>
   <main class="board" id="board"></main>
   <footer class="foot-note cap"><p>Prototype. Each sponsor's package, style, photos and dates are set in the Editor tab (Voucher wall).</p></footer>
@@ -314,7 +323,19 @@ function render() {
   }
   sizeRows(); syncTheme(); arm();
 }
-function sizeRows() { const b = $('board'), cs = getComputedStyle(b), cols = colsNow(), gap = parseFloat(cs.columnGap) || 0, w = b.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight); b.style.setProperty('--row', Math.round((w - gap * (cols - 1)) / cols * 1.16) + 'px'); }
+/* spacing is set in desktop pixels and eases down on narrow screens so three columns always fit */
+function applySpace() {
+  const b = $('board'), k = Math.min(1, Math.max(0.4, innerWidth / 1000)), gap = Math.round(deck.wall.cutGap * k), pad = Math.round(deck.wall.cutPad * k);
+  b.style.setProperty('--gap', gap + 'px'); b.style.setProperty('--edge', pad + 'px');
+  $('cutGap').value = deck.wall.cutGap; $('cutPad').value = deck.wall.cutPad;
+  const note = (set, now) => set + 'px' + (now !== set ? ' → ' + now : '');
+  $('cutGapOut').textContent = note(deck.wall.cutGap, gap); $('cutPadOut').textContent = note(deck.wall.cutPad, pad);
+}
+[['cutGap', 'cutGap'], ['cutPad', 'cutPad']].forEach(([id, key]) => {
+  $(id).addEventListener('input', e => { deck.wall[key] = +e.target.value; sizeRows(); });
+  $(id).addEventListener('change', () => { D.save(deck); if (hasGsap) ScrollTrigger.refresh(); });
+});
+function sizeRows() { applySpace(); const b = $('board'), cs = getComputedStyle(b), cols = colsNow(), gap = parseFloat(cs.columnGap) || 0, w = b.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight); b.style.setProperty('--row', Math.round((w - gap * (cols - 1)) / cols * 1.16) + 'px'); }
 
 /* ---------- The slap: each piece drops from above the page, hits, squashes and settles ---------- */
 function slap(piece, delay) {
