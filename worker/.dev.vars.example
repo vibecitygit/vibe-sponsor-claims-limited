@@ -1,0 +1,6 @@
+# Copy to .dev.vars for `wrangler dev`. Not committed.
+ADMIN_TOKEN=dev-admin-token
+# node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+DATA_KEY=
+TICKET_SIGNING_SECRET=dev-ticket-secret
+ALLOW_UNVERIFIED_TICKETS=true

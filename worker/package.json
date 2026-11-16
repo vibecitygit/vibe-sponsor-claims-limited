@@ -1,0 +1,14 @@
+{
+  "name": "vibe-sponsor-claims-worker",
+  "private": true,
+  "type": "module",
+  "description": "Claim codes, partner verify/redeem, and PayMongo payment links after a scan.",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "test": "node --test --no-warnings=ExperimentalWarning test/*.test.js",
+    "dev": "wrangler dev",
+    "migrate:local": "wrangler d1 migrations apply vibe-claims --local",
+    "migrate:remote": "wrangler d1 migrations apply vibe-claims --remote",
+    "deploy": "wrangler deploy"
+  }
+}

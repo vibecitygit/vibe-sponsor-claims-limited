@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Claim Scanner</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=DM+Sans:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="shared/tokens.css">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--night); color: var(--fg); font: 16px/1.45 var(--font-body); min-height: 100dvh; }
+main { max-width: 520px; margin: 0 auto; padding: 20px 16px 48px; display: grid; gap: 16px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+h1 { margin: 0; font: 900 32px/1 var(--font-display); text-transform: uppercase; letter-spacing: .01em; }
+h2 { margin: 0 0 4px; font: 800 26px/1.05 var(--font-display); text-transform: uppercase; }
+.who { font-size: 13px; color: var(--muted); text-align: right; }
+.panel { background: var(--raised); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
+label { display: grid; gap: 6px; font-size: 14px; font-weight: 700; }
+input { width: 100%; font: 500 17px/1.2 var(--font-body); color: var(--fg); background: var(--night); border: 1px solid var(--line-strong); border-radius: 10px; padding: 12px; }
+input:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+.row { display: flex; gap: 8px; }
+.row > input { flex: 1; min-width: 0; }
+button, .btn { appearance: none; border: 0; border-radius: 10px; padding: 13px 16px; font: 800 16px/1 var(--font-body); cursor: pointer; text-decoration: none; text-align: center; background: var(--ember); color: var(--on-brand); }
+button.ghost, .btn.ghost { background: transparent; color: var(--fg); box-shadow: inset 0 0 0 1px var(--line-strong); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.small { font-size: 13px; color: var(--muted); margin: 0; }
+.cam { position: relative; aspect-ratio: 1; background: #000; border-radius: 12px; overflow: hidden; }
+.cam video { width: 100%; height: 100%; object-fit: cover; }
+.cam::after { content: ""; position: absolute; inset: 18%; border: 3px solid var(--ember); border-radius: 16px; box-shadow: 0 0 0 999px rgba(0,0,0,.35); }
+.tag { display: inline-block; padding: 4px 9px; border-radius: 999px; font: 700 12px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: .06em; background: var(--warm); color: var(--muted); }
+.tag.ok { background: var(--success); color: var(--night); }
+.tag.bad { background: var(--ember); color: var(--on-brand); }
+.sum { display: grid; grid-template-columns: 1fr auto; gap: 4px 0; font-size: 15px; }
+.sum b { text-align: right; font-variant-numeric: tabular-nums; padding-left: 12px; }
+.sum .total { font: 800 22px/1.2 var(--font-body); border-top: 1px solid var(--line); padding-top: 8px; }
+.qr { background: #fff; border-radius: 12px; padding: 12px; width: min(100%, 300px); justify-self: center; }
+.qr svg { display: block; width: 100%; height: auto; }
+.msg { margin: 0; padding: 12px; border-radius: 10px; background: var(--warm); }
+.msg.err { background: rgba(255,73,55,.16); color: #ffc7c0; }
+.paid { font: 900 40px/1 var(--font-display); text-transform: uppercase; color: var(--success); text-align: center; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Claim Scanner</h1>
+    <div class="who" id="who"></div>
+  </header>
+
+  <!-- 1. Connect this device -->
+  <section class="panel" id="setup" hidden>
+    <h2>Connect this device</h2>
+    <p class="small">Vibe City gives each business a staff key for its scanner. It stays on this device until you sign out.</p>
+    <label>Claims server address <input id="apiBase" type="url" inputmode="url" placeholder="https://claims.example.workers.dev" autocomplete="off"></label>
+    <label>Staff key <input id="staffKey" type="password" placeholder="vck_staff_…" autocomplete="off"></label>
+    <button id="connect">Connect</button>
+    <p class="msg err" id="setupErr" hidden></p>
+  </section>
+
+  <!-- 2. Scan or type a code -->
+  <section class="panel" id="scan" hidden>
+    <h2>Scan a claim</h2>
+    <div class="cam" id="cam" hidden><video id="video" playsinline muted></video></div>
+    <button id="camBtn">Open camera</button>
+    <label>Or type the code
+      <div class="row"><input id="code" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="KTC-7Q3FK-9M2XA"><button id="lookup" class="ghost">Check</button></div>
+    </label>
+    <p class="msg err" id="scanErr" hidden></p>
+  </section>
+
+  <!-- 3. The offer and the bill -->
+  <section class="panel" id="offer" hidden>
+    <div><span class="tag" id="offerState"></span></div>
+    <h2 id="offerTitle"></h2>
+    <p class="small"><span id="offerDiscount"></span> · <span id="offerCode"></span></p>
+    <p class="msg err" id="offerProblem" hidden></p>
+    <div id="billForm" hidden>
+      <div style="display:grid;gap:12px">
+        <label>Price of the item the offer covers (₱) <input id="itemAmt" inputmode="decimal" placeholder="1,500"></label>
+        <label>Rest of the bill (₱, optional) <input id="otherAmt" inputmode="decimal" placeholder="0"></label>
+        <div class="sum" id="preview" hidden></div>
+        <button id="makeLink" disabled>Create payment link</button>
+      </div>
+    </div>
+    <button id="markFree" hidden>Mark as used: hand over the free item</button>
+    <button class="ghost" id="resetFromOffer">Scan another</button>
+  </section>
+
+  <!-- 4. Payment link -->
+  <section class="panel" id="pay" hidden>
+    <h2>Guest scans to pay</h2>
+    <div class="sum" id="paySum"></div>
+    <div class="qr" id="payQr" role="img" aria-label="QR code for the PayMongo payment link"></div>
+    <div class="row"><a class="btn ghost" id="payLink" target="_blank" rel="noopener" style="flex:1">Open link</a><button class="ghost" id="copyLink" style="flex:1">Copy link</button></div>
+    <p class="small" id="payWait" aria-live="polite">Waiting for payment…</p>
+    <p class="paid" id="paidMark" hidden>Paid ✓</p>
+    <button class="ghost" id="cancelLink">Cancel this link</button>
+    <button id="next" hidden>Scan next</button>
+  </section>
+
+  <section class="panel" id="done" hidden>
+    <p class="paid" id="doneMark">Done ✓</p>
+    <p class="msg" id="doneMsg"></p>
+    <button id="doneNext">Scan next</button>
+  </section>
+
+  <p class="small" style="text-align:center"><button class="ghost" id="signOut" hidden style="padding:8px 12px;font-size:13px">Sign out of this device</button></p>
+</main>
+
+<script>
+(function () {
+'use strict';
+const $ = id => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem('vc-scanner-' + k) || ''; } catch (e) { return ''; } },
+  set(k, v) { try { v ? localStorage.setItem('vc-scanner-' + k, v) : localStorage.removeItem('vc-scanner-' + k); } catch (e) { /* private mode */ } },
+};
+let cfg = { base: store.get('base'), key: store.get('key') };
+let current = null;     // { code, offer, ... } from lookup
+let pollTimer = null, camStream = null, camLoop = null;
+
+const peso = c => '₱' + (c / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function toCentavos(s) {
+  const t = String(s || '').replace(/[₱,\s]/g, '');
+  if (!t) return 0;
+  if (!/^\d+(\.\d{1,2})?$/.test(t)) return NaN;
+  return Math.round(parseFloat(t) * 100);
+}
+function show(...ids) { for (const id of ['setup', 'scan', 'offer', 'pay', 'done']) $(id).hidden = !ids.includes(id); }
+function err(el, text) { el.textContent = text || ''; el.hidden = !text; }
+
+async function api(method, path, body) {
+  const res = await fetch(cfg.base.replace(/\/$/, '') + path, {
+    method,
+    headers: Object.assign({ Authorization: 'Bearer ' + cfg.key }, body ? { 'Content-Type': 'application/json' } : {}),
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { const e = new Error(data.message || 'Request failed (' + res.status + ').'); e.status = res.status; e.code = data.error; throw e; }
+  return data;
+}
+
+/* ---------- Connect ---------- */
+async function connect() {
+  err($('setupErr'));
+  try {
+    const me = await api('GET', '/v1/staff/me');
+    $('who').textContent = me.sponsorId + (me.paymongoConnected ? (me.livemode ? ' · live' : ' · test mode') : ' · PayMongo not connected');
+    $('signOut').hidden = false;
+    show('scan');
+    return true;
+  } catch (e) {
+    show('setup');
+    err($('setupErr'), e.status === 401 ? 'That key was not accepted.' : 'Could not reach the claims server. Check the address.');
+    return false;
+  }
+}
+$('connect').addEventListener('click', async () => {
+  cfg = { base: $('apiBase').value.trim(), key: $('staffKey').value.trim() };
+  if (!/^https?:\/\//.test(cfg.base) || !cfg.key) return err($('setupErr'), 'Enter the server address and your staff key.');
+  if (await connect()) { store.set('base', cfg.base); store.set('key', cfg.key); }
+});
+$('signOut').addEventListener('click', () => { store.set('key', ''); cfg.key = ''; stopCam(); $('who').textContent = ''; $('signOut').hidden = true; $('apiBase').value = cfg.base; show('setup'); });
+
+/* ---------- Camera ---------- */
+async function startCam() {
+  err($('scanErr'));
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+  } catch (e) { return err($('scanErr'), 'Camera unavailable. Type the code instead.'); }
+  const video = $('video');
+  video.srcObject = camStream; await video.play();
+  $('cam').hidden = false; $('camBtn').textContent = 'Close camera';
+  const detector = 'BarcodeDetector' in window ? new BarcodeDetector({ formats: ['qr_code'] }) : null;
+  const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const tick = async () => {
+    if (!camStream) return;
+    let text = null;
+    try {
+      if (detector) { const r = await detector.detect(video); text = r[0] && r[0].rawValue; }
+      else if (window.jsQR && video.videoWidth) {
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        const r = jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height, { inversionAttempts: 'dontInvert' });
+        text = r && r.data;
+      }
+    } catch (e) { /* keep trying */ }
+    if (text) { if (navigator.vibrate) navigator.vibrate(60); stopCam(); $('code').value = text; return lookup(text); }
+    camLoop = requestAnimationFrame(tick);
+  };
+  camLoop = requestAnimationFrame(tick);
+}
+function stopCam() {
+  if (camLoop) cancelAnimationFrame(camLoop);
+  if (camStream) camStream.getTracks().forEach(t => t.stop());
+  camStream = null; camLoop = null; $('cam').hidden = true; $('camBtn').textContent = 'Open camera';
+}
+$('camBtn').addEventListener('click', () => (camStream ? stopCam() : startCam()));
+
+/* ---------- Look up ---------- */
+async function lookup(raw) {
+  err($('scanErr'));
+  const code = String(raw || '').trim();
+  if (!code) return;
+  try {
+    current = await api('POST', '/v1/staff/lookup', { code });
+  } catch (e) { return err($('scanErr'), e.message); }
+  const o = current.offer;
+  $('offerTitle').textContent = o.title;
+  $('offerDiscount').textContent = o.discount.label;
+  $('offerCode').textContent = current.code;
+  $('offerState').textContent = current.usable ? 'Ready to use' : 'Cannot be used';
+  $('offerState').className = 'tag ' + (current.usable ? 'ok' : 'bad');
+  err($('offerProblem'), current.usable ? '' : current.message);
+  const free = o.discount.type === 'free';
+  $('billForm').hidden = !current.usable || free;
+  $('markFree').hidden = !current.usable || !free;
+  $('itemAmt').value = ''; $('otherAmt').value = ''; updatePreview();
+  show('offer');
+  if (current.usable && !free) $('itemAmt').focus();
+}
+$('lookup').addEventListener('click', () => lookup($('code').value));
+$('code').addEventListener('keydown', e => { if (e.key === 'Enter') lookup($('code').value); });
+
+function updatePreview() {
+  const item = toCentavos($('itemAmt').value), other = toCentavos($('otherAmt').value);
+  const okNums = Number.isFinite(item) && Number.isFinite(other) && item > 0;
+  $('makeLink').disabled = !okNums;
+  if (!okNums || !current) { $('preview').hidden = true; return; }
+  const d = current.offer.discount;
+  const discounted = d.type === 'percent' ? Math.round(item * (100 - d.value) / 100) : Math.max(item - d.value, 0);
+  const p = $('preview'); p.replaceChildren(); p.hidden = false;
+  const line = (k, v, cls) => { const a = document.createElement('span'), b = document.createElement('b'); a.textContent = k; b.textContent = v; if (cls) { a.className = cls; b.className = cls; } p.append(a, b); };
+  line('Item', peso(item)); line(d.label, '−' + peso(item - discounted));
+  if (other) line('Rest of the bill', peso(other));
+  line('Guest pays', peso(discounted + other), 'total');
+}
+$('itemAmt').addEventListener('input', updatePreview);
+$('otherAmt').addEventListener('input', updatePreview);
+
+/* ---------- Create the PayMongo link ---------- */
+$('makeLink').addEventListener('click', async () => {
+  const btn = $('makeLink'); btn.disabled = true; btn.textContent = 'Creating link…';
+  try {
+    const r = await api('POST', '/v1/staff/scan', { code: current.code, itemAmount: toCentavos($('itemAmt').value), otherAmount: toCentavos($('otherAmt').value) });
+    if (r.redeemed) return finish(r.message);
+    showPayment(r);
+  } catch (e) { err($('offerProblem'), e.message); }
+  finally { btn.textContent = 'Create payment link'; updatePreview(); }
+});
+$('markFree').addEventListener('click', async () => {
+  try { const r = await api('POST', '/v1/staff/scan', { code: current.code }); finish(r.message); }
+  catch (e) { err($('offerProblem'), e.message); }
+});
+
+function showPayment(r) {
+  const s = $('paySum'); s.replaceChildren();
+  const line = (k, v, cls) => { const a = document.createElement('span'), b = document.createElement('b'); a.textContent = k; b.textContent = v; if (cls) { a.className = cls; b.className = cls; } s.append(a, b); };
+  line(r.offer.title, peso(r.amounts.discounted)); if (r.amounts.other) line('Rest of the bill', peso(r.amounts.other));
+  line('Total', peso(r.amounts.total), 'total');
+  const box = $('payQr'); box.replaceChildren();
+  if (window.qrcode) { const q = qrcode(0, 'M'); q.addData(r.checkoutUrl); q.make(); box.innerHTML = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); }
+  else box.textContent = 'QR unavailable. Use Open link.';
+  $('payLink').href = r.checkoutUrl;
+  $('payWait').hidden = false; $('paidMark').hidden = true; $('cancelLink').hidden = false; $('next').hidden = true;
+  show('pay');
+  poll(r.code);
+}
+$('copyLink').addEventListener('click', async () => { try { await navigator.clipboard.writeText($('payLink').href); $('copyLink').textContent = 'Copied'; setTimeout(() => { $('copyLink').textContent = 'Copy link'; }, 1500); } catch (e) { /* no clipboard */ } });
+
+function poll(code) {
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const s = await fetch(cfg.base.replace(/\/$/, '') + '/v1/claims/' + encodeURIComponent(code)).then(r => r.json());
+      if (s.state === 'redeemed') {
+        clearInterval(pollTimer);
+        $('payWait').hidden = true; $('paidMark').hidden = false; $('cancelLink').hidden = true; $('next').hidden = false;
+        if (navigator.vibrate) navigator.vibrate([60, 60, 60]);
+      }
+    } catch (e) { /* keep polling */ }
+  }, 4000);
+}
+$('cancelLink').addEventListener('click', async () => {
+  if (!confirm('Cancel this payment link? The guest\'s code becomes usable again.')) return;
+  try { await api('POST', '/v1/staff/cancel', { code: current.code }); } catch (e) { /* show scan screen anyway */ }
+  reset();
+});
+
+function finish(message) { $('doneMsg').textContent = message || 'Done.'; show('done'); }
+function reset() { clearInterval(pollTimer); current = null; $('code').value = ''; err($('scanErr')); show('scan'); }
+$('next').addEventListener('click', reset);
+$('doneNext').addEventListener('click', reset);
+$('resetFromOffer').addEventListener('click', reset);
+
+/* ---------- Start ---------- */
+$('apiBase').value = cfg.base;
+if (cfg.base && cfg.key) connect(); else show('setup');
+})();
+</script>
+</body>
+</html>
