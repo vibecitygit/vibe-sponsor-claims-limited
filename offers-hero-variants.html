@@ -112,6 +112,16 @@ h1 .hot { color: var(--hot); }
   .grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .A .acts .cta, .B > div > .cta { width: 100%; }
 }
+/* B on phones: the three picks become a swipe row (peek of the next card) so the sort bar stays above the fold */
+@media (max-width: 600px) {
+  .B { gap: 18px; }
+  .B h1 { font-size: 52px; }
+  .picks { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--g); margin: 0 calc(var(--g) * -1); padding: 0 var(--g) 4px; scrollbar-width: none; }
+  .pick { flex: 0 0 78%; scroll-snap-align: start; grid-template-columns: 40px minmax(0,1fr); grid-template-rows: auto auto; align-content: start; }
+  .pick .cta { grid-column: 1 / -1; width: 100%; }
+  .pick .logo { width: 40px; height: 40px; }
+  .more { flex: 0 0 auto; align-self: center; scroll-snap-align: start; padding: 0 8px; }
+}
 @media (max-width: 600px) { .grid { gap: 6px; } .tile { grid-template-columns: 30px minmax(0,1fr); gap: 8px; padding: 8px; min-height: 0; } .tile img { width: 30px; height: 30px; } .tile strong { font-size: 12px; } .tile small, .tile .tag { display: none; } .tally strong { font-size: 26px; } .C .top { margin-bottom: 14px; } .pass .stamps { display: none; } .pass .v { font-size: 44px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } .pass .stamps img { opacity: 1; } }
 </style>
