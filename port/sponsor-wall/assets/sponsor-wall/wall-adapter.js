@@ -39,7 +39,7 @@ function itemToCoupon(item) {
     id,
     brand: String(item.brand || 'Sponsor'),
     role: String(item.role || ''),
-    featured: item.featured === true,
+    featured: item.featured === true && !!item.offerId, // owner rule: only a sponsor with a published offer is featured
     tier,
     cols, rows,
     style: D.styleFor(cols, rows),

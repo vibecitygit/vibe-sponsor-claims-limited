@@ -86,3 +86,8 @@ test('every coupon field the renderers read is set by the adapter', () => {
   const c = A.itemToCoupon(live);
   for (const k of ['id', 'brand', 'role', 'featured', 'tier', 'cols', 'rows', 'style', 'limited', 'site', 'logoSrc', 'photos', 'mark', 'shape', 'color', 'type', 'short', 'long', 'from', 'to', 'year', 'where', 'limit', 'terms', 'offerId', 'noOffer']) assert.ok(k in c, k);
 });
+
+test('a sponsor without a published offer is never featured, whatever the portal flag says', () => {
+  assert.equal(A.itemToCoupon({ ...live, featured: true, offerId: 'off-1' }).featured, true);
+  assert.equal(A.itemToCoupon({ ...live, featured: true, offerId: null }).featured, false);
+});
