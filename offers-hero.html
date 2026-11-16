@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Offers Hero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;700;800&display=swap">
+<style>
+/* Offers-view hero. Mirrors the live #eventIntro on tickets.vibecity.art (eyebrow with ✳, Barlow
+   Condensed H1 with outlined second half, photo crossfade, hatched stat box with hot left rule,
+   red brand ticker) so the Offers view reads as the same site. Everything is scoped under
+   .ofh so it can be dropped into the sponsor-wall shadow root without touching global CSS.
+   The hero contains NO filters or sort: the one-row sort bar sits directly below the ticker
+   and becomes sticky; the hero is sized so that row is visible above the fold on a phone. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; background: #0a0a09; color: #f5f2e9; font: 400 15px/1.5 "DM Sans", Arial, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: clip; }
+.ofh {
+  --bg: #0a0a09; --paper: #f5f2e9; --hot: #ff4937; --line: rgba(255,255,255,.12); --line-strong: rgba(255,255,255,.28);
+  --hdr: 68px; --gutter: clamp(16px, 4.6vw, 72px);
+  --display: "Barlow Condensed", Impact, "Arial Narrow", sans-serif;
+  --hatch: repeating-linear-gradient(45deg, rgba(255,255,255,.022) 0 1px, transparent 1px 10px);
+  --ease: cubic-bezier(.23, 1, .32, 1);
+}
+/* stand-in for the live site header so spacing is honest */
+.fakehdr { position: sticky; top: 0; z-index: 30; height: 68px; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--gutter); background: rgba(10,10,9,.92); border-bottom: 1px solid var(--line); backdrop-filter: blur(10px); }
+.fakehdr b { font: 800 24px/1 var(--display); letter-spacing: -.02em; text-transform: uppercase; }
+.fakehdr nav { display: flex; gap: 18px; font: 700 12px/1 "DM Sans"; letter-spacing: .08em; text-transform: uppercase; color: rgba(245,242,233,.6); }
+.fakehdr nav span[aria-current] { color: var(--hot); }
+
+/* ---------- Hero ---------- */
+.hero { position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 24px 40px;
+  min-height: clamp(380px, 58vh, 560px); padding: clamp(40px, 7vw, 96px) var(--gutter) clamp(28px, 4vw, 48px); border-bottom: 1px solid var(--line); }
+.slides, .slides i { position: absolute; inset: 0; }
+.slides { z-index: -2; }
+.slides i { background-size: cover; background-position: center; opacity: 0; transform: scale(1.08); transition: opacity 1.4s ease, transform 9s linear; }
+.slides i.on { opacity: 1; transform: scale(1); }
+.hero::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(90deg, rgba(10,10,9,.94) 0%, rgba(10,10,9,.72) 48%, rgba(10,10,9,.35) 100%), linear-gradient(0deg, var(--bg) 0%, transparent 45%), var(--hatch); }
+/* drifting sponsor logos behind copy: "the city" of partners */
+.drift { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.drift img { position: absolute; width: clamp(54px, 6vw, 88px); aspect-ratio: 1; object-fit: contain; padding: 10px; background: rgba(245,242,233,.94); opacity: 0; filter: grayscale(1); animation: float 14s var(--ease) infinite; }
+@keyframes float { 0% { opacity: 0; transform: translateY(24px) rotate(var(--r)); } 15%, 70% { opacity: .22; } 100% { opacity: 0; transform: translateY(-60px) rotate(calc(var(--r) * -1)); } }
+
+.copy { max-width: 780px; }
+.eyebrow { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font: 700 12px/1 "DM Sans"; letter-spacing: .14em; text-transform: uppercase; color: var(--paper); }
+.eyebrow .star { color: var(--hot); font-size: 15px; animation: spin 12s linear infinite; display: inline-block; }
+.eyebrow .rule { width: 36px; height: 1px; background: var(--line-strong); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.hero h1 { margin: 0 0 12px; font: 900 clamp(46px, 6.4vw, 96px)/.92 var(--display); letter-spacing: -.025em; text-transform: uppercase; }
+.hero h1 .outline { display: block; color: transparent; -webkit-text-stroke: 1.6px var(--paper); text-shadow: 0 4px 28px rgba(0,0,0,.75); }
+.hero h1 .num { color: var(--hot); -webkit-text-stroke: 0; font-variant-numeric: tabular-nums; }
+.lead { margin: 0; max-width: 56ch; font-size: clamp(15px, 1.05vw, 18px); line-height: 1.6; color: rgba(245,242,233,.9); }
+.lead b { color: var(--paper); }
+/* rotating "now featured" line */
+.now { margin-top: 18px; display: inline-flex; align-items: center; gap: 12px; min-height: 44px; padding: 6px 14px 6px 6px; border: 1px solid var(--line-strong); background: rgba(14,14,13,.7); backdrop-filter: blur(8px); color: inherit; text-decoration: none; cursor: pointer; font: inherit; }
+.now:hover { border-color: var(--hot); }
+.now img { width: 32px; height: 32px; object-fit: contain; background: var(--paper); padding: 3px; }
+.now .t { text-align: left; font: 700 12px/1.2 "DM Sans"; letter-spacing: .08em; text-transform: uppercase; }
+.now .t small { display: block; font-weight: 500; letter-spacing: .04em; text-transform: none; color: rgba(245,242,233,.7); font-size: 13px; }
+.now .swap { transition: opacity .35s ease, transform .35s var(--ease); }
+.now .swap.out { opacity: 0; transform: translateY(6px); }
+
+/* stat box = live .event-countdown */
+.stat { width: clamp(200px, 19vw, 260px); min-height: clamp(160px, 16vw, 200px); padding: 18px 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+  background: rgba(14,14,13,.86) var(--hatch); backdrop-filter: blur(12px); border: 1px solid var(--line-strong); border-left: 3px solid var(--hot); }
+.stat span { font: 700 11px/1.25 "DM Sans"; letter-spacing: .12em; text-transform: uppercase; color: rgba(245,242,233,.72); }
+.stat strong { font: 900 clamp(40px, 3.6vw, 56px)/.9 var(--display); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.stat .who { color: var(--paper); }
+.bar { height: 3px; background: var(--line); }
+.bar i { display: block; height: 100%; background: var(--hot); width: 0; transition: width 1.2s var(--ease); }
+
+/* ---------- Ticker (same as live .brand-ticker) ---------- */
+.ticker { height: 42px; overflow: hidden; background: var(--hot); color: #0a0a09; display: flex; align-items: center; border-bottom: 1px solid rgba(0,0,0,.25); }
+.ticker .track { display: flex; white-space: nowrap; animation: tick 38s linear infinite; }
+.ticker span { font: 800 17px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; padding-right: 22px; }
+.ticker b { padding: 0 14px; }
+@keyframes tick { to { transform: translateX(-50%); } }
+
+/* ---------- Slot for the one-row sort (built in another chat) ---------- */
+.sortslot { position: sticky; top: var(--hdr); z-index: 20; height: 56px; display: flex; align-items: center; gap: 8px; padding: 0 var(--gutter); background: rgba(10,10,9,.94); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.sortslot .ph { flex: 0 0 auto; height: 34px; padding: 0 14px; display: grid; place-items: center; border: 1px dashed var(--line-strong); font: 700 11px/1 "DM Sans"; letter-spacing: .08em; text-transform: uppercase; color: rgba(245,242,233,.55); }
+.sortslot .ph:first-child { border-style: solid; border-color: var(--paper); color: var(--paper); }
+.sortslot .note { margin-left: auto; flex: 0 0 auto; font-size: 11px; color: rgba(245,242,233,.4); }
+.below { min-height: 120vh; padding: 32px var(--gutter); color: rgba(245,242,233,.4); background: var(--hatch); }
+
+@media (max-width: 760px) {
+  .fakehdr nav { display: none; }
+  .hero { grid-template-columns: 1fr; min-height: 0; padding-top: 36px; gap: 18px; }
+  .hero::before { background: linear-gradient(180deg, rgba(10,10,9,.55) 0%, rgba(10,10,9,.9) 60%, var(--bg) 100%), var(--hatch); }
+  .drift { display: none; }
+  .stat { width: 100%; min-height: 64px; flex-direction: row; align-items: center; padding: 10px 14px; }
+  .stat strong { font-size: 34px; }
+  .stat > span:first-child { max-width: 9ch; }
+  .eyebrow .rule, #ofhVenue { display: none; }
+  .stat .bar { display: none; }
+  .now { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .drift { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="ofh">
+  <header class="fakehdr"><b>Vibe City</b><nav><span>Tickets</span><span>Lineup</span><span aria-current="page">Offers</span></nav></header>
+
+  <section class="hero" id="offersHero" aria-labelledby="ofhTitle">
+    <div class="slides" id="slides" aria-hidden="true"></div>
+    <div class="drift" id="drift" aria-hidden="true"></div>
+
+    <div class="copy">
+      <p class="eyebrow"><span class="star">✳</span> INCLUDED WITH YOUR TICKET <span class="rule"></span> <span id="ofhVenue">CEBU CITY</span></p>
+      <h1 id="ofhTitle">Up to <span class="num" id="ofhValue">₱0</span><span class="outline">in perks. On us.</span></h1>
+      <p class="lead"><b id="ofhCount">0</b> free drinks, desserts and deals from <b id="ofhPlaces">partner places</b> across Cebu. Tap one, show the code, done. Unclaimed perks expire.</p>
+      <button class="now" type="button" id="ofhNow" aria-live="polite">
+        <img id="ofhNowLogo" alt="">
+        <span class="t swap" id="ofhNowText">Claim<small></small></span>
+      </button>
+    </div>
+
+    <div class="stat" aria-live="off">
+      <span>Claim before it's gone</span>
+      <strong id="ofhClock">--:--:--</strong>
+      <span class="who" id="ofhWho">—</span>
+      <div class="bar"><i id="ofhBar"></i></div>
+    </div>
+  </section>
+
+  <div class="ticker" aria-hidden="true"><div class="track" id="ticker"></div></div>
+
+  <!-- One-row sort mounts here. Placeholder only. -->
+  <div class="sortslot" role="presentation">
+    <span class="ph">Ending soon</span><span class="ph">Nearest</span><span class="ph">Food</span><span class="ph">Drinks</span><span class="ph">Stay</span><span class="ph">Shop</span>
+    <span class="note">one-row sort slot · sticky under header</span>
+  </div>
+  <div class="below">Offer wall renders here.</div>
+</div>
+
+<script>
+// Sample data in the /public-sponsor-wall item shape (HANDOFF-PLAN.md). In production pass the
+// fetched payload to OffersHero.mount(el, data); nothing here is HTML-injected.
+const DATA = {
+  event: { name: 'Vibe Check: After Hours', venue: 'Casa Verde Ramos', city: 'Cebu City' },
+  photos: ['shared/photos/casa-verde-1.jpg', 'shared/photos/casa-verde-2.jpg', 'shared/photos/casa-verde-3.jpg'],
+  items: [
+    { name: 'Casa Verde', logo: 'shared/sponsors/casa-verde.png', short: 'Free dessert with any main', worth: 280, to: 26 },
+    { name: 'Northbound',        logo: 'shared/sponsors/northbound.png',        short: '15% off your first round', worth: 150, to: 9 },
+    { name: 'Air Condo',         logo: 'shared/sponsors/air-condo.png',         short: 'Late checkout on weekends', worth: 500, to: 70 },
+    { name: 'Dawata',            logo: 'shared/sponsors/dawata.png',            short: 'Buy one, get one coffee', worth: 160, to: 40 },
+    { name: 'Desainz',           logo: 'shared/sponsors/desainz.png',           short: '₱200 off any print', worth: 200, to: 120 },
+    { name: 'Freedom Island',    logo: 'shared/sponsors/freedom-island.png',    short: '10% off day passes', worth: 250, to: 96 },
+    { name: 'Know the Culture',  logo: 'shared/sponsors/know-the-culture.png',  short: 'Free tote with any purchase', worth: 350, to: 55 },
+    { name: 'Pets Society',      logo: 'shared/sponsors/pets-society.png',      short: 'Free grooming add-on', worth: 300, to: 150 },
+  ].map(o => ({ ...o, to: Date.now() + o.to * 3600e3 }))  // hours from now, for the demo
+};
+
+const $ = id => document.getElementById(id);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// background photos
+$('slides').append(...DATA.photos.map(src => { const i = document.createElement('i'); i.style.backgroundImage = `url("${src}")`; return i; }));
+let p = 0; const slides = $('slides').children; slides[0].classList.add('on');
+if (!reduce && slides.length > 1) setInterval(() => { slides[p].classList.remove('on'); p = (p + 1) % slides.length; slides[p].classList.add('on'); }, 6000);
+
+// text
+$('ofhVenue').textContent = DATA.event.city;
+$('ofhPlaces').textContent = `${DATA.items.length} partner places`;
+
+// count-up
+const total = DATA.items.reduce((a, o) => a + (o.worth || 0), 0);
+const n = DATA.items.length, t0 = performance.now();
+(function up(t) { const k = reduce ? 1 : Math.min(1, (t - t0) / 900); const e = 1 - Math.pow(1 - k, 3); $('ofhCount').textContent = Math.round(n * e); $('ofhValue').textContent = '₱' + Math.round(total * e).toLocaleString('en-PH'); if (k < 1) requestAnimationFrame(up); })(t0);
+
+// drifting logos
+if (!reduce) DATA.items.slice(0, 6).forEach((o, i) => {
+  const im = new Image(); im.src = o.logo; im.alt = '';
+  im.style.cssText = `left:${42 + (i % 3) * 18}%;top:${14 + Math.floor(i / 3) * 40}%;--r:${(i % 2 ? 1 : -1) * 4}deg;animation-delay:${i * 2.3}s`;
+  $('drift').append(im);
+});
+
+// rotating featured offer
+let f = 0;
+function feature() {
+  const o = DATA.items[f], txt = $('ofhNowText');
+  txt.classList.add('out');
+  setTimeout(() => {
+    $('ofhNowLogo').src = o.logo;
+    txt.firstChild.nodeValue = 'Claim → ' + o.name; txt.querySelector('small').textContent = o.short;
+    txt.classList.remove('out');
+  }, reduce ? 0 : 300);
+  $('ofhNow').onclick = () => { location.hash = 'offer/' + encodeURIComponent(o.name); };
+}
+feature(); if (!reduce) setInterval(() => { f = (f + 1) % n; feature(); }, 4200);
+
+// ends-soonest countdown
+const soon = DATA.items.slice().sort((a, b) => a.to - b.to)[0];
+$('ofhWho').textContent = soon.name;
+const span = soon.to - Date.now();
+function tick() {
+  const ms = Math.max(0, soon.to - Date.now()), h = Math.floor(ms / 36e5), m = Math.floor(ms / 6e4) % 60, s = Math.floor(ms / 1e3) % 60;
+  $('ofhClock').textContent = h >= 48 ? `${Math.floor(h / 24)}D` : [h, m, s].map(x => String(x).padStart(2, '0')).join(':');
+  $('ofhBar').style.width = (100 * ms / span) + '%';
+}
+tick(); setInterval(tick, 1000);
+
+// ticker
+const run = DATA.items.map(o => `${o.short} · ${o.name}`.toUpperCase()).join(' ✳ ') + ' ✳ ';
+const seg = () => { const s = document.createElement('span'); s.textContent = run; return s; };
+$('ticker').append(seg(), seg(), seg(), seg());
+</script>
+</body>
+</html>
