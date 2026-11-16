@@ -93,6 +93,47 @@ h1 .hot { color: var(--hot); }
 .tile.done { border-color: var(--ok); background: rgba(61,220,132,.08); }
 .tile.done .tag { color: var(--ok); }
 
+
+/* ---- B mobile options (desktop B is locked; these only apply at <=600px) ---- */
+.mswitch { display: none; gap: 6px; padding: 6px var(--g); background: #141412; border-bottom: 1px solid var(--line); overflow-x: auto; position: sticky; top: 52px; z-index: 39; }
+body[data-v="B"] .mswitch { display: flex; }
+.mswitch b { font: 700 10px/34px "DM Sans"; letter-spacing: .1em; text-transform: uppercase; color: var(--soft); white-space: nowrap; margin-right: 4px; }
+.mswitch button { flex: 0 0 auto; min-height: 34px; padding: 0 12px; border: 1px solid var(--line2); background: transparent; cursor: pointer; font: 700 11px/1 "DM Sans"; letter-spacing: .06em; text-transform: uppercase; }
+.mswitch button[aria-pressed="true"] { background: var(--hot); color: #0a0a09; border-color: var(--hot); }
+body[data-v="B"] .hdr { top: 98px; } body[data-v="B"] .sortslot { top: 158px; }
+.badges, .bbar { display: none; }
+.bwrap, .B > div { min-width: 0; }
+@media (min-width: 601px) { .mswitch { display: none !important; } body[data-v="B"] .hdr { top: 52px; } body[data-v="B"] .sortslot { top: 112px; } }
+@media (max-width: 600px) {
+  /* mini: compact one-line swipe chips */
+  body[data-m="mini"] .pick { flex: 0 0 64%; grid-template-columns: 32px minmax(0,1fr) auto; grid-template-rows: auto; align-items: center; gap: 8px; padding: 8px; }
+  body[data-m="mini"] .pick .logo { width: 32px; height: 32px; }
+  body[data-m="mini"] .pick strong { font-size: 15px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  body[data-m="mini"] .pick small { font-size: 12px; } body[data-m="mini"] .pick small .nm { display: none; } body[data-m="mini"] .pick small .rest { display: none; }
+  body[data-m="mini"] .pick .cta { grid-column: auto; width: auto; min-height: 36px; padding: 0 10px; font-size: 14px; }
+  /* rows: three slim stacked rows, no swipe */
+  body[data-m="rows"] .picks { display: grid; gap: 6px; margin: 0; padding: 0; overflow: visible; }
+  body[data-m="rows"] .pick { grid-template-columns: 30px minmax(0,1fr) auto; grid-template-rows: auto; align-items: center; gap: 10px; padding: 6px 6px 6px 8px; }
+  body[data-m="rows"] .pick .logo { width: 30px; height: 30px; padding: 2px; }
+  body[data-m="rows"] .pick strong { font-size: 15px; } body[data-m="rows"] .pick small .rest { display: none; }
+  body[data-m="rows"] .pick .cta { grid-column: auto; width: auto; min-height: 40px; padding: 0 12px; font-size: 15px; }
+  body[data-m="rows"] .more { padding: 6px 0 0; }
+  /* badges: all 8 logos as badges, one claim bar for the selected one */
+  body[data-m="badges"] .picks { display: none; }
+  body[data-m="badges"] .badges { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; margin: 0 calc(var(--g) * -1); padding: 6px var(--g) 8px; }
+  body[data-m="badges"] .bbar { display: grid; }
+  .badge { position: relative; flex: 0 0 auto; width: 56px; height: 56px; border-radius: 50%; padding: 0; border: 2px solid var(--line2); background: var(--paper); cursor: pointer; transition: transform .2s var(--ease), border-color .2s; }
+  .badge img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; padding: 9px; }
+  .badge img.dark { background: #2a2826; }
+  .badge .amt { position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); padding: 2px 5px; background: var(--hot); color: #0a0a09; font: 800 11px/1 var(--display); letter-spacing: .02em; white-space: nowrap; }
+  .badge[aria-pressed="true"] { border-color: var(--hot); transform: scale(1.08); }
+  .badge.done { border-color: var(--ok); } .badge.done .amt { background: var(--ok); }
+  .bbar { grid-template-columns: minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 10px 10px 10px 12px; background: rgba(20,20,18,.92); border: 1px solid var(--line2); border-left: 3px solid var(--hot); }
+  .bbar strong { display: block; font: 800 18px/1.05 var(--display); text-transform: uppercase; }
+  .bbar small { color: var(--soft); font-size: 12px; }
+  .bbar .cta { min-height: 44px; padding: 0 16px; font-size: 17px; }
+}
+
 /* claimed toast */
 .toast:not(.on) { visibility: hidden; }
 .toast { position: fixed; left: 50%; bottom: 20px; z-index: 50; transform: translate(-50%, 140%); padding: 12px 18px; background: var(--paper); color: #0a0a09; font-weight: 700; box-shadow: 0 10px 40px rgba(0,0,0,.5); transition: transform .35s var(--ease); max-width: calc(100vw - 32px); }
@@ -132,6 +173,12 @@ h1 .hot { color: var(--hot); }
   <button type="button" data-v="A" aria-pressed="true">A · Already yours</button>
   <button type="button" data-v="B" aria-pressed="false">B · Value + named perks</button>
   <button type="button" data-v="C" aria-pressed="false">C · See them all</button>
+</nav>
+<nav class="mswitch" aria-label="Mobile layout for B"><b>Phone</b>
+  <button type="button" data-m="swipe" aria-pressed="true">Swipe cards</button>
+  <button type="button" data-m="mini" aria-pressed="false">Mini cards</button>
+  <button type="button" data-m="rows" aria-pressed="false">Slim rows</button>
+  <button type="button" data-m="badges" aria-pressed="false">Badges</button>
 </nav>
 <header class="hdr"><b>Vibe City</b><span>Offers</span></header>
 <main id="heroMount"></main>
@@ -175,6 +222,25 @@ function claim(o, btn) {
 }
 const browse = () => document.querySelector('.sortslot').scrollIntoView({ behavior: 'smooth' });
 
+
+// Badges (phone option): every sponsor as a round badge with its ₱ value; tapping one loads it into a single claim bar.
+function badgeView() {
+  const order = ITEMS.slice().sort((a, b) => b.worth - a.worth);
+  const t = h('strong'), sm = h('small'), btn = h('button', { class: 'cta', type: 'button' }, 'Claim');
+  let cur;
+  const badges = order.map(o => h('button', { class: 'badge', type: 'button', 'aria-pressed': 'false', 'aria-label': `${o.name}, worth ${peso(o.worth)}`, onclick: () => pick(o) },
+    img(o.logo, ''), h('span', { class: 'amt' }, peso(o.worth))));
+  function pick(o) {
+    cur = o;
+    badges.forEach((b, i) => b.setAttribute('aria-pressed', String(order[i] === o)));
+    t.textContent = o.short; sm.textContent = `${o.name} · until ${o.ends}`;
+    btn.textContent = claimed.has(o.id) ? 'Claimed ✓' : 'Claim'; btn.disabled = claimed.has(o.id);
+  }
+  btn.addEventListener('click', () => { claim(cur); badges[order.indexOf(cur)].classList.add('done'); const next = order.find(x => !claimed.has(x.id)); pick(next || cur); });
+  pick(order[0]);
+  return h('div', { class: 'bwrap' }, h('div', { class: 'badges', role: 'group', 'aria-label': 'All perks' }, badges), h('div', { class: 'bbar', 'aria-live': 'polite' }, h('div', {}, t, sm), btn));
+}
+
 const VARIANTS = {
   A: {
     why: '<b>A · Already yours.</b> Endowment with a reason: perks are presented as owned because of the ticket (Nunes & Drèze: a head start that comes with a reason lifts completion). One big CTA claims all, with the full count stated.',
@@ -210,9 +276,10 @@ const VARIANTS = {
           h('p', { class: 'lead' }, h('b', {}, `${N} perks`), ` from bars, cafés and stays across ${EVENT.city}. Here are the biggest. Claim takes one tap.`)),
         h('div', { class: 'picks' },
           top.map(o => h('div', { class: 'pick' }, img(o.logo),
-            h('div', {}, h('strong', {}, o.short), h('small', {}, o.name, ' · ', h('span', { class: 'w' }, `worth ${peso(o.worth)}`), ` · until ${o.ends}`)),
+            h('div', {}, h('strong', {}, o.short), h('small', {}, h('span', { class: 'nm' }, o.name + ' · '), h('span', { class: 'w' }, `worth ${peso(o.worth)}`), h('span', { class: 'rest' }, ` · until ${o.ends}`))),
             h('button', { class: 'cta', type: 'button', onclick: e => claim(o, e.currentTarget) }, 'Claim'))),
-          h('button', { class: 'more', type: 'button', onclick: browse }, `See all ${N} perks ↓`)));
+          h('button', { class: 'more', type: 'button', onclick: browse }, `See all ${N} perks ↓`)),
+        badgeView());
     }
   },
   C: {
@@ -240,7 +307,15 @@ const VARIANTS = {
   }
 };
 
+function setM(m) {
+  document.body.dataset.m = m;
+  document.querySelectorAll('.mswitch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+  try { localStorage.setItem('ofh-m', m); } catch (e) {}
+}
+document.querySelectorAll('.mswitch button').forEach(b => b.addEventListener('click', () => setM(b.dataset.m)));
+{ let m = new URLSearchParams(location.search).get('m'); if (!m) { try { m = localStorage.getItem('ofh-m'); } catch (e) {} } setM(['swipe','mini','rows','badges'].includes(m) ? m : 'swipe'); }
 function show(v) {
+  document.body.dataset.v = v;
   document.querySelectorAll('.switch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
   document.getElementById('heroMount').replaceChildren(VARIANTS[v].render());
   document.getElementById('why').innerHTML = VARIANTS[v].why;  // static strings authored above
