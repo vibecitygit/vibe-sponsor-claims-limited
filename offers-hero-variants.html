@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Offers Hero Variants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;700;800&display=swap">
+<style>
+/* Three hero approaches for the Offers view, all aimed at one outcome: claims.
+   A  Already yours   endowment framed with its reason ("your ticket unlocked these")
+   B  Value + named   total ₱ value always paired with named perks you can claim right there
+   C  Full scope      every perk visible at a glance with its own one-tap Claim
+   Shared rules from the research: no fake countdowns or invented scarcity, real dates only,
+   the full offer count is always stated, no forms between tap and claim. The hero holds no sort
+   controls; the one-row sort slot sits under it and sticks under the header. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; background: #0a0a09; color: #f5f2e9; font: 400 15px/1.5 "DM Sans", Arial, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: clip; }
+button { font: inherit; color: inherit; }
+:root { --bg: #0a0a09; --paper: #f5f2e9; --soft: rgba(245,242,233,.72); --hot: #ff4937; --ok: #3ddc84; --line: rgba(255,255,255,.12); --line2: rgba(255,255,255,.28);
+  --g: clamp(16px, 4.6vw, 72px); --display: "Barlow Condensed", Impact, "Arial Narrow", sans-serif; --ease: cubic-bezier(.23,1,.32,1);
+  --hatch: repeating-linear-gradient(45deg, rgba(255,255,255,.022) 0 1px, transparent 1px 10px); }
+:focus-visible { outline: 2px solid var(--hot); outline-offset: 2px; }
+
+.switch { position: sticky; top: 0; z-index: 40; display: flex; gap: 6px; align-items: center; padding: 8px var(--g); background: #1a1a18; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.switch b { font: 700 11px/1 "DM Sans"; letter-spacing: .1em; text-transform: uppercase; color: var(--soft); margin-right: 6px; white-space: nowrap; }
+.switch button { flex: 0 0 auto; min-height: 36px; padding: 0 14px; border: 1px solid var(--line2); background: transparent; cursor: pointer; font: 700 12px/1 "DM Sans"; letter-spacing: .06em; text-transform: uppercase; }
+.switch button[aria-pressed="true"] { background: var(--paper); color: var(--bg); border-color: var(--paper); }
+.hdr { position: sticky; top: 52px; z-index: 30; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--g); background: rgba(10,10,9,.94); border-bottom: 1px solid var(--line); backdrop-filter: blur(10px); }
+.hdr b { font: 800 24px/1 var(--display); text-transform: uppercase; letter-spacing: -.02em; }
+.hdr span { font: 700 12px/1 "DM Sans"; letter-spacing: .08em; text-transform: uppercase; color: var(--hot); }
+
+.eyebrow { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font: 700 12px/1.2 "DM Sans"; letter-spacing: .14em; text-transform: uppercase; }
+.eyebrow i { font-style: normal; color: var(--hot); }
+h1 { margin: 0 0 12px; font: 900 clamp(44px, 6.2vw, 92px)/.92 var(--display); letter-spacing: -.025em; text-transform: uppercase; }
+h1 .o { display: block; color: transparent; -webkit-text-stroke: 1.6px var(--paper); }
+h1 .hot { color: var(--hot); }
+.lead { margin: 0; max-width: 56ch; color: var(--soft); font-size: clamp(15px, 1.05vw, 18px); }
+.lead b { color: var(--paper); }
+.cta { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 0 26px; border: 0; background: var(--hot); color: #0a0a09; cursor: pointer; font: 800 20px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; transition: transform .2s var(--ease); }
+.cta:active { transform: scale(.97); }
+.ghost { background: transparent; color: var(--paper); border: 1px solid var(--line2); }
+.logo { flex: 0 0 auto; width: 44px; height: 44px; object-fit: contain; background: var(--paper); padding: 4px; }
+.fine { font-size: 12px; color: rgba(245,242,233,.55); margin: 10px 0 0; }
+.hero { position: relative; isolation: isolate; overflow: hidden; padding: clamp(32px, 6vw, 80px) var(--g) clamp(24px, 4vw, 44px); border-bottom: 1px solid var(--line); }
+.bgphoto { position: absolute; inset: 0; z-index: -2; background-size: cover; background-position: center; }
+.hero::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(10,10,9,.95), rgba(10,10,9,.7) 55%, rgba(10,10,9,.4)), linear-gradient(0deg, var(--bg), transparent 50%), var(--hatch); }
+
+/* ---- A: Already yours ---- */
+.A { display: grid; grid-template-columns: minmax(0,1fr) minmax(280px, 380px); gap: 28px 48px; align-items: end; }
+.pass { position: relative; background: var(--paper); color: #0a0a09; padding: 20px 22px 18px; transform: rotate(-2deg); box-shadow: 0 30px 80px rgba(0,0,0,.6); animation: drop .9s var(--ease) both; }
+.pass::before, .pass::after { content: ""; position: absolute; top: 58%; width: 22px; height: 22px; border-radius: 50%; background: var(--bg); }
+.pass::before { left: -11px; } .pass::after { right: -11px; }
+.pass .k { font: 700 11px/1 "DM Sans"; letter-spacing: .12em; text-transform: uppercase; color: #6b655d; }
+.pass .v { font: 900 64px/.9 var(--display); margin: 6px 0 2px; }
+.pass .s { font-size: 13px; color: #48433d; }
+.pass .stamps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; padding-top: 14px; border-top: 2px dashed rgba(10,10,9,.25); }
+.pass .stamps img { width: 34px; height: 34px; object-fit: contain; border: 1px solid rgba(10,10,9,.15); padding: 2px; background: #fff; opacity: 0; animation: stamp .45s var(--ease) both; }
+.pass .stamp { position: absolute; top: 14px; right: 16px; border: 3px solid var(--ok); color: #1b8a4b; padding: 4px 8px; font: 900 18px/1 var(--display); letter-spacing: .06em; transform: rotate(8deg); animation: stamp .5s .9s var(--ease) both; }
+@keyframes drop { from { opacity: 0; transform: translateY(-30px) rotate(-8deg); } }
+@keyframes stamp { from { opacity: 0; transform: scale(1.8) rotate(-10deg); } to { opacity: 1; } }
+.A .acts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+
+/* ---- B: Value + named perks ---- */
+.B { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap: 28px 48px; align-items: center; }
+.picks { display: grid; gap: 10px; }
+.pick { display: grid; grid-template-columns: 44px minmax(0,1fr) auto; gap: 14px; align-items: center; padding: 12px; background: rgba(20,20,18,.88); border: 1px solid var(--line2); backdrop-filter: blur(8px); animation: rise .6s var(--ease) both; }
+.pick:nth-child(2) { animation-delay: .1s; } .pick:nth-child(3) { animation-delay: .2s; }
+.pick strong { display: block; font: 800 20px/1.05 var(--display); text-transform: uppercase; }
+.pick small { color: var(--soft); font-size: 13px; }
+.pick .w { color: var(--hot); font-weight: 700; }
+.pick .cta { min-height: 44px; padding: 0 16px; font-size: 17px; }
+.more { justify-self: start; background: none; border: 0; padding: 10px 0; cursor: pointer; color: var(--paper); font: 700 13px/1 "DM Sans"; letter-spacing: .06em; text-transform: uppercase; text-decoration: underline; text-underline-offset: 4px; }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+
+/* ---- C: Full scope ---- */
+.C .top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 28px; margin-bottom: 22px; }
+.C h1 { margin: 0; }
+.tally { display: flex; gap: 0; border: 1px solid var(--line2); }
+.tally div { padding: 10px 16px; border-left: 1px solid var(--line2); }
+.tally div:first-child { border-left: 0; }
+.tally strong { display: block; font: 900 34px/1 var(--display); font-variant-numeric: tabular-nums; }
+.tally span { font: 700 10px/1 "DM Sans"; letter-spacing: .1em; text-transform: uppercase; color: var(--soft); }
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+.tile { position: relative; display: grid; grid-template-columns: 40px minmax(0,1fr); gap: 10px; align-items: center; padding: 10px; min-height: 64px; text-align: left; background: rgba(20,20,18,.9); border: 1px solid var(--line); cursor: pointer; transition: border-color .2s, background .2s; }
+.tile:hover { border-color: var(--line2); }
+.logo.dark, .tile img.dark { background: #2a2826; }
+.tile img { width: 40px; height: 40px; object-fit: contain; background: var(--paper); padding: 3px; }
+.tile strong { display: block; font: 700 14px/1.15 "DM Sans"; }
+.tile small { color: var(--soft); font-size: 12px; }
+.tile .tag { position: absolute; top: 6px; right: 8px; font: 700 10px/1 "DM Sans"; letter-spacing: .06em; text-transform: uppercase; color: var(--hot); }
+.tile.done { border-color: var(--ok); background: rgba(61,220,132,.08); }
+.tile.done .tag { color: var(--ok); }
+
+/* claimed toast */
+.toast:not(.on) { visibility: hidden; }
+.toast { position: fixed; left: 50%; bottom: 20px; z-index: 50; transform: translate(-50%, 140%); padding: 12px 18px; background: var(--paper); color: #0a0a09; font-weight: 700; box-shadow: 0 10px 40px rgba(0,0,0,.5); transition: transform .35s var(--ease); max-width: calc(100vw - 32px); }
+.toast.on { transform: translate(-50%, 0); }
+
+.sortslot { position: sticky; top: 112px; z-index: 20; height: 56px; display: flex; align-items: center; gap: 8px; padding: 0 var(--g); background: rgba(10,10,9,.94); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.sortslot span { flex: 0 0 auto; height: 34px; padding: 0 14px; display: grid; place-items: center; border: 1px dashed var(--line2); font: 700 11px/1 "DM Sans"; letter-spacing: .08em; text-transform: uppercase; color: rgba(245,242,233,.55); }
+.sortslot span:first-child { border: 1px solid var(--paper); color: var(--paper); }
+.below { min-height: 100vh; padding: 28px var(--g); color: rgba(245,242,233,.4); background: var(--hatch); }
+.why { max-width: 760px; margin: 0 0 24px; padding: 14px 16px; border-left: 3px solid var(--hot); background: rgba(255,255,255,.03); color: var(--soft); font-size: 13px; }
+.why b { color: var(--paper); }
+
+@media (max-width: 860px) {
+  .A, .B { grid-template-columns: 1fr; }
+  .pass { transform: rotate(-1deg); }
+  .pass .v { font-size: 52px; }
+  .grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .A .acts .cta, .B > div > .cta { width: 100%; }
+}
+@media (max-width: 600px) { .grid { gap: 6px; } .tile { grid-template-columns: 30px minmax(0,1fr); gap: 8px; padding: 8px; min-height: 0; } .tile img { width: 30px; height: 30px; } .tile strong { font-size: 12px; } .tile small, .tile .tag { display: none; } .tally strong { font-size: 26px; } .C .top { margin-bottom: 14px; } .pass .stamps { display: none; } .pass .v { font-size: 44px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } .pass .stamps img { opacity: 1; } }
+</style>
+</head>
+<body>
+<nav class="switch" aria-label="Hero approach">
+  <b>Preview</b>
+  <button type="button" data-v="A" aria-pressed="true">A · Already yours</button>
+  <button type="button" data-v="B" aria-pressed="false">B · Value + named perks</button>
+  <button type="button" data-v="C" aria-pressed="false">C · See them all</button>
+</nav>
+<header class="hdr"><b>Vibe City</b><span>Offers</span></header>
+<main id="heroMount"></main>
+<div class="sortslot" role="presentation"><span>Ending soon</span><span>Nearest</span><span>Food</span><span>Drinks</span><span>Stay</span><span>Shop</span></div>
+<section class="below"><p class="why" id="why"></p>Offer wall renders here.</section>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// Sample data in the /public-sponsor-wall item shape. `worth` is a sponsor-entered ₱ value
+// (not on the live site yet); `ends` is the offer's real expiresAt.
+const EVENT = { name: 'Vibe Check: After Hours', city: 'Cebu', endsLabel: 'Nov 20, 1:30 AM' };
+const ITEMS = [
+  { id: 'casa',   name: 'Casa Verde',       logo: 'shared/sponsors/casa-verde.png',       short: 'Free dessert with any main',  worth: 280, ends: 'Nov 30' },
+  { id: 'north',  name: 'Northbound',       logo: 'shared/sponsors/northbound.png',       short: '15% off your first round',    worth: 150, ends: 'Nov 20' },
+  { id: 'air',    name: 'Air Condo',        logo: 'shared/sponsors/air-condo.png',        short: 'Late checkout, weekends',     worth: 500, ends: 'Dec 15' },
+  { id: 'dawata', name: 'Dawata',           logo: 'shared/sponsors/dawata.png',           short: 'Buy one, get one coffee',     worth: 160, ends: 'Nov 27' },
+  { id: 'des',    name: 'Desainz',          logo: 'shared/sponsors/desainz.png',          short: '₱200 off any print',          worth: 200, ends: 'Dec 31' },
+  { id: 'free',   name: 'Freedom Island',   logo: 'shared/sponsors/freedom-island.png',   short: '10% off day passes',          worth: 250, ends: 'Dec 20' },
+  { id: 'ktc',    name: 'Know the Culture', logo: 'shared/sponsors/know-the-culture.png', short: 'Free tote with any purchase', worth: 350, ends: 'Dec 10' },
+  { id: 'pets',   name: 'Pets Society',     logo: 'shared/sponsors/pets-society.png',     short: 'Free grooming add-on',        worth: 300, ends: 'Dec 31' },
+];
+const TOTAL = ITEMS.reduce((a, o) => a + o.worth, 0), N = ITEMS.length;
+const peso = n => '₱' + n.toLocaleString('en-PH');
+const claimed = new Set();
+
+// tiny safe builder: h('div', {class:'x'}, 'text', child)
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) k.startsWith('on') ? el.addEventListener(k.slice(2), v) : el.setAttribute(k, v);
+  for (const k of kids.flat()) if (k != null) el.append(k);
+  return el;
+}
+const DARK = new Set(['shared/sponsors/air-condo.png','shared/sponsors/desainz.png','shared/sponsors/pets-society.png','shared/sponsors/dawata.png']); // white logos need a dark plate
+const img = (src, cls) => h('img', { src, alt: '', class: ((cls ?? 'logo') + (DARK.has(src) ? ' dark' : '')).trim() });
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2400); }
+function claim(o, btn) {
+  if (claimed.has(o.id)) return;
+  claimed.add(o.id);  // production: window.VCRetrievePurchaseQR(o.offerId)
+  if (btn) { btn.textContent = 'Claimed ✓'; btn.disabled = true; btn.closest('.tile')?.classList.add('done'); }
+  toast(`${o.name} claimed. Show the QR at the counter.`);
+}
+const browse = () => document.querySelector('.sortslot').scrollIntoView({ behavior: 'smooth' });
+
+const VARIANTS = {
+  A: {
+    why: '<b>A · Already yours.</b> Endowment with a reason: perks are presented as owned because of the ticket (Nunes & Drèze: a head start that comes with a reason lifts completion). One big CTA claims all, with the full count stated.',
+    render() {
+      const stamps = h('div', { class: 'stamps' }, ITEMS.map((o, i) => { const s = img(o.logo); s.style.animationDelay = (0.35 + i * 0.07) + 's'; return s; }));
+      return h('section', { class: 'hero A', 'aria-labelledby': 'hA' },
+        h('div', { class: 'bgphoto', style: 'background-image:url(shared/photos/casa-verde-2.jpg)' }),
+        h('div', {},
+          h('p', { class: 'eyebrow' }, h('i', {}, '✳'), 'Your ticket came with this'),
+          h('h1', { id: 'hA' }, `${N} perks are`, h('span', { class: 'o' }, 'already yours')),
+          h('p', { class: 'lead' }, 'Because you’re going to ', h('b', {}, EVENT.name), `, ${N} places across ${EVENT.city} are holding something for you. Add them to your wallet in one tap and show the QR when you get there.`),
+          h('div', { class: 'acts' },
+            h('button', { class: 'cta', type: 'button', onclick: e => { ITEMS.forEach(o => claimed.add(o.id)); e.currentTarget.textContent = `All ${N} in your wallet ✓`; toast(`All ${N} perks added to your wallet.`); } }, `Add all ${N} to my wallet`),
+            h('button', { class: 'cta ghost', type: 'button', onclick: browse }, 'Pick one by one')),
+          h('p', { class: 'fine' }, 'No sign-up. Each perk has its own end date, shown on the card.')),
+        h('div', { class: 'pass', 'aria-hidden': 'true' },
+          h('span', { class: 'stamp' }, 'UNLOCKED'),
+          h('div', { class: 'k' }, 'Perk pass · 1 ticket'),
+          h('div', { class: 'v' }, peso(TOTAL)),
+          h('div', { class: 's' }, `in perks from ${N} partners`),
+          stamps));
+    }
+  },
+  B: {
+    why: '<b>B · Value + named perks.</b> The total ₱ value pulls people in, but a total alone doesn’t say what you get, so it sits next to three named perks you can claim right there. The three biggest go first; end dates are real.',
+    render() {
+      const top = ITEMS.slice().sort((a, b) => b.worth - a.worth).slice(0, 3);
+      return h('section', { class: 'hero B', 'aria-labelledby': 'hB' },
+        h('div', { class: 'bgphoto', style: 'background-image:url(shared/photos/casa-verde-1.jpg)' }),
+        h('div', {},
+          h('p', { class: 'eyebrow' }, h('i', {}, '✳'), 'Free with your ticket'),
+          h('h1', { id: 'hB' }, h('span', { class: 'hot' }, peso(TOTAL)), h('span', { class: 'o' }, 'of nights out')),
+          h('p', { class: 'lead' }, h('b', {}, `${N} perks`), ` from bars, cafés and stays across ${EVENT.city}. Here are the biggest. Claim takes one tap.`)),
+        h('div', { class: 'picks' },
+          top.map(o => h('div', { class: 'pick' }, img(o.logo),
+            h('div', {}, h('strong', {}, o.short), h('small', {}, o.name, ' · ', h('span', { class: 'w' }, `worth ${peso(o.worth)}`), ` · until ${o.ends}`)),
+            h('button', { class: 'cta', type: 'button', onclick: e => claim(o, e.currentTarget) }, 'Claim'))),
+          h('button', { class: 'more', type: 'button', onclick: browse }, `See all ${N} perks ↓`)));
+    }
+  },
+  C: {
+    why: '<b>C · See them all.</b> People who see only a few items assume there’s little on offer (Baymard), so the hero shows every perk at a glance. Each tile is a one-tap claim, and the tally updates as you go.',
+    render() {
+      const left = () => N - claimed.size;
+      const tN = h('strong', {}, String(left())), tV = h('strong', {}, peso(TOTAL));
+      const upd = () => { tN.textContent = left(); tV.textContent = peso(ITEMS.filter(o => !claimed.has(o.id)).reduce((a, o) => a + o.worth, 0)); };
+      return h('section', { class: 'hero C', 'aria-labelledby': 'hC' },
+        h('div', { class: 'top' },
+          h('div', {},
+            h('p', { class: 'eyebrow' }, h('i', {}, '✳'), `Your ticket · ${EVENT.name}`),
+            h('h1', { id: 'hC' }, 'Tap to claim')),
+          h('div', { class: 'tally' }, h('div', {}, tN, h('span', {}, 'unclaimed')), h('div', {}, tV, h('span', {}, 'left on the table')))),
+        h('div', { class: 'grid' },
+          ITEMS.map(o => {
+            const tag = h('span', { class: 'tag' }, `until ${o.ends}`);
+            const b = h('button', { class: 'tile' + (claimed.has(o.id) ? ' done' : ''), type: 'button', 'aria-label': `Claim ${o.short} at ${o.name}` },
+              img(o.logo, ''), h('span', {}, h('strong', {}, o.short), h('small', {}, o.name)), tag);
+            b.addEventListener('click', () => { if (claimed.has(o.id)) return; claim(o); b.classList.add('done'); tag.textContent = 'Claimed ✓'; upd(); });
+            return b;
+          })),
+        h('p', { class: 'fine' }, 'Tap a perk to claim it. No forms. The QR is saved with your ticket.'));
+    }
+  }
+};
+
+function show(v) {
+  document.querySelectorAll('.switch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+  document.getElementById('heroMount').replaceChildren(VARIANTS[v].render());
+  document.getElementById('why').innerHTML = VARIANTS[v].why;  // static strings authored above
+  try { localStorage.setItem('ofh-variant', v); } catch (e) {}
+  history.replaceState(null, '', '#' + v);
+}
+document.querySelectorAll('.switch button').forEach(b => b.addEventListener('click', () => show(b.dataset.v)));
+let start = (location.hash || '').slice(1);
+if (!VARIANTS[start]) { try { start = localStorage.getItem('ofh-variant'); } catch (e) {} }
+show(VARIANTS[start] ? start : 'A');
+</script>
+</body>
+</html>
