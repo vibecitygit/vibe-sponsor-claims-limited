@@ -1,6 +1,8 @@
 # Accepting Vibe City claim codes in your online checkout
 
-For partner developers (e.g. Know The Culture) whose store already creates PayMongo checkouts on its own server.
+For partner developers whose own website creates PayMongo checkouts on its own server.
+
+> **Shopify stores don't need this guide.** If the shop runs on Shopify (as knowtheculture.ph does), PayMongo is a payment app inside Shopify's checkout and there is no code of yours that creates the PayMongo checkout. Vibe City creates a single-use Shopify discount for each claim instead; the steps for the business are in the handoff message on its page in `partner.html`.
 
 Guests with a Vibe City ticket get a claim code such as `KTC-7Q3FK-9M2XA`. You add two calls to your server: one before you create the PayMongo checkout (to check the code and get the discount), and one after the payment succeeds (to use the code up). Your PayMongo account, keys and checkout stay exactly as they are; Vibe City never sees your PayMongo keys.
 
@@ -59,7 +61,7 @@ Not valid (still HTTP 200, so you can show the message):
 
 ## 2. Apply the discount and create the PayMongo checkout as usual
 
-PayMongo has no coupon field: the price you send is the price charged. Lower the eligible item yourself, following your offer's terms (Know The Culture: one item at regular price, not collaborations or sale items).
+PayMongo has no coupon field: the price you send is the price charged. Lower the eligible item yourself, following your offer's terms (for example: one item at regular price, not sale items).
 
 | discount.type | how to apply |
 |---|---|

@@ -28,17 +28,20 @@ export async function putOffer(env, id, b) {
   const maxClaims = b.maxClaims === undefined || b.maxClaims === null ? null : Number(b.maxClaims);
   if (maxClaims !== null && !(Number.isInteger(maxClaims) && maxClaims > 0)) throw new HttpError(400, 'bad_request', 'maxClaims is a positive whole number or null.');
   const maxItems = b.maxItems === undefined ? 1 : Number(b.maxItems);
+  const collections = Array.isArray(b.shopifyCollectionIds) ? b.shopifyCollectionIds.map(String).map(s => s.trim()).filter(Boolean) : [];
+  if (!collections.every(c => /^gid:\/\/shopify\/Collection\/\d+$/.test(c))) throw new HttpError(400, 'bad_request', 'shopifyCollectionIds are ids like gid://shopify/Collection/123.');
   if (!(Number.isInteger(maxItems) && maxItems > 0)) throw new HttpError(400, 'bad_request', 'maxItems is a positive whole number.');
 
   await env.DB.prepare(
-    `INSERT INTO offers (id, sponsor_id, title, discount_type, discount_value, max_items, channels, valid_from, valid_to, max_claims, active, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO offers (id, sponsor_id, title, discount_type, discount_value, max_items, channels, valid_from, valid_to, max_claims, active, shopify_collection_ids, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (id) DO UPDATE SET sponsor_id = excluded.sponsor_id, title = excluded.title, discount_type = excluded.discount_type,
        discount_value = excluded.discount_value, max_items = excluded.max_items, channels = excluded.channels,
        valid_from = excluded.valid_from, valid_to = excluded.valid_to, max_claims = excluded.max_claims,
-       active = excluded.active, updated_at = excluded.updated_at`
+       active = excluded.active, shopify_collection_ids = excluded.shopify_collection_ids, updated_at = excluded.updated_at`
   ).bind(id, b.sponsorId, String(b.title), type, value, maxItems, [...new Set(channels)].join(','),
-    isoOrNull(b.validFrom, 'validFrom'), isoOrNull(b.validTo, 'validTo'), maxClaims, b.active === false ? 0 : 1, now(env)).run();
+    isoOrNull(b.validFrom, 'validFrom'), isoOrNull(b.validTo, 'validTo'), maxClaims, b.active === false ? 0 : 1,
+    collections.length ? collections.join(',') : null, now(env)).run();
   return env.DB.prepare('SELECT * FROM offers WHERE id = ?').bind(id).first();
 }
 
@@ -68,8 +71,9 @@ export async function listKeys(env, sponsorId) {
   return { keys: results };
 }
 
-export async function revokeKey(env, keyId) {
-  const res = await env.DB.prepare('UPDATE api_keys SET revoked_at = ? WHERE key_id = ? AND revoked_at IS NULL').bind(now(env), keyId).run();
+/** Revokes a key, but only if it belongs to this sponsor: one partner's page can never touch another's keys. */
+export async function revokeKey(env, sponsorId, keyId) {
+  const res = await env.DB.prepare('UPDATE api_keys SET revoked_at = ? WHERE key_id = ? AND sponsor_id = ? AND revoked_at IS NULL').bind(now(env), keyId, sponsorId).run();
   if (!res.meta.changes) throw new HttpError(404, 'not_found', 'No active key with that id.');
   return { revoked: true, keyId };
 }

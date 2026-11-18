@@ -237,7 +237,7 @@ test('admin needs the admin token; secrets are stored encrypted and keys hashed'
   assert.equal(hookCall.body.data.attributes.url, 'https://claims.example/v1/webhooks/paymongo/know-the-culture');
 
   const list = (await call(env, 'GET', '/v1/admin/sponsors/know-the-culture/keys', { token: env.ADMIN_TOKEN })).body.keys;
-  const revoked = await call(env, 'DELETE', `/v1/admin/keys/${list[0].key_id}`, { token: env.ADMIN_TOKEN });
+  const revoked = await call(env, 'DELETE', `/v1/admin/sponsors/know-the-culture/keys/${list[0].key_id}`, { token: env.ADMIN_TOKEN });
   assert.equal(revoked.body.revoked, true);
   assert.equal((await call(env, 'POST', '/v1/partner/claims/verify', { token: online, body: { code: 'KTC-00000-00000' } })).status, 401);
 });

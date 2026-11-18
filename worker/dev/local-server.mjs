@@ -3,18 +3,20 @@
 // checkouts are created on that account (webhooks can't reach localhost; use /dev/pay to simulate).
 //
 //   node --no-warnings=ExperimentalWarning worker/dev/local-server.mjs
-//   open http://localhost:8788/scanner.html
+//   open http://localhost:8788/partner.html  (settings, one page per partner)
+//   open http://localhost:8788/scanner.html  (staff scanner)
+// Shopify is faked too: a store at ktc-test.myshopify.com with client ID cid_1 and secret shpss_secret.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handle } from '../src/index.js';
-import { makeDb, fakePaymongo, signedWebhook, paidEvent } from '../test/helpers.js';
+import { makeDb, fakePaymongo, withFakeShopify, signedWebhook, paidEvent } from '../test/helpers.js';
 
 const PORT = Number(process.env.PORT || 8788);
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const ORIGIN = `http://localhost:${PORT}`;
-const fake = fakePaymongo();
+const fake = withFakeShopify(fakePaymongo());
 const realKey = process.env.PAYMONGO_TEST_SECRET_KEY;
 
 const env = {
@@ -31,10 +33,14 @@ const req = (method, path, body, token = env.ADMIN_TOKEN) => handle(new Request(
   method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined,
 }), env).then(r => r.json());
 
-// Seed: the KTC and Casa Verde offers from the prototype, keys, and a PayMongo account.
+// Seed: partners, the KTC and Casa Verde offers from the prototype, keys, and a PayMongo account.
+await req('PUT', '/v1/admin/sponsors/know-the-culture', { name: 'Know The Culture', shopType: 'shopify', shopUrl: 'https://knowtheculture.ph', contact: 'Store owner' });
+await req('PUT', '/v1/admin/sponsors/casa-verde', { name: 'Casa Verde Ramos', shopType: 'none' });
+await req('PUT', '/v1/admin/sponsors/dawata', { name: 'Dawata Wellness Resort and Cafe', shopType: 'own_server', shopUrl: 'https://www.dawatawellness.com' });
 await req('PUT', '/v1/admin/offers/KTC', { sponsorId: 'know-the-culture', title: 'Know The Culture item', discountType: 'percent', discountValue: 10, channels: ['in_store', 'online'] });
 await req('PUT', '/v1/admin/offers/CVR', { sponsorId: 'casa-verde', title: 'Free dessert with a main', discountType: 'free', channels: ['in_store'] });
-const staff = (await req('POST', '/v1/admin/sponsors/know-the-culture/keys', { scope: 'staff', label: 'dev' })).key;
+const staff = (await req('POST', '/v1/admin/sponsors/know-the-culture/keys', { scope: 'staff', label: 'Event stall phone' })).key;
+await req('POST', '/v1/admin/sponsors/casa-verde/keys', { scope: 'staff', label: 'Front counter' });
 const online = (await req('POST', '/v1/admin/sponsors/know-the-culture/keys', { scope: 'online', label: 'dev' })).key;
 await req('PUT', '/v1/admin/sponsors/know-the-culture/paymongo', { secretKey: realKey || 'sk_test_devfake', webhookSecret: 'whsk_testsecret' });
 const codes = [];
@@ -68,7 +74,9 @@ createServer(async (inc, out) => {
   try { out.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream' }).end(await readFile(path)); }
   catch { out.writeHead(404).end('not found'); }
 }).listen(PORT, () => {
-  console.log(`Claims demo on ${ORIGIN}/scanner.html  (PayMongo: ${realKey ? 'real test mode' : 'faked'})`);
+  console.log(`Claims demo  (PayMongo: ${realKey ? 'real test mode' : 'faked'}, Shopify: faked)`);
+  console.log(`  settings:       ${ORIGIN}/partner.html#partner=know-the-culture`);
+  console.log(`  scanner:        ${ORIGIN}/scanner.html`);
   console.log(`  server address: ${ORIGIN}`);
   console.log(`  staff key:      ${staff}`);
   console.log(`  online key:     ${online}`);

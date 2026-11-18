@@ -4,6 +4,7 @@ import { HttpError } from './http.js';
 import { newCode, normalizeCode } from './codes.js';
 import { hmacHex, safeEqual, randomBase32, unseal } from './crypto.js';
 import { createCheckoutSession, verifySignature } from './paymongo.js';
+import { createClaimDiscount, deactivateDiscount, verifyShopifyWebhook, orderDiscountCodes } from './shopify.js';
 
 const iso = d => d.toISOString();
 const clock = env => (env.now ? env.now() : new Date());
@@ -80,7 +81,7 @@ export async function issueClaim(env, { offerId, ticketId, ticketProof }) {
   if (problem) throw reject(problem === 'offer_inactive' ? 404 : 409, problem);
 
   const existing = await env.DB.prepare('SELECT * FROM claims WHERE offer_id = ? AND ticket_id = ?').bind(offerId, ticketId).first();
-  if (existing) return { claim: claimView(existing, now), offer: publicOffer(offer), created: false };
+  if (existing) return { claim: claimView(existing, now), offer: publicOffer(offer), online: await onlineLink(env, existing, offer), created: false };
 
   const code = newCode(offer.id);
   // The cap check and the insert are one statement, so a limited offer can't be over-issued.
@@ -93,11 +94,92 @@ export async function issueClaim(env, { offerId, ticketId, ticketProof }) {
 
   if (!res.meta.changes) {
     const raced = await env.DB.prepare('SELECT * FROM claims WHERE offer_id = ? AND ticket_id = ?').bind(offerId, ticketId).first();
-    if (raced) return { claim: claimView(raced, now), offer: publicOffer(offer), created: false };
+    if (raced) return { claim: claimView(raced, now), offer: publicOffer(offer), online: await onlineLink(env, raced, offer), created: false };
     throw reject(409, 'sold_out');
   }
   const row = await env.DB.prepare('SELECT * FROM claims WHERE code = ?').bind(code.compact).first();
-  return { claim: claimView(row, now), offer: publicOffer(offer), created: true };
+  return { claim: claimView(row, now), offer: publicOffer(offer), online: await onlineLink(env, row, offer), created: true };
+}
+
+/* ---------- Shopify shops: one single-use Shopify discount per claim ---------- */
+
+async function shopFor(env, sponsorId) {
+  return env.DB.prepare('SELECT shop_type, shop_url FROM sponsors WHERE id = ?').bind(sponsorId).first();
+}
+
+/**
+ * For partners on Shopify: makes sure the claim has its Shopify discount (creating it on first use)
+ * and returns the link that puts it on the guest's cart. Returns null for other partners. A Shopify
+ * failure never blocks the claim: it is recorded on the claim and can be retried from the partner page.
+ */
+export async function syncClaimToShopify(env, row, offer) {
+  const shop = await shopFor(env, row.sponsor_id);
+  if (!shop || shop.shop_type !== 'shopify' || !offer.channels.split(',').includes('online')) return { shop: null, synced: false };
+  if (row.state === 'redeemed' || row.shopify_sync === 'ok') return { shop, synced: row.shopify_sync === 'ok' };
+  try {
+    const id = await createClaimDiscount(env, row.sponsor_id, { code: row.display_code, offer, startsAt: row.created_at }, env.fetch || fetch);
+    await env.DB.prepare(`UPDATE claims SET shopify_discount_id = ?, shopify_sync = 'ok' WHERE code = ?`).bind(id, row.code).run();
+    row.shopify_sync = 'ok'; row.shopify_discount_id = id;
+    return { shop, synced: true };
+  } catch (err) {
+    await env.DB.prepare('UPDATE claims SET shopify_sync = ? WHERE code = ?').bind(`error: ${err.message}`.slice(0, 300), row.code).run();
+    return { shop, synced: false };
+  }
+}
+
+async function onlineLink(env, row, offer) {
+  const { shop, synced } = await syncClaimToShopify(env, row, offer);
+  if (!shop || !synced || !/^https:\/\//.test(shop.shop_url || '')) return null;
+  return { url: `${shop.shop_url.replace(/\/$/, '')}/discount/${encodeURIComponent(row.display_code)}` };
+}
+
+/** Once a claim is used anywhere else, its Shopify discount is switched off. Best effort. */
+async function endShopifyDiscount(env, code) {
+  const row = await env.DB.prepare('SELECT sponsor_id, shopify_discount_id FROM claims WHERE code = ?').bind(code).first();
+  if (!row?.shopify_discount_id) return;
+  try {
+    await deactivateDiscount(env, row.sponsor_id, row.shopify_discount_id, env.fetch || fetch);
+    await env.DB.prepare(`UPDATE claims SET shopify_sync = 'ended' WHERE code = ?`).bind(code).run();
+  } catch (err) {
+    console.warn('could not end Shopify discount', { code, error: err.message });
+    await env.DB.prepare('UPDATE claims SET shopify_sync = ? WHERE code = ?').bind(`end failed: ${err.message}`.slice(0, 300), code).run();
+  }
+}
+
+/** Shopify's orders/paid webhook: any claim code on the order is marked redeemed (channel online). */
+export async function shopifyWebhook(env, sponsorId, req) {
+  const raw = await req.text();
+  if (!await verifyShopifyWebhook(env, sponsorId, raw, req.headers.get('X-Shopify-Hmac-SHA256'))) {
+    throw new HttpError(401, 'bad_signature', 'Signature check failed.');
+  }
+  let order;
+  try { order = JSON.parse(raw); } catch { throw new HttpError(400, 'bad_json', 'Body is not JSON.'); }
+  const eventId = req.headers.get('X-Shopify-Webhook-Id');
+  if (eventId) {
+    const seen = await env.DB.prepare('SELECT 1 FROM webhook_events WHERE event_id = ?').bind(`shopify:${eventId}`).first();
+    if (seen) return { received: true, outcomes: [], repeated: true };
+  }
+  const now = clock(env);
+  const outcomes = [];
+  for (const used of orderDiscountCodes(order)) {
+    const code = normalizeCode(used);
+    const row = code && await env.DB.prepare('SELECT * FROM claims WHERE code = ? AND sponsor_id = ?').bind(code, sponsorId).first();
+    if (!row) continue; // the shop's own discount codes are none of our business
+    const orderRef = `shopify:${order.id}`;
+    let outcome;
+    if (row.state === 'redeemed') outcome = row.order_ref === orderRef ? 'already_recorded' : 'conflict_already_redeemed';
+    else {
+      const total = Math.round(parseFloat(order.total_price) * 100);
+      outcome = await markRedeemed(env, row, { channel: 'online', orderRef, amountPaid: Number.isFinite(total) ? total : null, now }) ? 'redeemed' : 'conflict_in_use';
+    }
+    if (outcome.startsWith('conflict')) console.warn('claim conflict', { sponsorId, code, order: order.id, outcome });
+    outcomes.push({ code: row.display_code, outcome });
+  }
+  if (eventId) {
+    await env.DB.prepare('INSERT OR IGNORE INTO webhook_events (event_id, sponsor_id, type, received_at) VALUES (?, ?, ?, ?)')
+      .bind(`shopify:${eventId}`, sponsorId, 'orders/paid', iso(now)).run();
+  }
+  return { received: true, outcomes };
 }
 
 function claimView(row, now) {
@@ -193,6 +275,7 @@ export async function partnerRedeem(env, sponsor, { code, holdId, orderRef, amou
   }
   const ok = await markRedeemed(env, row, { holdId, channel: 'online', orderRef: String(orderRef), amountPaid: toCentavos(amountPaid), now });
   if (!ok) throw reject(409, 'hold_lost');
+  await endShopifyDiscount(env, row.code);
   return { redeemed: true, code: row.display_code };
 }
 
@@ -234,6 +317,7 @@ export async function staffScan(env, sponsor, { code, itemAmount, otherAmount },
   // Free items need no payment: redeem straight away.
   if (offer.discount_type === 'free') {
     if (!await markRedeemed(env, row, { channel: 'in_store', orderRef: `staff:${sponsor.keyId}`, amountPaid: 0, now })) throw reject(409, 'in_use');
+    await endShopifyDiscount(env, row.code);
     return { redeemed: true, code: row.display_code, offer: publicOffer(offer), message: 'Free offer: hand it over. No payment needed.' };
   }
 
@@ -246,6 +330,7 @@ export async function staffScan(env, sponsor, { code, itemAmount, otherAmount },
 
   if (total === 0) {
     if (!await markRedeemed(env, row, { channel: 'in_store', orderRef: `staff:${sponsor.keyId}`, amountPaid: 0, now })) throw reject(409, 'in_use');
+    await endShopifyDiscount(env, row.code);
     return { redeemed: true, code: row.display_code, offer: publicOffer(offer), amounts: { item, discounted, other, total }, message: 'The discount covers the whole bill. Nothing to pay.' };
   }
 
@@ -323,6 +408,7 @@ export async function paymongoWebhook(env, sponsorId, req) {
         holdId: md.vc_hold_id, channel: 'in_store', orderRef: session.id,
         amountPaid: Number.isInteger(paid?.attributes?.amount) ? paid.attributes.amount : null, now,
       }) ? 'redeemed' : 'conflict_hold_lost';
+      if (outcome === 'redeemed') await endShopifyDiscount(env, row.code);
       // A conflict means the guest paid but the code was used elsewhere first. The payment stands;
       // the outcome is logged so it can be followed up.
       if (outcome.startsWith('conflict')) console.warn('claim conflict', { sponsorId, code: md.vc_claim_code, session: session.id, outcome });

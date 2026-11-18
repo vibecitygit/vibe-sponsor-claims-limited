@@ -5,7 +5,8 @@ import { webcrypto } from 'node:crypto';
 import { handle } from '../src/index.js';
 import { hmacHex } from '../src/crypto.js';
 
-const schema = readFileSync(new URL('../migrations/0001_init.sql', import.meta.url), 'utf8');
+const schema = ['0001_init.sql', '0002_partners_shopify.sql']
+  .map(f => readFileSync(new URL(`../migrations/${f}`, import.meta.url), 'utf8')).join('\n');
 
 class Stmt {
   constructor(db, sql, args = []) { this.db = db; this.sql = sql; this.args = args; }
@@ -41,6 +42,53 @@ export function fakePaymongo() {
   fn.failWith = msg => { fail = msg; };
   return fn;
 }
+
+/** A fake Shopify store for one domain, layered over another fetch (e.g. fakePaymongo). */
+export function withFakeShopify(inner, { domain = 'ktc-test.myshopify.com', clientId = 'cid_1', clientSecret = 'shpss_secret' } = {}) {
+  const shop = { calls: [], discounts: [], deactivated: [], webhooks: [], tokensIssued: 0, failDiscounts: null };
+  const fn = async (url, init = {}) => {
+    if (!url.startsWith(`https://${domain}/`)) return inner(url, init);
+    if (url.endsWith('/admin/oauth/access_token')) {
+      const p = new URLSearchParams(init.body);
+      shop.calls.push({ kind: 'token', grant: p.get('grant_type') });
+      if (p.get('client_id') !== clientId || p.get('client_secret') !== clientSecret) return Response.json({ error: 'invalid_client' }, { status: 401 });
+      shop.tokensIssued++;
+      return Response.json({ access_token: `shpat_tok${shop.tokensIssued}`, scope: 'write_discounts,read_discounts,read_orders', expires_in: 86399 });
+    }
+    if (url.includes('/graphql.json')) {
+      if (!/^shpat_tok\d+$/.test(init.headers['X-Shopify-Access-Token'] || '')) return Response.json({ errors: 'Invalid API key or access token' }, { status: 401 });
+      const { query, variables } = JSON.parse(init.body);
+      shop.calls.push({ kind: 'gql', query, variables, url });
+      if (query.includes('shop {')) return Response.json({ data: { shop: { name: 'Know The Culture', myshopifyDomain: domain } } });
+      if (query.includes('discountCodeBasicCreate')) {
+        if (shop.failDiscounts) return Response.json({ data: { discountCodeBasicCreate: { codeDiscountNode: null, userErrors: [{ field: ['code'], message: shop.failDiscounts }] } } });
+        const id = `gid://shopify/DiscountCodeNode/${1000 + shop.discounts.length}`;
+        shop.discounts.push({ id, input: variables.basicCodeDiscount });
+        return Response.json({ data: { discountCodeBasicCreate: { codeDiscountNode: { id }, userErrors: [] } } });
+      }
+      if (query.includes('discountCodeDeactivate')) {
+        shop.deactivated.push(variables.id);
+        return Response.json({ data: { discountCodeDeactivate: { codeDiscountNode: { id: variables.id }, userErrors: [] } } });
+      }
+      if (query.includes('webhookSubscriptionCreate')) {
+        shop.webhooks.push(variables);
+        return Response.json({ data: { webhookSubscriptionCreate: { webhookSubscription: { id: 'gid://shopify/WebhookSubscription/7' }, userErrors: [] } } });
+      }
+    }
+    return new Response('{}', { status: 404 });
+  };
+  fn.calls = inner.calls;
+  fn.failWith = inner.failWith;
+  fn.shop = shop;
+  return fn;
+}
+
+/** Signs a body the way Shopify does: base64 HMAC-SHA256 with the app's client secret. */
+export async function shopifySignature(secret, raw) {
+  const key = await webcrypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return Buffer.from(await webcrypto.subtle.sign('HMAC', key, new TextEncoder().encode(raw))).toString('base64');
+}
+
 
 export function makeEnv(overrides = {}) {
   const raw = webcrypto.getRandomValues(new Uint8Array(32));

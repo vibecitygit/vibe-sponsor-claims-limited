@@ -151,7 +151,7 @@ async function connect() {
   err($('setupErr'));
   try {
     const me = await api('GET', '/v1/staff/me');
-    $('who').textContent = me.sponsorId + (me.paymongoConnected ? (me.livemode ? ' · live' : ' · test mode') : ' · PayMongo not connected');
+    $('who').textContent = (me.name || me.sponsorId) + (me.paymongoConnected ? (me.livemode ? ' · live' : ' · test mode') : ' · PayMongo not connected');
     $('signOut').hidden = false;
     show('scan');
     return true;
@@ -300,6 +300,15 @@ $('doneNext').addEventListener('click', reset);
 $('resetFromOffer').addEventListener('click', reset);
 
 /* ---------- Start ---------- */
+// A setup link from the partner settings page carries #base=…&key=…: sign in with it, then drop it
+// from the address bar so the key doesn't stay in history or get shared by accident.
+(function readSetupLink() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (!h.get('base') || !h.get('key')) return;
+  cfg = { base: h.get('base'), key: h.get('key') };
+  store.set('base', cfg.base); store.set('key', cfg.key);
+  history.replaceState(null, '', location.pathname + location.search);
+})();
 $('apiBase').value = cfg.base;
 if (cfg.base && cfg.key) connect(); else show('setup');
 })();

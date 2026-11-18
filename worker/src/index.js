@@ -10,10 +10,14 @@
 //                               POST /v1/staff/scan                  create the discounted PayMongo link
 //                               POST /v1/staff/cancel                cancel an open link
 //   PayMongo                    POST /v1/webhooks/paymongo/:sponsorId
-//   Vibe City admin             /v1/admin/...                        offers, keys, PayMongo accounts, claims
+//   Shopify                     POST /v1/webhooks/shopify/:sponsorId     orders/paid
+//   Vibe City admin             /v1/admin/...                        partners, offers, keys, PayMongo, Shopify, claims
+//                                                                    (partner.html is the settings page for these)
 import { HttpError, json, errorResponse, readJson, requireAdmin, requireSponsorKey, corsHeaders } from './http.js';
 import * as claims from './claims.js';
 import * as admin from './admin.js';
+import * as partners from './partners.js';
+import { connectShopify, testShopify, registerShopifyWebhook } from './shopify.js';
 
 const routes = [];
 const route = (method, pattern, handler, { cors = false } = {}) =>
@@ -35,7 +39,8 @@ route('POST', '/v1/partner/claims/release', async (req, env) => json(await claim
 route('GET', '/v1/staff/me', async (req, env) => {
   const s = await requireSponsorKey(req, env, 'staff');
   const pm = await env.DB.prepare('SELECT livemode, webhook_secret_enc IS NOT NULL AS webhook FROM sponsor_paymongo WHERE sponsor_id = ?').bind(s.sponsorId).first();
-  return json({ sponsorId: s.sponsorId, paymongoConnected: !!pm, livemode: !!pm?.livemode, webhookReady: !!pm?.webhook });
+  const p = await env.DB.prepare('SELECT name FROM sponsors WHERE id = ?').bind(s.sponsorId).first();
+  return json({ sponsorId: s.sponsorId, name: p?.name || s.sponsorId, paymongoConnected: !!pm, livemode: !!pm?.livemode, webhookReady: !!pm?.webhook });
 }, { cors: true });
 route('POST', '/v1/staff/lookup', async (req, env) => json(await claims.staffLookup(env, await requireSponsorKey(req, env, 'staff'), await readJson(req))), { cors: true });
 route('POST', '/v1/staff/scan', async (req, env) => json(await claims.staffScan(env, await requireSponsorKey(req, env, 'staff'), await readJson(req), env.fetch || fetch)), { cors: true });
@@ -43,14 +48,24 @@ route('POST', '/v1/staff/cancel', async (req, env) => json(await claims.staffCan
 
 /* PayMongo */
 route('POST', '/v1/webhooks/paymongo/:sponsorId', async (req, env, p) => json(await claims.paymongoWebhook(env, decodeURIComponent(p.sponsorId), req)));
+route('POST', '/v1/webhooks/shopify/:sponsorId', async (req, env, p) => json(await claims.shopifyWebhook(env, decodeURIComponent(p.sponsorId), req)));
 
 /* Admin */
-const adminRoute = (method, pattern, fn) => route(method, pattern, async (req, env, p) => { requireAdmin(req, env); return json(await fn(req, env, p)); });
+// CORS is on so partner.html can call these from an allowed origin; every call still needs the admin token.
+const adminRoute = (method, pattern, fn) => route(method, pattern, async (req, env, p) => { requireAdmin(req, env); return json(await fn(req, env, p)); }, { cors: true });
+const f = env => env.fetch || fetch;
+adminRoute('GET', '/v1/admin/sponsors', (req, env) => partners.listPartners(env));
+adminRoute('GET', '/v1/admin/sponsors/:sid', (req, env, p) => partners.partnerOverview(env, p.sid));
+adminRoute('PUT', '/v1/admin/sponsors/:sid', async (req, env, p) => partners.putPartner(env, p.sid, await readJson(req)));
+adminRoute('PUT', '/v1/admin/sponsors/:sid/shopify', async (req, env, p) => connectShopify(env, p.sid, await readJson(req), f(env)));
+adminRoute('POST', '/v1/admin/sponsors/:sid/shopify/test', (req, env, p) => testShopify(env, p.sid, f(env)));
+adminRoute('POST', '/v1/admin/sponsors/:sid/shopify/webhook', (req, env, p) => registerShopifyWebhook(env, p.sid, f(env)));
+adminRoute('POST', '/v1/admin/sponsors/:sid/shopify/resync', (req, env, p) => partners.resyncShopify(env, p.sid));
 adminRoute('GET', '/v1/admin/offers', (req, env) => admin.listOffers(env));
 adminRoute('PUT', '/v1/admin/offers/:id', async (req, env, p) => admin.putOffer(env, p.id, await readJson(req)));
 adminRoute('GET', '/v1/admin/sponsors/:sid/keys', (req, env, p) => admin.listKeys(env, p.sid));
 adminRoute('POST', '/v1/admin/sponsors/:sid/keys', async (req, env, p) => admin.createKey(env, p.sid, await readJson(req)));
-adminRoute('DELETE', '/v1/admin/keys/:keyId', (req, env, p) => admin.revokeKey(env, p.keyId));
+adminRoute('DELETE', '/v1/admin/sponsors/:sid/keys/:keyId', (req, env, p) => admin.revokeKey(env, p.sid, p.keyId));
 adminRoute('PUT', '/v1/admin/sponsors/:sid/paymongo', async (req, env, p) => admin.putPaymongo(env, p.sid, await readJson(req)));
 adminRoute('POST', '/v1/admin/sponsors/:sid/paymongo/webhook', (req, env, p) => admin.registerWebhook(env, p.sid, env.fetch || fetch));
 adminRoute('GET', '/v1/admin/claims', (req, env) => {
