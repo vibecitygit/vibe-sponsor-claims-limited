@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Partner Settings</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=DM+Sans:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="shared/tokens.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--night); color: var(--fg); font: 15px/1.5 var(--font-body); }
+main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; display: grid; gap: 18px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+h1 { margin: 0; font: 900 clamp(30px, 6vw, 44px)/0.95 var(--font-display); text-transform: uppercase; }
+h2 { margin: 0; font: 800 24px/1.05 var(--font-display); text-transform: uppercase; letter-spacing: .01em; }
+h3 { margin: 4px 0 0; font: 800 15px/1.2 var(--font-body); }
+p { margin: 0; }
+.small, .hint { font-size: 13px; color: var(--muted); }
+.panel { background: var(--raised); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+label { display: grid; gap: 5px; font-size: 13px; font-weight: 700; }
+input, select, textarea { width: 100%; font: 500 15px/1.3 var(--font-body); color: var(--fg); background: var(--night); border: 1px solid var(--line-strong); border-radius: 9px; padding: 10px 11px; }
+textarea { min-height: 70px; resize: vertical; }
+input[readonly] { color: var(--muted); }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+.choice { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+.choice label { display: flex; gap: 10px; align-items: start; padding: 12px; border: 1px solid var(--line-strong); border-radius: 10px; cursor: pointer; font-weight: 500; }
+.choice label:has(input:checked) { border-color: var(--ember); background: rgba(255,73,55,.08); }
+.choice input { width: auto; margin-top: 3px; accent-color: var(--ember); }
+.choice b { display: block; font-size: 14px; }
+.checks { display: flex; flex-wrap: wrap; gap: 14px; font-weight: 500; }
+.checks label { display: flex; gap: 6px; align-items: center; font-weight: 500; }
+.checks input { width: auto; accent-color: var(--ember); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, .btn { appearance: none; border: 0; border-radius: 9px; padding: 10px 14px; font: 800 14px/1 var(--font-body); cursor: pointer; text-decoration: none; background: var(--ember); color: var(--on-brand); white-space: nowrap; }
+button.ghost, .btn.ghost { background: transparent; color: var(--fg); box-shadow: inset 0 0 0 1px var(--line-strong); }
+button.danger { background: transparent; color: #ffb3aa; box-shadow: inset 0 0 0 1px rgba(255,73,55,.5); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font: 700 12px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: .05em; background: var(--warm); color: var(--muted); }
+.pill.ok { background: var(--success); color: var(--night); }
+.pill.warn { background: rgba(255,73,55,.18); color: #ffc7c0; }
+.msg { padding: 10px 12px; border-radius: 9px; background: var(--warm); font-size: 14px; }
+.msg.err { background: rgba(255,73,55,.16); color: #ffc7c0; }
+.msg.ok { background: rgba(166,221,183,.14); color: var(--success); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; word-break: break-all; }
+.secret { display: grid; gap: 10px; padding: 14px; border: 1px dashed var(--ember); border-radius: 10px; background: rgba(255,73,55,.06); }
+.setup { display: grid; grid-template-columns: 160px 1fr; gap: 14px; align-items: start; }
+.qr { background: #fff; border-radius: 10px; padding: 8px; }
+.qr svg { display: block; width: 100%; height: auto; }
+.handoff { white-space: pre-wrap; font: 14px/1.55 var(--font-body); background: var(--night); border: 1px solid var(--line-strong); border-radius: 10px; padding: 14px; max-height: 480px; overflow: auto; }
+.steps { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.empty { color: var(--muted); font-size: 14px; }
+@media (max-width: 560px) { .setup { grid-template-columns: 1fr; } .qr { max-width: 220px; } }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <p class="small">Vibe City sponsor claims</p>
+      <h1>Partner Settings</h1>
+    </div>
+    <div class="row" id="topRight" hidden>
+      <label style="min-width:240px">Partner
+        <select id="partnerSelect" aria-label="Choose a partner"></select>
+      </label>
+      <button class="ghost" id="newPartnerBtn" style="align-self:end">New partner</button>
+      <button class="ghost" id="signOut" style="align-self:end">Sign out</button>
+    </div>
+  </header>
+
+  <!-- Connect -->
+  <section class="panel" id="connectPanel" hidden>
+    <h2>Connect</h2>
+    <p class="small">Use the claims server address and the admin token. They stay in this browser until you sign out.</p>
+    <div class="grid2">
+      <label>Claims server address <input id="apiBase" type="url" placeholder="https://claims.example.workers.dev" autocomplete="off"></label>
+      <label>Admin token <input id="adminToken" type="password" autocomplete="off"></label>
+    </div>
+    <div class="row"><button id="connectBtn">Connect</button></div>
+    <p class="msg err" id="connectErr" hidden></p>
+  </section>
+
+  <p class="empty" id="pickHint" hidden>Choose a partner above, or add a new one.</p>
+
+  <div id="partnerView" hidden style="display:grid;gap:18px">
+
+    <!-- Business -->
+    <section class="panel">
+      <div class="panel-head"><h2 id="bizTitle">Business</h2><span class="pill" id="bizShopPill"></span></div>
+      <div class="grid2">
+        <label>Business name <input id="bizName" maxlength="80"></label>
+        <label>Partner id <input id="bizId" placeholder="know-the-culture" maxlength="40"><span class="hint">Lowercase letters, digits and dashes. Can't change later.</span></label>
+      </div>
+      <div>
+        <p style="font-weight:700;font-size:13px;margin-bottom:6px">Online shop</p>
+        <div class="choice" role="radiogroup">
+          <label><input type="radio" name="shopType" value="none"><span><b>No online shop</b><span class="small">Claims are used at the counter only.</span></span></label>
+          <label><input type="radio" name="shopType" value="shopify"><span><b>Shopify store</b><span class="small">We create a single-use Shopify discount for each claim.</span></span></label>
+          <label><input type="radio" name="shopType" value="own_server"><span><b>Own website</b><span class="small">Their developer calls our verify and redeem API.</span></span></label>
+        </div>
+      </div>
+      <div class="grid2">
+        <label>Shop address <input id="bizShopUrl" type="url" placeholder="https://knowtheculture.ph"></label>
+        <label>Contact <input id="bizContact" placeholder="Name, role, how to reach them" maxlength="200"></label>
+      </div>
+      <label>Notes <textarea id="bizNotes" maxlength="2000"></textarea></label>
+      <div class="row"><button id="bizSave">Save business</button><span class="small" id="bizMsg" aria-live="polite"></span></div>
+    </section>
+
+    <div id="afterProfile" style="display:grid;gap:18px">
+
+    <!-- Online shop -->
+    <section class="panel" id="shopPanel">
+      <div class="panel-head"><h2>Online shop</h2><span class="pill" id="shopPill"></span></div>
+
+      <div id="shopNone" hidden><p class="empty">This partner has no online shop. Claims are used at the counter with the scanner.</p></div>
+
+      <div id="shopShopify" hidden style="display:grid;gap:14px">
+        <p class="small">The partner creates a custom app in their Shopify Dev Dashboard with the access scopes <code>write_discounts</code>, <code>read_discounts</code> and <code>read_orders</code>, installs it on their store, and sends you its client ID and client secret through a secure channel.</p>
+        <div class="grid2">
+          <label>Store's myshopify.com address <input id="shDomain" placeholder="know-the-culture.myshopify.com" autocomplete="off"></label>
+          <label>Client ID <input id="shClientId" autocomplete="off"></label>
+          <label>Client secret <input id="shSecret" type="password" autocomplete="off" placeholder="Leave empty to keep the saved one"></label>
+        </div>
+        <div class="row">
+          <button id="shConnect">Connect and test</button>
+          <button class="ghost" id="shTest">Test again</button>
+          <button class="ghost" id="shWebhook">Register order webhook</button>
+          <button class="ghost" id="shResync" hidden></button>
+        </div>
+        <p class="msg" id="shMsg" hidden></p>
+      </div>
+
+      <div id="shopOwn" hidden style="display:grid;gap:14px">
+        <p class="small">Their server checks codes before its PayMongo checkout and marks them used after payment. Send their developer <code>PARTNER-INTEGRATION.md</code> and an online key.</p>
+        <div class="table-wrap"><table><thead><tr><th>Online key</th><th>Created</th><th>Status</th><th></th></tr></thead><tbody id="onlineKeys"></tbody></table></div>
+        <div class="row"><input id="onlineLabel" placeholder="Label, e.g. Web store" style="max-width:260px"><button id="onlineCreate">Create online key</button></div>
+        <div id="onlineSecret"></div>
+      </div>
+    </section>
+
+    <!-- PayMongo for in-store -->
+    <section class="panel">
+      <div class="panel-head"><h2>In-store payments</h2><span class="pill" id="pmPill"></span></div>
+      <p class="small">For scan-to-pay at the counter: the partner's own PayMongo secret key (PayMongo dashboard → Developers → API keys). Free offers don't need this.</p>
+      <div class="grid2"><label>PayMongo secret key <input id="pmKey" type="password" placeholder="sk_test_… or sk_live_…" autocomplete="off"></label></div>
+      <div class="row"><button id="pmSave">Save key</button><button class="ghost" id="pmWebhook">Register PayMongo webhook</button></div>
+      <p class="msg" id="pmMsg" hidden></p>
+    </section>
+
+    <!-- Offers -->
+    <section class="panel">
+      <div class="panel-head"><h2>Offers</h2><button class="ghost" id="offerNew">Add offer</button></div>
+      <div class="table-wrap"><table><thead><tr><th>Code</th><th>Offer</th><th>Where</th><th>Valid</th><th class="num">Claimed</th><th class="num">Used</th><th></th></tr></thead><tbody id="offerRows"></tbody></table></div>
+      <form id="offerForm" hidden style="display:grid;gap:12px;border-top:1px solid var(--line);padding-top:14px">
+        <h3 id="offerFormTitle">New offer</h3>
+        <div class="grid2">
+          <label>Code prefix <input id="ofId" placeholder="KTC" maxlength="8" required><span class="hint">2–8 capitals or digits. Starts every claim code.</span></label>
+          <label>Title <input id="ofTitle" maxlength="120" required></label>
+          <label>Discount
+            <select id="ofType"><option value="percent">Percent off</option><option value="amount">Pesos off</option><option value="free">Free item</option></select>
+          </label>
+          <label id="ofValueLabel">Value <input id="ofValue" inputmode="decimal"></label>
+          <label>Valid from (Manila time) <input id="ofFrom" type="datetime-local"></label>
+          <label>Valid until (Manila time) <input id="ofTo" type="datetime-local"></label>
+          <label>Claim limit <input id="ofMax" inputmode="numeric" placeholder="No limit"></label>
+          <label id="ofCollLabel">Shopify collections (optional) <input id="ofColl" placeholder="gid://shopify/Collection/123, …"></label>
+        </div>
+        <div class="checks"><span class="small">Where it can be used:</span>
+          <label><input type="checkbox" id="ofInStore" checked> At the counter</label>
+          <label><input type="checkbox" id="ofOnline"> Online shop</label>
+          <label><input type="checkbox" id="ofActive" checked> Active</label>
+        </div>
+        <div class="row"><button type="submit">Save offer</button><button type="button" class="ghost" id="offerCancel">Cancel</button><span class="small" id="offerMsg" aria-live="polite"></span></div>
+      </form>
+    </section>
+
+    <!-- Scanner accounts -->
+    <section class="panel">
+      <div class="panel-head"><h2>Scanner accounts</h2><span class="small" id="scanCount"></span></div>
+      <p class="small">Each phone or counter gets its own account. A scanner account only works for this business's codes.</p>
+      <div class="table-wrap"><table><thead><tr><th>Account</th><th>Created</th><th>Status</th><th></th></tr></thead><tbody id="scanRows"></tbody></table></div>
+      <div class="row"><input id="scanLabel" placeholder="Label, e.g. Event stall phone" style="max-width:280px" maxlength="80"><button id="scanCreate">Add scanner account</button></div>
+      <div id="scanSecret"></div>
+    </section>
+
+    <!-- Handoff -->
+    <section class="panel">
+      <div class="panel-head"><h2>Handoff</h2><button class="ghost" id="handoffCopy">Copy message</button></div>
+      <ol class="steps" id="checklist"></ol>
+      <div class="handoff" id="handoffText"></div>
+    </section>
+
+    <!-- Claims -->
+    <section class="panel">
+      <div class="panel-head"><h2>Recent claims</h2><button class="ghost" id="refreshBtn">Refresh</button></div>
+      <div class="table-wrap"><table><thead><tr><th>Code</th><th>State</th><th>Where</th><th class="num">Paid</th><th>Created</th><th>Shopify</th></tr></thead><tbody id="claimRows"></tbody></table></div>
+    </section>
+
+    </div>
+  </div>
+</main>
+
+<script>
+(function () {
+'use strict';
+const $ = id => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem('vc-partners-' + k) || ''; } catch (e) { return ''; } },
+  set(k, v) { try { v ? localStorage.setItem('vc-partners-' + k, v) : localStorage.removeItem('vc-partners-' + k); } catch (e) { /* private mode */ } },
+};
+let cfg = { base: store.get('base'), token: store.get('token') };
+let current = null;   // overview of the open partner
+let isNew = false;    // the business form is for a partner not saved yet
+let editingOffer = null;
+
+/* ---------- helpers ---------- */
+function el(tag, attrs, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === 'class') n.className = v; else if (k.startsWith('on')) n.addEventListener(k.slice(2), v); else if (v !== null && v !== undefined) n.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c !== null && c !== undefined && c !== false) n.append(c.nodeType ? c : document.createTextNode(String(c)));
+  return n;
+}
+function msg(node, text, kind) { node.textContent = text || ''; node.hidden = !text; if (node.classList.contains('msg')) node.className = 'msg' + (kind ? ' ' + kind : ''); }
+function pill(node, text, kind) { node.textContent = text; node.className = 'pill' + (kind ? ' ' + kind : ''); }
+const peso = c => (c === null || c === undefined) ? '' : '₱' + (c / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const manila = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
+const fmt = iso => iso ? manila.format(new Date(iso)) : '';
+function toLocalInput(iso) {
+  if (!iso) return '';
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(iso)).map(x => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
+const fromLocalInput = v => v ? v + ':00+08:00' : null;
+const scannerUrl = () => new URL('scanner.html', location.href).href.split('#')[0];
+
+async function api(method, path, body) {
+  const res = await fetch(cfg.base.replace(/\/$/, '') + path, {
+    method, headers: Object.assign({ Authorization: 'Bearer ' + cfg.token }, body ? { 'Content-Type': 'application/json' } : {}),
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { const e = new Error(data.message || 'Request failed (' + res.status + ').'); e.status = res.status; e.code = data.error; throw e; }
+  return data;
+}
+async function busy(btn, fn) { btn.disabled = true; try { return await fn(); } finally { btn.disabled = false; } }
+
+/* ---------- connect ---------- */
+async function connect() {
+  msg($('connectErr'));
+  try {
+    const { partners } = await api('GET', '/v1/admin/sponsors');
+    $('connectPanel').hidden = true; $('topRight').hidden = false;
+    fillPicker(partners);
+    const want = new URLSearchParams(location.hash.slice(1)).get('partner');
+    if (want && partners.some(p => p.id === want)) openPartner(want);
+    else { $('pickHint').hidden = false; $('partnerView').hidden = true; }
+    return true;
+  } catch (e) {
+    $('connectPanel').hidden = false; $('topRight').hidden = true;
+    msg($('connectErr'), e.status === 401 ? 'That admin token was not accepted.' : 'Could not reach the claims server. Check the address and that this page\'s address is in ALLOWED_ORIGINS.', 'err');
+    return false;
+  }
+}
+$('connectBtn').addEventListener('click', async () => {
+  cfg = { base: $('apiBase').value.trim(), token: $('adminToken').value.trim() };
+  if (!/^https?:\/\//.test(cfg.base) || !cfg.token) return msg($('connectErr'), 'Enter the server address and the admin token.', 'err');
+  if (await connect()) { store.set('base', cfg.base); store.set('token', cfg.token); }
+});
+$('signOut').addEventListener('click', () => { store.set('token', ''); cfg.token = ''; $('partnerView').hidden = true; $('topRight').hidden = true; $('pickHint').hidden = true; $('apiBase').value = cfg.base; $('connectPanel').hidden = false; });
+
+function fillPicker(partners, selected) {
+  const s = $('partnerSelect'); s.replaceChildren(el('option', { value: '' }, 'Choose…'));
+  partners.forEach(p => s.append(el('option', { value: p.id }, p.name + (p.name !== p.id ? ' (' + p.id + ')' : ''))));
+  if (selected) s.value = selected;
+}
+$('partnerSelect').addEventListener('change', e => { if (e.target.value) location.hash = 'partner=' + encodeURIComponent(e.target.value); });
+window.addEventListener('hashchange', () => {
+  const id = new URLSearchParams(location.hash.slice(1)).get('partner');
+  if (id && cfg.token && (!current || current.id !== id)) openPartner(id);
+});
+$('newPartnerBtn').addEventListener('click', () => {
+  history.replaceState(null, '', location.pathname + location.search);
+  isNew = true; current = null; $('partnerSelect').value = '';
+  $('pickHint').hidden = true; $('partnerView').hidden = false; $('afterProfile').hidden = true;
+  $('bizTitle').textContent = 'New partner'; $('bizShopPill').hidden = true;
+  for (const id of ['bizName', 'bizId', 'bizShopUrl', 'bizContact', 'bizNotes']) $(id).value = '';
+  $('bizId').readOnly = false; setShopType('none'); $('bizMsg').textContent = ''; $('bizName').focus();
+});
+
+/* ---------- open a partner ---------- */
+async function openPartner(id) {
+  try { current = await api('GET', '/v1/admin/sponsors/' + encodeURIComponent(id)); }
+  catch (e) { $('pickHint').hidden = false; $('pickHint').textContent = e.message; $('partnerView').hidden = true; return; }
+  isNew = false; render();
+}
+async function reload() { if (current) { current = await api('GET', '/v1/admin/sponsors/' + encodeURIComponent(current.id)); render(); } }
+
+function setShopType(t) { document.querySelectorAll('input[name=shopType]').forEach(r => { r.checked = r.value === t; }); }
+const shopType = () => (document.querySelector('input[name=shopType]:checked') || {}).value || 'none';
+const SHOP_LABEL = { none: 'In-store only', shopify: 'Shopify', own_server: 'Own website' };
+
+function render() {
+  const o = current, p = o.profile;
+  $('pickHint').hidden = true; $('partnerView').hidden = false; $('afterProfile').hidden = false;
+  $('partnerSelect').value = o.id;
+  $('bizTitle').textContent = p.name; $('bizShopPill').hidden = false; pill($('bizShopPill'), SHOP_LABEL[p.shopType]);
+  $('bizName').value = p.name; $('bizId').value = o.id; $('bizId').readOnly = true;
+  $('bizShopUrl').value = p.shopUrl || ''; $('bizContact').value = p.contact || ''; $('bizNotes').value = p.notes || '';
+  setShopType(p.shopType); $('bizMsg').textContent = '';
+
+  // Online shop
+  $('shopNone').hidden = p.shopType !== 'none'; $('shopShopify').hidden = p.shopType !== 'shopify'; $('shopOwn').hidden = p.shopType !== 'own_server';
+  if (p.shopType === 'shopify') {
+    const s = o.shopify;
+    pill($('shopPill'), s.connected ? (s.webhookReady ? 'Connected' : 'Connected, no webhook') : (s.shopDomain ? 'Not working' : 'Not connected'), s.connected && s.webhookReady ? 'ok' : 'warn');
+    $('shDomain').value = s.shopDomain || ''; $('shClientId').value = s.clientId || ''; $('shSecret').value = '';
+    $('shTest').hidden = !s.shopDomain; $('shWebhook').disabled = !s.connected;
+    $('shResync').hidden = !o.claimsNeedingShopifySync; $('shResync').textContent = `Create missing Shopify discounts (${o.claimsNeedingShopifySync})`;
+    if (s.lastError) msg($('shMsg'), s.lastError, 'err'); else if (s.connected) msg($('shMsg'), `Connected to “${s.shopName}”.`, 'ok'); else msg($('shMsg'));
+  } else if (p.shopType === 'own_server') {
+    const live = o.onlineKeys.filter(k => !k.revoked).length;
+    pill($('shopPill'), live ? 'Key issued' : 'No key yet', live ? 'ok' : 'warn');
+    renderKeys($('onlineKeys'), o.onlineKeys, 'online key');
+  } else pill($('shopPill'), 'None');
+  $('onlineSecret').replaceChildren();
+
+  // PayMongo
+  pill($('pmPill'), o.paymongo.connected ? (o.paymongo.webhookReady ? (o.paymongo.livemode ? 'Live' : 'Test mode') : 'Key saved, no webhook') : 'Not connected', o.paymongo.connected && o.paymongo.webhookReady ? 'ok' : 'warn');
+  $('pmKey').value = ''; $('pmWebhook').disabled = !o.paymongo.connected; msg($('pmMsg'));
+
+  renderOffers(); renderScanners(); renderHandoff(); renderClaims();
+}
+
+/* ---------- business ---------- */
+$('bizSave').addEventListener('click', e => busy(e.target, async () => {
+  const id = $('bizId').value.trim();
+  try {
+    current = await api('PUT', '/v1/admin/sponsors/' + encodeURIComponent(id), { name: $('bizName').value, shopType: shopType(), shopUrl: $('bizShopUrl').value, contact: $('bizContact').value, notes: $('bizNotes').value });
+    const { partners } = await api('GET', '/v1/admin/sponsors'); fillPicker(partners, id);
+    if (isNew) { isNew = false; history.replaceState(null, '', '#partner=' + encodeURIComponent(id)); }
+    render(); $('bizMsg').textContent = 'Saved.';
+  } catch (err) { $('bizMsg').textContent = err.message; }
+}));
+
+/* ---------- Shopify ---------- */
+$('shConnect').addEventListener('click', e => busy(e.target, async () => {
+  const body = { shopDomain: $('shDomain').value, clientId: $('shClientId').value, clientSecret: $('shSecret').value };
+  if (!body.clientSecret) return msg($('shMsg'), 'Enter the client secret to connect (it is never shown again once saved).', 'err');
+  try { const r = await api('PUT', `/v1/admin/sponsors/${encodeURIComponent(current.id)}/shopify`, body); await reload(); msg($('shMsg'), `Connected to “${r.shopName}”. Now register the order webhook.`, 'ok'); }
+  catch (err) { await reload().catch(() => {}); msg($('shMsg'), err.message, 'err'); }
+}));
+$('shTest').addEventListener('click', e => busy(e.target, async () => {
+  try { const r = await api('POST', `/v1/admin/sponsors/${encodeURIComponent(current.id)}/shopify/test`); await reload(); msg($('shMsg'), `Working: “${r.shopName}”.`, 'ok'); }
+  catch (err) { await reload().catch(() => {}); msg($('shMsg'), err.message, 'err'); }
+}));
+$('shWebhook').addEventListener('click', e => busy(e.target, async () => {
+  try { await api('POST', `/v1/admin/sponsors/${encodeURIComponent(current.id)}/shopify/webhook`); await reload(); msg($('shMsg'), 'Order webhook registered. Paid orders that use a claim code now mark it used.', 'ok'); }
+  catch (err) { msg($('shMsg'), err.message, 'err'); }
+}));
+$('shResync').addEventListener('click', e => busy(e.target, async () => {
+  try { const r = await api('POST', `/v1/admin/sponsors/${encodeURIComponent(current.id)}/shopify/resync`); await reload(); msg($('shMsg'), `Created ${r.synced} of ${r.tried} missing Shopify discounts${r.failed ? `; ${r.failed} failed, see Recent claims` : ''}.`, r.failed ? 'err' : 'ok'); }
+  catch (err) { msg($('shMsg'), err.message, 'err'); }
+}));
+
+/* ---------- PayMongo ---------- */
+$('pmSave').addEventListener('click', e => busy(e.target, async () => {
+  try { const r = await api('PUT', `/v1/admin/sponsors/${encodeURIComponent(current.id)}/paymongo`, { secretKey: $('pmKey').value.trim() }); await reload(); msg($('pmMsg'), `Key saved (${r.livemode ? 'live' : 'test mode'}). Now register the PayMongo webhook.`, 'ok'); }
+  catch (err) { msg($('pmMsg'), err.message, 'err'); }
+}));
+$('pmWebhook').addEventListener('click', e => busy(e.target, async () => {
+  try { await api('POST', `/v1/admin/sponsors/${encodeURIComponent(current.id)}/paymongo/webhook`); await reload(); msg($('pmMsg'), 'PayMongo webhook registered. Paid scan links now mark codes used.', 'ok'); }
+  catch (err) { msg($('pmMsg'), err.message, 'err'); }
+}));
+
+/* ---------- keys (scanner accounts and online keys), this partner only ---------- */
+function renderKeys(tbody, keys, noun) {
+  tbody.replaceChildren();
+  if (!keys.length) { tbody.append(el('tr', {}, el('td', { colspan: 4, class: 'empty' }, `No ${noun}s yet.`))); return; }
+  keys.forEach(k => tbody.append(el('tr', {},
+    el('td', {}, k.label || el('span', { class: 'small' }, 'Unnamed'), el('div', { class: 'small mono' }, k.keyId)),
+    el('td', {}, fmt(k.createdAt)),
+    el('td', {}, el('span', { class: 'pill' + (k.revoked ? '' : ' ok') }, k.revoked ? 'Revoked' : 'Active')),
+    el('td', {}, k.revoked ? '' : el('button', { class: 'danger', onclick: e => revoke(e.target, k, noun) }, 'Revoke')))));
+}
+async function revoke(btn, k, noun) {
+  if (!confirm(`Revoke ${noun} “${k.label || k.keyId}”? Anything using it stops working at once.`)) return;
+  await busy(btn, async () => { await api('DELETE', `/v1/admin/sponsors/${encodeURIComponent(current.id)}/keys/${encodeURIComponent(k.keyId)}`); await reload(); });
+}
+function renderScanners() {
+  const ks = current.scannerAccounts;
+  $('scanCount').textContent = `${ks.filter(k => !k.revoked).length} active`;
+  renderKeys($('scanRows'), ks, 'scanner account');
+}
+$('scanCreate').addEventListener('click', e => busy(e.target, async () => {
+  const label = $('scanLabel').value.trim() || 'Scanner';
+  try {
+    const r = await api('POST', `/v1/admin/sponsors/${encodeURIComponent(current.id)}/keys`, { scope: 'staff', label });
+    $('scanLabel').value = ''; await reload();
+    const link = `${scannerUrl()}#base=${encodeURIComponent(cfg.base)}&key=${encodeURIComponent(r.key)}`;
+    const qrBox = el('div', { class: 'qr', role: 'img', 'aria-label': 'QR code that opens the scanner already signed in' });
+    if (window.qrcode) { const q = qrcode(0, 'M'); q.addData(link); q.make(); qrBox.innerHTML = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); }
+    $('scanSecret').replaceChildren(el('div', { class: 'secret' },
+      el('h3', {}, `Set up “${label}” for ${current.profile.name}`),
+      el('div', { class: 'setup' }, qrBox, el('div', { style: 'display:grid;gap:8px;min-width:0' },
+        el('p', { class: 'small' }, 'Scan this QR with the staff phone, or send the link. It opens the scanner already signed in to this business. This is the only time it is shown.'),
+        el('code', {}, link),
+        el('div', { class: 'row' }, el('button', { class: 'ghost', onclick: ev => copy(ev.target, link) }, 'Copy setup link'), el('button', { class: 'ghost', onclick: () => $('scanSecret').replaceChildren() }, 'Done'))))));
+  } catch (err) { $('scanSecret').replaceChildren(el('p', { class: 'msg err' }, err.message)); }
+}));
+$('onlineCreate').addEventListener('click', e => busy(e.target, async () => {
+  try {
+    const r = await api('POST', `/v1/admin/sponsors/${encodeURIComponent(current.id)}/keys`, { scope: 'online', label: $('onlineLabel').value.trim() || 'Web store' });
+    $('onlineLabel').value = ''; await reload();
+    $('onlineSecret').replaceChildren(el('div', { class: 'secret' },
+      el('h3', {}, 'Online key (shown once)'), el('p', { class: 'small' }, 'Send it to their developer through a secure channel. It goes on their server only, never in a web page.'),
+      el('code', {}, r.key), el('div', { class: 'row' }, el('button', { class: 'ghost', onclick: ev => copy(ev.target, r.key) }, 'Copy key'))));
+  } catch (err) { $('onlineSecret').replaceChildren(el('p', { class: 'msg err' }, err.message)); }
+}));
+async function copy(btn, text) { try { await navigator.clipboard.writeText(text); const t = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = t; }, 1400); } catch (e) { /* no clipboard */ } }
+
+/* ---------- offers ---------- */
+function renderOffers() {
+  const tb = $('offerRows'); tb.replaceChildren();
+  if (!current.offers.length) tb.append(el('tr', {}, el('td', { colspan: 7, class: 'empty' }, 'No offers yet.')));
+  current.offers.forEach(of => tb.append(el('tr', {},
+    el('td', { class: 'mono' }, of.id),
+    el('td', {}, of.title, el('div', { class: 'small' }, of.label + (of.active ? '' : ' · inactive') + (of.maxClaims ? ` · limit ${of.maxClaims}` : ''))),
+    el('td', {}, of.channels.map(c => c === 'online' ? 'Online' : 'Counter').join(', ')),
+    el('td', { class: 'small' }, of.validFrom || of.validTo ? `${fmt(of.validFrom) || 'now'} – ${fmt(of.validTo) || 'open'}` : 'Always'),
+    el('td', { class: 'num' }, of.claimed), el('td', { class: 'num' }, of.redeemed),
+    el('td', {}, el('button', { class: 'ghost', onclick: () => editOffer(of) }, 'Edit')))));
+  $('offerForm').hidden = true;
+}
+function syncOfferForm() {
+  const t = $('ofType').value;
+  $('ofValueLabel').hidden = t === 'free';
+  $('ofValueLabel').firstChild.textContent = t === 'percent' ? 'Percent off ' : 'Pesos off ';
+  $('ofCollLabel').hidden = current.profile.shopType !== 'shopify';
+}
+$('ofType').addEventListener('change', syncOfferForm);
+function editOffer(of) {
+  editingOffer = of || null;
+  $('offerFormTitle').textContent = of ? `Edit ${of.id}` : 'New offer';
+  $('ofId').value = of ? of.id : ''; $('ofId').readOnly = !!of;
+  $('ofTitle').value = of ? of.title : '';
+  $('ofType').value = of ? of.discountType : 'percent';
+  $('ofValue').value = of ? (of.discountType === 'amount' ? of.discountValue / 100 : of.discountType === 'percent' ? of.discountValue : '') : '';
+  $('ofFrom').value = toLocalInput(of && of.validFrom); $('ofTo').value = toLocalInput(of && of.validTo);
+  $('ofMax').value = of && of.maxClaims ? of.maxClaims : '';
+  $('ofColl').value = of ? of.shopifyCollectionIds.join(', ') : '';
+  $('ofInStore').checked = of ? of.channels.includes('in_store') : true;
+  $('ofOnline').checked = of ? of.channels.includes('online') : current.profile.shopType !== 'none';
+  $('ofActive').checked = of ? of.active : true;
+  $('offerMsg').textContent = ''; syncOfferForm();
+  $('offerForm').hidden = false; $('ofTitle').focus();
+}
+$('offerNew').addEventListener('click', () => editOffer(null));
+$('offerCancel').addEventListener('click', () => { $('offerForm').hidden = true; });
+$('offerForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const t = $('ofType').value, raw = parseFloat(String($('ofValue').value).replace(/[₱,%\s]/g, ''));
+  const channels = [$('ofInStore').checked && 'in_store', $('ofOnline').checked && 'online'].filter(Boolean);
+  if (!channels.length) return ($('offerMsg').textContent = 'Choose at least one place it can be used.');
+  const body = {
+    sponsorId: current.id, title: $('ofTitle').value.trim(), discountType: t,
+    discountValue: t === 'percent' ? Math.round(raw) : t === 'amount' ? Math.round(raw * 100) : 0,
+    channels, validFrom: fromLocalInput($('ofFrom').value), validTo: fromLocalInput($('ofTo').value),
+    maxClaims: $('ofMax').value.trim() ? Number($('ofMax').value) : null, active: $('ofActive').checked,
+    shopifyCollectionIds: $('ofColl').value.split(',').map(s => s.trim()).filter(Boolean),
+  };
+  try { await api('PUT', '/v1/admin/offers/' + encodeURIComponent($('ofId').value.trim().toUpperCase()), body); await reload(); }
+  catch (err) { $('offerMsg').textContent = err.message; }
+});
+
+/* ---------- handoff ---------- */
+function renderHandoff() {
+  const o = current, p = o.profile, name = p.name;
+  const offers = o.offers.filter(x => x.active);
+  const offerLine = offers.length ? offers.map(x => `• ${x.title}: ${x.label}${x.validTo ? `, until ${fmt(x.validTo)}` : ''}`).join('\n') : '• (no active offer yet)';
+  const items = [];
+  const done = (ok, text) => items.push(el('li', {}, (ok ? '✓ ' : '○ ') + text));
+  done(offers.length > 0, 'Offer set up');
+  done(o.scannerAccounts.some(k => !k.revoked), 'Scanner account for the counter');
+  const usesPay = offers.some(x => x.channels.includes('in_store') && x.discountType !== 'free');
+  if (usesPay) done(o.paymongo.connected && o.paymongo.webhookReady, 'PayMongo connected for scan-to-pay');
+  if (p.shopType === 'shopify') { done(o.shopify.connected, 'Shopify app connected'); done(o.shopify.webhookReady, 'Shopify order webhook registered'); }
+  if (p.shopType === 'own_server') done(o.onlineKeys.some(k => !k.revoked), 'Online key issued to their developer');
+  $('checklist').replaceChildren(...items);
+
+  let t = `Hi ${name} team,\n\nThanks for being part of Vibe City's sponsor offers. Guests with a ticket get a claim code for your offer, like ${offers[0] ? offers[0].id : 'KTC'}-7Q3FK-9M2XA:\n${offerLine}\n`;
+  t += `\nAT THE COUNTER\nYour staff open the Vibe City scanner on a phone (we'll send a setup link for each phone) and scan the guest's QR. ` +
+       (usesPay ? `For discounts, they enter the price and the guest pays the discounted total by scanning a PayMongo payment QR on your own PayMongo account.` : `The scanner confirms the code and marks it used.`) + `\n`;
+  if (usesPay && !(o.paymongo.connected)) {
+    t += `\nTo take payments at the counter we need your PayMongo secret key (PayMongo dashboard → Developers → API keys). Please send it through a secure channel, not plain email or chat. We can start with your test key (sk_test_…).\n`;
+  }
+  if (p.shopType === 'shopify') {
+    t += `\nONLINE (${p.shopUrl || 'your Shopify store'})\nFor each claim we create a single-use Shopify discount with the same code. Guests get a link that puts it on their cart, or they type the code at checkout; your PayMongo checkout then charges the discounted total. When the order is paid, the code is marked used everywhere, and a code used at the counter stops working online.\n`;
+    if (!o.shopify.connected) {
+      t += `\nWhat we need from you (about 10 minutes, by someone with the "App developer" permission in your Shopify admin):\n` +
+           `1. In Shopify admin: Settings → Apps → Develop apps → Build apps in Dev Dashboard.\n` +
+           `2. Create app → Start from Dev Dashboard → name it "Vibe City Claims".\n` +
+           `3. Create a version with these access scopes: write_discounts, read_discounts, read_orders. Release it.\n` +
+           `4. Back in Settings → Apps, open "Vibe City Claims" and install it on your store.\n` +
+           `5. Send us, through a secure channel: the app's Client ID, Client secret, and your store's myshopify.com address.\n` +
+           `6. Tell us which products the discount should cover. If some are excluded (e.g. sale items or collaborations), put the eligible ones in a Shopify collection and tell us its name.\n` +
+           `The app can only create and end discount codes and read orders. You can uninstall it at any time.\n`;
+    }
+  } else if (p.shopType === 'own_server') {
+    t += `\nONLINE (${p.shopUrl || 'your website'})\nYour server checks the code with us before it creates the PayMongo checkout, applies the discount, and tells us when the order is paid. The developer guide is attached (PARTNER-INTEGRATION.md). We'll send your developer an online key through a secure channel.\n`;
+  }
+  t += `\nWe'll run a test together before the event. Reply here with any questions.\n\nThanks,\nVibe City`;
+  $('handoffText').textContent = t;
+}
+$('handoffCopy').addEventListener('click', e => copy(e.target, $('handoffText').textContent));
+
+/* ---------- claims ---------- */
+function renderClaims() {
+  const tb = $('claimRows'); tb.replaceChildren();
+  if (!current.recentClaims.length) { tb.append(el('tr', {}, el('td', { colspan: 6, class: 'empty' }, 'No claims yet.'))); return; }
+  current.recentClaims.forEach(c => tb.append(el('tr', {},
+    el('td', { class: 'mono' }, c.code),
+    el('td', {}, el('span', { class: 'pill' + (c.state === 'redeemed' ? ' ok' : '') }, c.state === 'redeemed' ? 'Used' : c.state === 'held' ? 'In use' : 'Ready')),
+    el('td', {}, c.channel === 'online' ? 'Online' : c.channel === 'in_store' ? 'Counter' : ''),
+    el('td', { class: 'num' }, peso(c.amount_paid)),
+    el('td', { class: 'small' }, fmt(c.created_at)),
+    el('td', { class: 'small' }, c.shopify_sync || ''))));
+}
+$('refreshBtn').addEventListener('click', e => busy(e.target, reload));
+
+/* ---------- start ---------- */
+$('apiBase').value = cfg.base;
+if (cfg.base && cfg.token) connect(); else $('connectPanel').hidden = false;
+})();
+</script>
+</body>
+</html>

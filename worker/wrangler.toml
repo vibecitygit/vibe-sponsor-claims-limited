@@ -1,0 +1,28 @@
+name = "vibe-sponsor-claims"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "vibe-claims"
+database_id = "REPLACE_WITH_ID_FROM_wrangler_d1_create"
+migrations_dir = "migrations"
+
+[vars]
+# Pages allowed to call the browser endpoints (guest claim pages, staff scanner). Comma-separated.
+ALLOWED_ORIGINS = "http://localhost:8788"
+# This worker's public https address; used to register PayMongo webhooks.
+PUBLIC_BASE_URL = ""
+# How long a code is held while a cart (online) or a payment link (in store) is open.
+HOLD_MINUTES = "30"
+SCAN_HOLD_MINUTES = "60"
+# Where PayMongo sends the guest after paying from a scan link (optional).
+SCAN_SUCCESS_URL = ""
+SCAN_CANCEL_URL = ""
+# Local testing only: issue codes without a signed ticket proof. Never "true" in production.
+ALLOW_UNVERIFIED_TICKETS = "false"
+
+# Secrets (set with `wrangler secret put NAME`, never in this file):
+#   ADMIN_TOKEN            bearer token for /v1/admin/*
+#   DATA_KEY               32 random bytes, base64: encrypts sponsors' PayMongo keys at rest
+#   TICKET_SIGNING_SECRET  shared with the ticketing site, which signs ticket ids for guests
